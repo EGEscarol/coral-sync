@@ -1,0 +1,3485 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>CoralSync</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+        <!-- Firebase SDK -->
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+            import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyDCgZjVwHxOD9H0jiaXFbnWiQVW3avISwg",
+                authDomain: "coralsync-7fdcb.firebaseapp.com",
+                projectId: "coralsync-7fdcb",
+                storageBucket: "coralsync-7fdcb.firebasestorage.app",
+                messagingSenderId: "451098402843",
+                appId: "1:451098402843:web:43b83de93bb4d4f0a818be"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const DOC_REF = doc(db, "coralsync", "data");
+
+            window._fbSave = async function(state) {
+                try {
+                    await setDoc(DOC_REF, {
+                        members: state.members,
+                        activities: state.activities,
+                        records: state.records,
+                        churches: state.churches || []
+                    });
+                    window._setSyncBadge && window._setSyncBadge("✓ Sincronizado", "ok");
+                } catch(e) {
+                    console.error("Firebase save error:", e);
+                    window._setSyncBadge && window._setSyncBadge("Error al guardar", "warn");
+                }
+            };
+
+            window._fbLoad = async function() {
+                try {
+                    const snap = await getDoc(DOC_REF);
+                    if (snap.exists()) return snap.data();
+                    return null;
+                } catch(e) {
+                    console.error("Firebase load error:", e);
+                    return null;
+                }
+            };
+
+            onSnapshot(DOC_REF, (snap) => {
+                if (snap.exists() && window._onFirebaseUpdate) {
+                    window._onFirebaseUpdate(snap.data());
+                }
+            });
+
+            window._fbReady = true;
+            document.dispatchEvent(new Event("firebase-ready"));
+        </script>
+        <style>
+            :root {
+                --primary: #1e396a;
+                --primary-light: #2a4f8a;
+                --primary-dark: #152845;
+                --accent: #cca553;
+                --accent-light: #e0b96a;
+                --accent-dark: #a8863d;
+                --white: #ffffff;
+                --gray-100: #f8f8f6;
+                --gray-200: #efefeb;
+                --gray-300: #ddddd8;
+                --gray-500: #9a9a92;
+                --gray-700: #5a5a52;
+                --gray-900: #1a1a14;
+                --success: #2e7d52;
+                --error: #b33a3a;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Lato", sans-serif;
+                background: var(--gray-100);
+                color: var(--gray-900);
+                min-height: 100vh;
+            }
+
+            /* ========== HEADER ========== */
+            .app-header {
+                background: var(--primary);
+                padding: 0;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                box-shadow: 0 2px 20px rgba(30, 57, 106, 0.4);
+            }
+            .header-inner {
+                max-width: 1100px;
+                margin: 0 auto;
+                display: flex;
+                align-items: center;
+                gap: 18px;
+                padding: 12px 24px;
+            }
+            .header-logo {
+                width: 110px;
+                height: auto;
+                object-fit: contain;
+                /*filter: brightness(0) invert(1)
+                    drop-shadow(0 0 6px rgba(204, 165, 83, 0.4));*/
+            }
+            .header-titles {
+                flex: 1;
+            }
+            .header-titles h1 {
+                font-family: "Cinzel", serif;
+                font-size: 1.25rem;
+                color: var(--accent);
+                letter-spacing: 0.08em;
+                line-height: 1.2;
+            }
+            .header-titles p {
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 0.75rem;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                margin-top: 2px;
+            }
+            .header-user-badge {
+                background: rgba(204, 165, 83, 0.15);
+                border: 1px solid rgba(204, 165, 83, 0.35);
+                color: var(--accent);
+                padding: 5px 14px;
+                border-radius: 20px;
+                font-size: 0.75rem;
+                letter-spacing: 0.06em;
+            }
+
+            /* ========== VIEWS ========== */
+            .view {
+                display: none;
+            }
+            .view.active {
+                display: block;
+            }
+
+            /* ========== LOGIN ========== */
+            .login-screen {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(
+                    135deg,
+                    var(--primary-dark) 0%,
+                    var(--primary) 60%,
+                    #2a5098 100%
+                );
+                position: relative;
+                overflow: hidden;
+            }
+            .login-screen::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 60px,
+                    rgba(204, 165, 83, 0.03) 60px,
+                    rgba(204, 165, 83, 0.03) 61px
+                );
+            }
+            .login-card {
+                background: white;
+                border-radius: 20px;
+                padding: 48px 40px;
+                width: 360px;
+                max-width: 95vw;
+                box-shadow: 0 32px 64px rgba(0, 0, 0, 0.3);
+                position: relative;
+                z-index: 1;
+                text-align: center;
+            }
+            .login-logo {
+                width: 140px;
+                height: 100px;
+                object-fit: contain;
+                margin: 0 auto 20px;
+                display: block;
+            }
+            .login-card h2 {
+                font-family: "Cinzel", serif;
+                color: var(--primary);
+                font-size: 1.4rem;
+                margin-bottom: 4px;
+            }
+            .login-card p {
+                color: var(--gray-500);
+                font-size: 0.85rem;
+                margin-bottom: 32px;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+            }
+            .login-tabs {
+                display: flex;
+                background: var(--gray-200);
+                border-radius: 10px;
+                padding: 4px;
+                margin-bottom: 24px;
+            }
+            .login-tab {
+                flex: 1;
+                padding: 8px;
+                border: none;
+                background: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-family: "Lato", sans-serif;
+                font-size: 0.85rem;
+                color: var(--gray-500);
+                transition: all 0.2s;
+            }
+            .login-tab.active {
+                background: var(--primary);
+                color: white;
+                font-weight: 700;
+            }
+            .pin-input-row {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+                margin-bottom: 24px;
+            }
+            #pin-single:focus {
+                border-color: var(--accent) !important;
+                background: white !important;
+            }
+            .pin-digit {
+                width: 56px;
+                height: 64px;
+                border: 2px solid var(--gray-300);
+                border-radius: 12px;
+                text-align: center;
+                font-size: 1.8rem;
+                font-family: "Cinzel", serif;
+                color: var(--primary);
+                outline: none;
+                transition: border-color 0.2s;
+                background: var(--gray-100);
+            }
+            .pin-digit:focus {
+                border-color: var(--accent);
+                background: white;
+            }
+            .btn-primary {
+                width: 100%;
+                padding: 14px;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-family: "Lato", sans-serif;
+                font-size: 0.95rem;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                cursor: pointer;
+                transition:
+                    background 0.2s,
+                    transform 0.1s;
+            }
+            .btn-primary:hover {
+                background: var(--primary-light);
+                transform: translateY(-1px);
+            }
+            .btn-primary:active {
+                transform: translateY(0);
+            }
+            .login-error {
+                color: var(--error);
+                font-size: 0.82rem;
+                margin-top: 10px;
+                display: none;
+            }
+
+            /* ========== MAIN APP ========== */
+            .main-container {
+                max-width: 1100px;
+                margin: 0 auto;
+                padding: 28px 20px;
+            }
+
+            /* ========== TABS NAV ========== */
+            .nav-tabs {
+                display: flex;
+                gap: 6px;
+                margin-bottom: 28px;
+                flex-wrap: wrap;
+            }
+            .nav-tab {
+                padding: 10px 22px;
+                border: 2px solid var(--gray-300);
+                background: white;
+                border-radius: 10px;
+                cursor: pointer;
+                font-family: "Lato", sans-serif;
+                font-size: 0.85rem;
+                color: var(--gray-700);
+                transition: all 0.2s;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+            }
+            .nav-tab.active {
+                background: var(--primary);
+                border-color: var(--primary);
+                color: white;
+            }
+            .nav-tab:hover:not(.active) {
+                border-color: var(--primary);
+                color: var(--primary);
+            }
+
+            /* ========== CARDS ========== */
+            .card {
+                background: white;
+                border-radius: 16px;
+                padding: 28px;
+                box-shadow: 0 2px 12px rgba(30, 57, 106, 0.08);
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-family: "Cinzel", serif;
+                color: var(--primary);
+                font-size: 1.05rem;
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+                border-bottom: 2px solid var(--accent);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .card-title svg {
+                color: var(--accent);
+            }
+
+            /* ========== FORMS ========== */
+            .form-row {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 14px;
+            }
+            .form-group {
+                flex: 1;
+                min-width: 200px;
+            }
+            label {
+                display: block;
+                font-size: 0.78rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--gray-700);
+                margin-bottom: 6px;
+            }
+            input[type="text"],
+            input[type="color"],
+            select {
+                width: 100%;
+                padding: 10px 14px;
+                border: 2px solid var(--gray-300);
+                border-radius: 10px;
+                font-family: "Lato", sans-serif;
+                font-size: 0.92rem;
+                color: var(--gray-900);
+                outline: none;
+                transition: border-color 0.2s;
+                background: var(--gray-100);
+            }
+            input[type="text"]:focus,
+            select:focus {
+                border-color: var(--accent);
+                background: white;
+            }
+            input[type="color"] {
+                height: 44px;
+                padding: 4px 8px;
+                cursor: pointer;
+            }
+
+            .btn-accent {
+                padding: 10px 22px;
+                background: var(--accent);
+                color: var(--primary-dark);
+                border: none;
+                border-radius: 10px;
+                font-family: "Lato", sans-serif;
+                font-size: 0.88rem;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                cursor: pointer;
+                transition:
+                    background 0.2s,
+                    transform 0.1s;
+                white-space: nowrap;
+            }
+            .btn-accent:hover {
+                background: var(--accent-light);
+                transform: translateY(-1px);
+            }
+            .btn-sm {
+                padding: 6px 14px;
+                font-size: 0.78rem;
+                border-radius: 8px;
+            }
+            .btn-danger {
+                background: #fee2e2;
+                color: var(--error);
+                border: none;
+                border-radius: 8px;
+                padding: 6px 12px;
+                cursor: pointer;
+                font-size: 0.78rem;
+                font-family: "Lato", sans-serif;
+                font-weight: 700;
+                transition: background 0.2s;
+            }
+            .btn-danger:hover {
+                background: #fca5a5;
+            }
+
+            /* ========== LISTS ========== */
+            .item-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .item-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 16px;
+                background: var(--gray-100);
+                border-radius: 10px;
+                border-left: 4px solid var(--primary);
+            }
+            .item-row .item-name {
+                flex: 1;
+                font-weight: 700;
+                font-size: 0.9rem;
+                color: var(--gray-900);
+            }
+            .activity-dot {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+            .activity-label {
+                font-size: 0.82rem;
+                color: var(--gray-700);
+                flex: 1;
+            }
+
+            /* ========== QR GRID ========== */
+            .qr-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 20px;
+            }
+            .qr-card {
+                background: white;
+                border: 2px solid var(--gray-200);
+                border-radius: 16px;
+                padding: 20px;
+                text-align: center;
+                transition: box-shadow 0.2s;
+            }
+            .qr-card:hover {
+                box-shadow: 0 8px 24px rgba(30, 57, 106, 0.15);
+                border-color: var(--accent);
+            }
+            .qr-card h3 {
+                font-family: "Cinzel", serif;
+                font-size: 0.88rem;
+                color: var(--primary);
+                margin-top: 14px;
+                margin-bottom: 4px;
+            }
+            .qr-card p {
+                font-size: 0.72rem;
+                color: var(--gray-500);
+                margin-bottom: 12px;
+            }
+            .qr-code-container {
+                display: flex;
+                justify-content: center;
+            }
+            .btn-download-qr {
+                padding: 7px 16px;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 0.76rem;
+                cursor: pointer;
+                font-family: "Lato", sans-serif;
+                font-weight: 700;
+                transition: background 0.2s;
+            }
+            .btn-download-qr:hover {
+                background: var(--primary-light);
+            }
+
+            /* ========== SCANNER ========== */
+            .scanner-wrap {
+                max-width: 480px;
+                margin: 0 auto;
+                text-align: center;
+            }
+            #camera-view {
+                width: 100%;
+                border-radius: 16px;
+                background: #000;
+                display: none;
+                max-height: 320px;
+                object-fit: cover;
+            }
+            #scan-canvas {
+                display: none;
+            }
+            .scanner-box {
+                position: relative;
+                border-radius: 16px;
+                overflow: hidden;
+                margin-bottom: 16px;
+                background: var(--gray-200);
+                min-height: 200px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .scanner-placeholder {
+                padding: 40px;
+                color: var(--gray-500);
+            }
+            .scanner-placeholder svg {
+                opacity: 0.4;
+                margin-bottom: 10px;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .scanner-placeholder p {
+                font-size: 0.88rem;
+            }
+            .scan-status {
+                padding: 14px;
+                border-radius: 12px;
+                margin-bottom: 16px;
+                font-size: 0.88rem;
+                font-weight: 700;
+                display: none;
+            }
+            .scan-status.success {
+                background: #d1fae5;
+                color: var(--success);
+                display: block;
+            }
+            .scan-status.error {
+                background: #fee2e2;
+                color: var(--error);
+                display: block;
+            }
+            .scan-status.info {
+                background: #dbeafe;
+                color: #1d4ed8;
+                display: block;
+            }
+
+            /* ========== MANUAL FORM ========== */
+            .manual-form {
+                border: 2px dashed var(--gray-300);
+                border-radius: 16px;
+                padding: 24px;
+                margin-top: 20px;
+            }
+            .manual-form h3 {
+                font-family: "Cinzel", serif;
+                color: var(--gray-700);
+                font-size: 0.95rem;
+                margin-bottom: 16px;
+                text-align: center;
+            }
+
+            /* ========== TABLE ========== */
+            .table-wrap {
+                overflow-x: auto;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.85rem;
+            }
+            thead tr {
+                background: var(--primary);
+                color: white;
+            }
+            th {
+                padding: 12px 14px;
+                text-align: left;
+                font-family: "Cinzel", serif;
+                font-size: 0.78rem;
+                letter-spacing: 0.06em;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            td {
+                padding: 11px 14px;
+                border-bottom: 1px solid var(--gray-200);
+                color: var(--gray-900);
+                vertical-align: middle;
+            }
+            tr:hover td {
+                background: var(--gray-100);
+            }
+            .activity-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 3px 10px;
+                border-radius: 20px;
+                font-size: 0.78rem;
+                font-weight: 700;
+                color: white;
+            }
+            .maps-link {
+                color: var(--primary);
+                text-decoration: none;
+                font-size: 0.78rem;
+                font-weight: 700;
+                border-bottom: 1px solid var(--accent);
+                padding-bottom: 1px;
+            }
+            .maps-link:hover {
+                color: var(--accent-dark);
+            }
+
+            /* ========== MEMBER SCAN VIEW (PUBLIC) ========== */
+            .public-wrap {
+                max-width: 480px;
+                margin: 0 auto;
+                padding: 24px 16px;
+            }
+            .public-header {
+                text-align: center;
+                margin-bottom: 32px;
+            }
+            .public-header img {
+                width: 72px;
+                margin-bottom: 16px;
+            }
+            .public-header h2 {
+                font-family: "Cinzel", serif;
+                color: var(--primary);
+                font-size: 1.3rem;
+            }
+            .public-header p {
+                color: var(--gray-500);
+                font-size: 0.82rem;
+                margin-top: 6px;
+            }
+
+            /* ========== TOAST ========== */
+            .toast {
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%) translateY(100px);
+                background: var(--primary);
+                color: white;
+                padding: 14px 28px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 0.9rem;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+                transition: transform 0.35s cubic-bezier(0.22, 0.68, 0, 1.4);
+                z-index: 1000;
+                white-space: nowrap;
+                border-left: 4px solid var(--accent);
+            }
+            .toast.show {
+                transform: translateX(-50%) translateY(0);
+            }
+
+            /* ========== EMPTY STATE ========== */
+            .empty-state {
+                text-align: center;
+                padding: 40px;
+                color: var(--gray-500);
+            }
+            .empty-state svg {
+                opacity: 0.3;
+                margin-bottom: 12px;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .empty-state p {
+                font-size: 0.9rem;
+            }
+
+            /* ========== STATS ========== */
+            .stats-row {
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+                margin-bottom: 20px;
+            }
+            .stat-card {
+                flex: 1;
+                min-width: 120px;
+                background: var(--primary);
+                color: white;
+                border-radius: 14px;
+                padding: 18px;
+                text-align: center;
+            }
+            .stat-card .num {
+                font-family: "Cinzel", serif;
+                font-size: 2rem;
+                color: var(--accent);
+                line-height: 1;
+            }
+            .stat-card .lbl {
+                font-size: 0.72rem;
+                opacity: 0.7;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                margin-top: 6px;
+            }
+
+            .divider {
+                border: none;
+                border-top: 1px solid var(--gray-200);
+                margin: 20px 0;
+            }
+
+            /* ========== RESPONSIVE MOBILE ========== */
+            @media (max-width: 768px) {
+                /* Prevent horizontal scroll globally */
+                body {
+                    overflow-x: hidden;
+                }
+
+                /* Header */
+                .header-inner {
+                    padding: 10px 14px;
+                    gap: 10px;
+                }
+                .header-logo {
+                    width: 60px;
+                    height: auto;
+                }
+                .header-titles h1 {
+                    font-size: 1rem;
+                }
+                .header-titles p {
+                    font-size: 0.65rem;
+                }
+                .header-user-badge {
+                    display: none;
+                }
+
+                /* Main container */
+                .main-container {
+                    padding: 16px 12px;
+                }
+
+                /* Nav tabs — scrollable row on mobile */
+                .nav-tabs {
+                    display: flex;
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
+                    gap: 6px;
+                    padding-bottom: 4px;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                }
+                .nav-tabs::-webkit-scrollbar {
+                    display: none;
+                }
+                .nav-tab {
+                    flex-shrink: 0;
+                    padding: 8px 14px;
+                    font-size: 0.78rem;
+                    white-space: nowrap;
+                }
+
+                /* Cards */
+                .card {
+                    padding: 18px 14px;
+                }
+
+                /* Forms */
+                .form-row {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .form-group {
+                    min-width: 0;
+                    width: 100%;
+                }
+                .form-group[style*="min-width:auto"] {
+                    min-width: 0 !important;
+                }
+                .form-group[style*="min-width:140px"] {
+                    min-width: 0 !important;
+                }
+                .btn-accent {
+                    width: 100%;
+                    text-align: center;
+                }
+
+                /* Table — horizontal scroll */
+                .table-wrap {
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+                table {
+                    min-width: 500px;
+                }
+                th,
+                td {
+                    padding: 9px 10px;
+                    font-size: 0.78rem;
+                }
+
+                /* Stats row */
+                .stats-row {
+                    gap: 10px;
+                }
+                .stat-card {
+                    padding: 14px 10px;
+                    min-width: 80px;
+                }
+                .stat-card .num {
+                    font-size: 1.6rem;
+                }
+                .stat-card .lbl {
+                    font-size: 0.65rem;
+                }
+
+                /* QR grid */
+                .qr-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 12px;
+                }
+                .qr-card {
+                    padding: 14px 10px;
+                }
+
+                /* Login card */
+                .login-card {
+                    padding: 32px 20px;
+                }
+                .login-card h2 {
+                    font-size: 1.2rem;
+                }
+
+                /* Member / Scanner view */
+                .public-wrap {
+                    padding: 16px 12px;
+                }
+                #scanner-box {
+                    width: 100% !important;
+                }
+
+                /* Item rows */
+                .item-row {
+                    padding: 10px 12px;
+                    gap: 8px;
+                }
+                .item-row .item-name {
+                    font-size: 0.84rem;
+                }
+                code {
+                    font-size: 0.65rem;
+                    word-break: break-all;
+                }
+
+                /* Buttons in header */
+                .app-header button {
+                    padding: 6px 10px;
+                    font-size: 0.72rem;
+                }
+            }
+
+            @media (max-width: 400px) {
+                .header-titles h1 {
+                    font-size: 0.88rem;
+                }
+                .nav-tab {
+                    padding: 7px 10px;
+                    font-size: 0.72rem;
+                }
+                .qr-grid {
+                    grid-template-columns: 1fr 1fr;
+                }
+                .stat-card .num {
+                    font-size: 1.4rem;
+                }
+            }
+
+            /* PRINT for QR */
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                #print-area,
+                #print-area * {
+                    visibility: visible;
+                }
+                #print-area {
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+    <!-- ========== SPLASH SCREEN ========== -->
+    <div id="splash-screen" style="
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: linear-gradient(135deg, #0d1e3d 0%, #152845 50%, #1e396a 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.9s ease;
+        overflow: hidden;
+    ">
+        <!-- Patrón sutil de fondo -->
+        <div style="
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 60px,
+                rgba(204, 165, 83, 0.04) 60px,
+                rgba(204, 165, 83, 0.04) 61px
+            );
+        "></div>
+        <!-- Logo SVG incrustado -->
+        <div id="splash-logo" style="
+            width: min(70vw, 420px);
+            opacity: 0;
+            transform: scale(0.88);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 0 28px rgba(204, 165, 83, 0.25));
+        ">
+            <svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1746.23 384.38"><defs><style>.cls-1{fill:#f2f2f2;}.cls-2{fill:url(#Degradado_sin_nombre_107);}.cls-3{fill:url(#Degradado_sin_nombre_107-2);}.cls-4{fill:url(#Degradado_sin_nombre_107-3);}.cls-5{fill:url(#Degradado_sin_nombre_107-4);}</style><linearGradient id="Degradado_sin_nombre_107" x1="2179.64" y1="1526.15" x2="2179.64" y2="1947.81" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#bb9133"/><stop offset="0.15" stop-color="#c7a749"/><stop offset="0.45" stop-color="#e6de81"/><stop offset="0.51" stop-color="#edea8d"/><stop offset="0.64" stop-color="#d6c466"/><stop offset="0.8" stop-color="#bf9d3e"/><stop offset="0.92" stop-color="#b08526"/><stop offset="1" stop-color="#ab7c1d"/></linearGradient><linearGradient id="Degradado_sin_nombre_107-2" x1="2381.48" y1="1526.15" x2="2381.48" y2="1947.81" xlink:href="#Degradado_sin_nombre_107"/><linearGradient id="Degradado_sin_nombre_107-3" x1="2593.66" y1="1526.15" x2="2593.66" y2="1947.81" xlink:href="#Degradado_sin_nombre_107"/><linearGradient id="Degradado_sin_nombre_107-4" x1="2812.46" y1="1526.15" x2="2812.46" y2="1947.81" xlink:href="#Degradado_sin_nombre_107"/></defs><title>logo coro</title><path class="cls-1" d="M1412.83,1619.36L1378.62,1652q-34.91-36.9-78.54-36.9-36.83,0-62,25.18t-25.22,62.08q0,25.7,11.17,45.64a80.06,80.06,0,0,0,31.59,31.3q20.42,11.36,45.38,11.37a93.51,93.51,0,0,0,38.92-8q17.63-8,38.75-28.94l33.16,34.6q-28.48,27.79-53.81,38.54t-57.82,10.75q-59.92,0-98.09-38t-38.17-97.39q0-38.43,17.38-68.31t49.79-48a140.4,140.4,0,0,1,69.79-18.17A148.12,148.12,0,0,1,1412.83,1619.36Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-1" d="M1775.2,1632.27a42.56,42.56,0,0,0-24.11,7.34q-11,7.34-17.65,21.49V1652c-13.74,19.73-27.46,39.47-40.88,59.42v115.79h47.34v-76.87l-0.17-9.26q0-39.83,7.6-53.46t18.61-13.62q5.41,0,13.8,4.19l14.85-41.05A44.64,44.64,0,0,0,1775.2,1632.27Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-1" d="M1934.11,1641.11h47.69v190.07h-47.69v-20.09q-14,13.28-28,19.13a78.43,78.43,0,0,1-30.45,5.85q-36.82,0-63.69-28.56t-26.87-71q0-44,26-72.15t63.16-28.12a80.33,80.33,0,0,1,32.1,6.46,87.65,87.65,0,0,1,27.74,19.39v-21ZM1884,1680.24q-22.12,0-36.74,15.64T1832.61,1736q0,24.63,14.88,40.53a48.23,48.23,0,0,0,36.65,15.9q22.46,0,37.26-15.64t14.8-41q0-24.8-14.8-40.18T1884,1680.24Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-1" d="M2059.21,1700.16c4.37,9,8.68,18.15,13.25,27.17V1554.66h-47.69v72.11C2032.65,1647.36,2048.84,1678.79,2059.21,1700.16Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-1" d="M2050.9,1791.88c-9.82-20.56-18-41.83-26.12-63.1v89.32h39.63C2059.54,1809.55,2055.12,1800.73,2050.9,1791.88Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-2" d="M2255.89,1609.14l-36.23,32q-19.08-26.55-38.85-26.55-9.63,0-15.75,5.15t-6.13,11.62a19.88,19.88,0,0,0,4.38,12.23q5.95,7.69,35.87,33,28,23.41,34,29.52,14.87,15,21.09,28.74a71.79,71.79,0,0,1,6.21,30q0,31.62-21.86,52.23t-57,20.61q-27.46,0-47.83-13.45t-34.89-42.27L2140,1757.1q18.55,34.07,42.69,34.07,12.6,0,21.17-7.34t8.57-16.94q0-8.74-6.47-17.47t-28.52-26.73q-42-34.24-54.25-52.85t-12.25-37.12q0-26.73,20.38-45.86t50.28-19.13a79.33,79.33,0,0,1,36.64,8.91Q2235.6,1585.55,2255.89,1609.14Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-3" d="M2280.75,1641.11h48.74l49.37,119.26,54.48-119.26h48.87l-119,259.59h-49.25L2353,1817Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-4" d="M2509.37,1641.11h47.69v19.48q16.22-13.68,29.39-19a71,71,0,0,1,27-5.35q28.26,0,48,19.74,16.57,16.77,16.57,49.61v125.6h-47.17v-83.23q0-34-3.05-45.19t-10.63-17q-7.58-5.85-18.73-5.85a35.11,35.11,0,0,0-24.83,9.68q-10.37,9.69-14.38,26.78-2.09,8.9-2.09,38.56v76.25h-47.69V1641.11Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-5" d="M2910.12,1679.54l-39.7,21.84q-11.19-11.7-22.12-16.25t-25.62-4.54q-26.76,0-43.29,16t-16.53,40.9q0,24.25,15.92,39.6t41.8,15.35q32,0,49.85-21.84L2908,1796.3q-30.57,39.77-86.3,39.76-50.14,0-78.52-29.7t-28.39-69.53a97.87,97.87,0,0,1,52.32-87.35q24.72-13.27,55.29-13.28,28.3,0,50.83,11.27A96.48,96.48,0,0,1,2910.12,1679.54Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-1" d="M2420,1601.25a19.9,19.9,0,0,0-14.4,33.66c-4.86,38.31-28.41,167.46-127.78,212.63-16.93,7.7-33,11.68-48.18,12.84a19.9,19.9,0,0,0-36.48-2.7c-35.69-8.11-64.73-31.08-85.9-54-14.61-15.81-41.21-57.29-85-165.13l-0.88-2.18c-21.77-53.55-79.84-106.43-160.5-103.76-42.2,1.38-81.54,15.73-113.78,41.5-31.08,24.85-54.32,59.16-67.2,99.23-1.82,5.67-4,11.39-6.49,17.08a271.41,271.41,0,0,0-14.55,27.68c-9.4,15.2-19.84,29.52-31.48,39.18-51,42.33-116,19.72-114.67,16.87a49.92,49.92,0,0,1-9.47-7.77q-14.61-15.37-14.61-40.18,0-24.11,14.79-39.57t37-15.46q22.75,0,37.36,15.28t14.61,39.74q0,24.46-14.87,40c-2,2.1,12.5-4.34,20.1-9.63,13.56-9.43,31.66-18.73,42.76-32.35a98.45,98.45,0,0,0-50.17-84.5,100.76,100.76,0,0,0-50.57-13.45q-37.21,0-65.86,25.86-32.67,29.7-32.67,74.24,0,41.58,28.91,70.66c19.27,19.39,42.55,28.43,69.79,29.09,36.56,0.88,53.16-6.87,53.16-6.87,1.77-1.09,34.59-18,62.39-60.09a245.5,245.5,0,0,0,18.68-34.75h0a1.13,1.13,0,0,0,0,.23c1.37-3,2.71-5.82,4-8.86,13.73-29,62.94-117.89,155.53-131.32l-1.91-13.1c-46.41,6.73-89.79,32.33-126,74.1,30.86-60.06,88-97.39,155.55-99.6,84.94-2.71,132.82,58.73,147.76,95.49l0.88,2.17,1,2.49a184.85,184.85,0,0,0-87.42-64.22,192.88,192.88,0,0,0-37.84-9.05,19.92,19.92,0,1,0,1.26,13.67c33.67,5.19,93.46,24.41,130.21,94.25,16.19,30.76,27.73,57.53,37.91,81.14,22.06,51.17,38.67,89.62,83.8,123a19.91,19.91,0,0,0,34.07,20.46,137.73,137.73,0,0,0,56,11.63c49.23,0,88.19-24.13,90.55-25.62l-7.09-11.23c-0.73.46-69.22,42.71-136,12.2a19.92,19.92,0,0,0-27.64-16.63c-30.87-22.23-47.65-46.62-62.69-77.24a143.52,143.52,0,0,0,11.41,14.33c22.8,24.67,47.53,42.19,73.5,52.07a144.08,144.08,0,0,0,20.29,6,19.91,19.91,0,0,0,38.22,2.86c17.8-1.2,35.77-5.87,53.8-14.07,51.45-23.39,91.42-71.49,115.56-139.11a403.82,403.82,0,0,0,19.38-79.52c0.58,0.05,1.16.09,1.75,0.09A19.92,19.92,0,1,0,2420,1601.25Z" transform="translate(-1163.89 -1532.54)"/><path class="cls-1" d="M1659,1829.39a21.39,21.39,0,0,0-9.64-2.36,19.91,19.91,0,1,0-.18,39.82,20.24,20.24,0,0,0,19.07-14.41H1670v-92.93l-11,17.15v52.72Z" transform="translate(-1163.89 -1532.54)"/></svg>
+        </div>
+
+    </div>
+
+        <!-- ==================== LOGIN SCREEN (now member scanner by default) ==================== -->
+        <div id="view-login" class="view" style="display: none">
+            <div class="login-screen">
+                <div class="login-card">
+                    <img
+                        src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBkYXRhLW5hbWU9IkNhcGEgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDE3NDYuMjMgMzg0LjM4Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2YyZjJmMjt9LmNscy0ye2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDcpO30uY2xzLTN7ZmlsbDp1cmwoI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yKTt9LmNscy00e2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctMyk7fS5jbHMtNXtmaWxsOnVybCgjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTQpO308L3N0eWxlPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3IiB4MT0iMjE3OS42NCIgeTE9IjE1MjYuMTUiIHgyPSIyMTc5LjY0IiB5Mj0iMTk0Ny44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiOTEzMyIvPjxzdG9wIG9mZnNldD0iMC4xNSIgc3RvcC1jb2xvcj0iI2M3YTc0OSIvPjxzdG9wIG9mZnNldD0iMC40NSIgc3RvcC1jb2xvcj0iI2U2ZGU4MSIvPjxzdG9wIG9mZnNldD0iMC41MSIgc3RvcC1jb2xvcj0iI2VkZWE4ZCIvPjxzdG9wIG9mZnNldD0iMC42NCIgc3RvcC1jb2xvcj0iI2Q2YzQ2NiIvPjxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjYmY5ZDNlIi8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYjA4NTI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYWI3YzFkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9IkRlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yIiB4MT0iMjM4MS40OCIgeTE9IjE1MjYuMTUiIHgyPSIyMzgxLjQ4IiB5Mj0iMTk0Ny44MSIgeGxpbms6aHJlZj0iI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNyIvPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTMiIHgxPSIyNTkzLjY2IiB5MT0iMTUyNi4xNSIgeDI9IjI1OTMuNjYiIHkyPSIxOTQ3LjgxIiB4bGluazpocmVmPSIjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctNCIgeDE9IjI4MTIuNDYiIHkxPSIxNTI2LjE1IiB4Mj0iMjgxMi40NiIgeTI9IjE5NDcuODEiIHhsaW5rOmhyZWY9IiNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDciLz48L2RlZnM+PHRpdGxlPmxvZ28gY29ybzwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQxMi44MywxNjE5LjM2TDEzNzguNjIsMTY1MnEtMzQuOTEtMzYuOS03OC41NC0zNi45LTM2LjgzLDAtNjIsMjUuMTh0LTI1LjIyLDYyLjA4cTAsMjUuNywxMS4xNyw0NS42NGE4MC4wNiw4MC4wNiwwLDAsMCwzMS41OSwzMS4zcTIwLjQyLDExLjM2LDQ1LjM4LDExLjM3YTkzLjUxLDkzLjUxLDAsMCwwLDM4LjkyLThxMTcuNjMtOCwzOC43NS0yOC45NGwzMy4xNiwzNC42cS0yOC40OCwyNy43OS01My44MSwzOC41NHQtNTcuODIsMTAuNzVxLTU5LjkyLDAtOTguMDktMzh0LTM4LjE3LTk3LjM5cTAtMzguNDMsMTcuMzgtNjguMzF0NDkuNzktNDhhMTQwLjQsMTQwLjQsMCwwLDEsNjkuNzktMTguMTdBMTQ4LjEyLDE0OC4xMiwwLDAsMSwxNDEyLjgzLDE2MTkuMzZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xNzc1LjIsMTYzMi4yN2E0Mi41Niw0Mi41NiwwLDAsMC0yNC4xMSw3LjM0cS0xMSw3LjM0LTE3LjY1LDIxLjQ5VjE2NTJjLTEzLjc0LDE5LjczLTI3LjQ2LDM5LjQ3LTQwLjg4LDU5LjQydjExNS43OWg0Ny4zNHYtNzYuODdsLTAuMTctOS4yNnEwLTM5LjgzLDcuNi01My40NnQxOC42MS0xMy42MnE1LjQxLDAsMTMuOCw0LjE5bDE0Ljg1LTQxLjA1QTQ0LjY0LDQ0LjY0LDAsMCwwLDE3NzUuMiwxNjMyLjI3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTkzNC4xMSwxNjQxLjExaDQ3LjY5djE5MC4wN2gtNDcuNjl2LTIwLjA5cS0xNCwxMy4yOC0yOCwxOS4xM2E3OC40Myw3OC40MywwLDAsMS0zMC40NSw1Ljg1cS0zNi44MiwwLTYzLjY5LTI4LjU2dC0yNi44Ny03MXEwLTQ0LDI2LTcyLjE1dDYzLjE2LTI4LjEyYTgwLjMzLDgwLjMzLDAsMCwxLDMyLjEsNi40Niw4Ny42NSw4Ny42NSwwLDAsMSwyNy43NCwxOS4zOXYtMjFaTTE4ODQsMTY4MC4yNHEtMjIuMTIsMC0zNi43NCwxNS42NFQxODMyLjYxLDE3MzZxMCwyNC42MywxNC44OCw0MC41M2E0OC4yMyw0OC4yMywwLDAsMCwzNi42NSwxNS45cTIyLjQ2LDAsMzcuMjYtMTUuNjR0MTQuOC00MXEwLTI0LjgtMTQuOC00MC4xOFQxODg0LDE2ODAuMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDU5LjIxLDE3MDAuMTZjNC4zNyw5LDguNjgsMTguMTUsMTMuMjUsMjcuMTdWMTU1NC42NmgtNDcuNjl2NzIuMTFDMjAzMi42NSwxNjQ3LjM2LDIwNDguODQsMTY3OC43OSwyMDU5LjIxLDE3MDAuMTZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDUwLjksMTc5MS44OGMtOS44Mi0yMC41Ni0xOC00MS44My0yNi4xMi02My4xdjg5LjMyaDM5LjYzQzIwNTkuNTQsMTgwOS41NSwyMDU1LjEyLDE4MDAuNzMsMjA1MC45LDE3OTEuODhaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMjU1Ljg5LDE2MDkuMTRsLTM2LjIzLDMycS0xOS4wOC0yNi41NS0zOC44NS0yNi41NS05LjYzLDAtMTUuNzUsNS4xNXQtNi4xMywxMS42MmExOS44OCwxOS44OCwwLDAsMCw0LjM4LDEyLjIzcTUuOTUsNy42OSwzNS44NywzMywyOCwyMy40MSwzNCwyOS41MiwxNC44NywxNSwyMS4wOSwyOC43NGE3MS43OSw3MS43OSwwLDAsMSw2LjIxLDMwcTAsMzEuNjItMjEuODYsNTIuMjN0LTU3LDIwLjYxcS0yNy40NiwwLTQ3LjgzLTEzLjQ1dC0zNC44OS00Mi4yN0wyMTQwLDE3NTcuMXExOC41NSwzNC4wNyw0Mi42OSwzNC4wNywxMi42LDAsMjEuMTctNy4zNHQ4LjU3LTE2Ljk0cTAtOC43NC02LjQ3LTE3LjQ3dC0yOC41Mi0yNi43M3EtNDItMzQuMjQtNTQuMjUtNTIuODV0LTEyLjI1LTM3LjEycTAtMjYuNzMsMjAuMzgtNDUuODZ0NTAuMjgtMTkuMTNhNzkuMzMsNzkuMzMsMCwwLDEsMzYuNjQsOC45MVEyMjM1LjYsMTU4NS41NSwyMjU1Ljg5LDE2MDkuMTRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yMjgwLjc1LDE2NDEuMTFoNDguNzRsNDkuMzcsMTE5LjI2LDU0LjQ4LTExOS4yNmg0OC44N2wtMTE5LDI1OS41OWgtNDkuMjVMMjM1MywxODE3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNMjUwOS4zNywxNjQxLjExaDQ3LjY5djE5LjQ4cTE2LjIyLTEzLjY4LDI5LjM5LTE5YTcxLDcxLDAsMCwxLDI3LTUuMzVxMjguMjYsMCw0OCwxOS43NCwxNi41NywxNi43NywxNi41Nyw0OS42MXYxMjUuNmgtNDcuMTd2LTgzLjIzcTAtMzQtMy4wNS00NS4xOXQtMTAuNjMtMTdxLTcuNTgtNS44NS0xOC43My01Ljg1YTM1LjExLDM1LjExLDAsMCwwLTI0LjgzLDkuNjhxLTEwLjM3LDkuNjktMTQuMzgsMjYuNzgtMi4wOSw4LjktMi4wOSwzOC41NnY3Ni4yNWgtNDcuNjlWMTY0MS4xMVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtNSIgZD0iTTI5MTAuMTIsMTY3OS41NGwtMzkuNywyMS44NHEtMTEuMTktMTEuNy0yMi4xMi0xNi4yNXQtMjUuNjItNC41NHEtMjYuNzYsMC00My4yOSwxNnQtMTYuNTMsNDAuOXEwLDI0LjI1LDE1LjkyLDM5LjZ0NDEuOCwxNS4zNXEzMiwwLDQ5Ljg1LTIxLjg0TDI5MDgsMTc5Ni4zcS0zMC41NywzOS43Ny04Ni4zLDM5Ljc2LTUwLjE0LDAtNzguNTItMjkuN3QtMjguMzktNjkuNTNhOTcuODcsOTcuODcsMCwwLDEsNTIuMzItODcuMzVxMjQuNzItMTMuMjcsNTUuMjktMTMuMjgsMjguMywwLDUwLjgzLDExLjI3QTk2LjQ4LDk2LjQ4LDAsMCwxLDI5MTAuMTIsMTY3OS41NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI0MjAsMTYwMS4yNWExOS45LDE5LjksMCwwLDAtMTQuNCwzMy42NmMtNC44NiwzOC4zMS0yOC40MSwxNjcuNDYtMTI3Ljc4LDIxMi42My0xNi45Myw3LjctMzMsMTEuNjgtNDguMTgsMTIuODRhMTkuOSwxOS45LDAsMCwwLTM2LjQ4LTIuN2MtMzUuNjktOC4xMS02NC43My0zMS4wOC04NS45LTU0LTE0LjYxLTE1LjgxLTQxLjIxLTU3LjI5LTg1LTE2NS4xM2wtMC44OC0yLjE4Yy0yMS43Ny01My41NS03OS44NC0xMDYuNDMtMTYwLjUtMTAzLjc2LTQyLjIsMS4zOC04MS41NCwxNS43My0xMTMuNzgsNDEuNS0zMS4wOCwyNC44NS01NC4zMiw1OS4xNi02Ny4yLDk5LjIzLTEuODIsNS42Ny00LDExLjM5LTYuNDksMTcuMDhhMjcxLjQxLDI3MS40MSwwLDAsMC0xNC41NSwyNy42OGMtOS40LDE1LjItMTkuODQsMjkuNTItMzEuNDgsMzkuMTgtNTEsNDIuMzMtMTE2LDE5LjcyLTExNC42NywxNi44N2E0OS45Miw0OS45MiwwLDAsMS05LjQ3LTcuNzdxLTE0LjYxLTE1LjM3LTE0LjYxLTQwLjE4LDAtMjQuMTEsMTQuNzktMzkuNTd0MzctMTUuNDZxMjIuNzUsMCwzNy4zNiwxNS4yOHQxNC42MSwzOS43NHEwLDI0LjQ2LTE0Ljg3LDQwYy0yLDIuMSwxMi41LTQuMzQsMjAuMS05LjYzLDEzLjU2LTkuNDMsMzEuNjYtMTguNzMsNDIuNzYtMzIuMzVhOTguNDUsOTguNDUsMCwwLDAtNTAuMTctODQuNSwxMDAuNzYsMTAwLjc2LDAsMCwwLTUwLjU3LTEzLjQ1cS0zNy4yMSwwLTY1Ljg2LDI1Ljg2LTMyLjY3LDI5LjctMzIuNjcsNzQuMjQsMCw0MS41OCwyOC45MSw3MC42NmMxOS4yNywxOS4zOSw0Mi41NSwyOC40Myw2OS43OSwyOS4wOSwzNi41NiwwLjg4LDUzLjE2LTYuODcsNTMuMTYtNi44NywxLjc3LTEuMDksMzQuNTktMTgsNjIuMzktNjAuMDlhMjQ1LjUsMjQ1LjUsMCwwLDAsMTguNjgtMzQuNzVoMGExLjEzLDEuMTMsMCwwLDAsMCwuMjNjMS4zNy0zLDIuNzEtNS44Miw0LTguODYsMTMuNzMtMjksNjIuOTQtMTE3Ljg5LDE1NS41My0xMzEuMzJsLTEuOTEtMTMuMWMtNDYuNDEsNi43My04OS43OSwzMi4zMy0xMjYsNzQuMSwzMC44Ni02MC4wNiw4OC05Ny4zOSwxNTUuNTUtOTkuNiw4NC45NC0yLjcxLDEzMi44Miw1OC43MywxNDcuNzYsOTUuNDlsMC44OCwyLjE3LDEsMi40OWExODQuODUsMTg0Ljg1LDAsMCwwLTg3LjQyLTY0LjIyLDE5Mi44OCwxOTIuODgsMCwwLDAtMzcuODQtOS4wNSwxOS45MiwxOS45MiwwLDEsMCwxLjI2LDEzLjY3YzMzLjY3LDUuMTksOTMuNDYsMjQuNDEsMTMwLjIxLDk0LjI1LDE2LjE5LDMwLjc2LDI3LjczLDU3LjUzLDM3LjkxLDgxLjE0LDIyLjA2LDUxLjE3LDM4LjY3LDg5LjYyLDgzLjgsMTIzYTE5LjkxLDE5LjkxLDAsMCwwLDM0LjA3LDIwLjQ2LDEzNy43MywxMzcuNzMsMCwwLDAsNTYsMTEuNjNjNDkuMjMsMCw4OC4xOS0yNC4xMyw5MC41NS0yNS42MmwtNy4wOS0xMS4yM2MtMC43My40Ni02OS4yMiw0Mi43MS0xMzYsMTIuMmExOS45MiwxOS45MiwwLDAsMC0yNy42NC0xNi42M2MtMzAuODctMjIuMjMtNDcuNjUtNDYuNjItNjIuNjktNzcuMjRhMTQzLjUyLDE0My41MiwwLDAsMCwxMS40MSwxNC4zM2MyMi44LDI0LjY3LDQ3LjUzLDQyLjE5LDczLjUsNTIuMDdhMTQ0LjA4LDE0NC4wOCwwLDAsMCwyMC4yOSw2LDE5LjkxLDE5LjkxLDAsMCwwLDM4LjIyLDIuODZjMTcuOC0xLjIsMzUuNzctNS44Nyw1My44LTE0LjA3LDUxLjQ1LTIzLjM5LDkxLjQyLTcxLjQ5LDExNS41Ni0xMzkuMTFhNDAzLjgyLDQwMy44MiwwLDAsMCwxOS4zOC03OS41MmMwLjU4LDAuMDUsMS4xNi4wOSwxLjc1LDAuMDlBMTkuOTIsMTkuOTIsMCwxLDAsMjQyMCwxNjAxLjI1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1OSwxODI5LjM5YTIxLjM5LDIxLjM5LDAsMCwwLTkuNjQtMi4zNiwxOS45MSwxOS45MSwwLDEsMC0uMTgsMzkuODIsMjAuMjQsMjAuMjQsMCwwLDAsMTkuMDctMTQuNDFIMTY3MHYtOTIuOTNsLTExLDE3LjE1djUyLjcyWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PC9zdmc+"
+                        class="login-logo"
+                        alt="Logo CoralSync"
+                    />
+                    <p>Sistema de Registro</p>
+                    <div class="login-tabs">
+                        <button
+                            class="login-tab active"
+                            onclick="setLoginMode('admin')"
+                        >
+                            Administrador
+                        </button>
+                        <button
+                            class="login-tab"
+                            onclick="setLoginMode('member')"
+                        >
+                            Integrante
+                        </button>
+                    </div>
+                    <div id="admin-login-form">
+                        <p
+                            style="
+                                font-size: 0.82rem;
+                                color: var(--gray-500);
+                                margin-bottom: 12px;
+                                text-transform: none;
+                                letter-spacing: 0;
+                            "
+                        >
+                            Ingresa tu PIN de 4 dígitos
+                        </p>
+                        <div class="pin-input-row">
+                            <input
+                                type="password"
+                                id="pin-single"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                maxlength="4"
+                                placeholder="••••"
+                                autocomplete="one-time-code"
+                                style="
+                                    width: 180px;
+                                    height: 64px;
+                                    border: 2px solid var(--gray-300);
+                                    border-radius: 12px;
+                                    text-align: center;
+                                    font-size: 2rem;
+                                    font-family: &quot;Cinzel&quot;, serif;
+                                    color: var(--primary);
+                                    outline: none;
+                                    letter-spacing: 0.4em;
+                                    background: var(--gray-100);
+                                    padding-left: 12px;
+                                "
+                                oninput="
+                                    if (this.value.length === 4)
+                                        checkAdminPin();
+                                "
+                            />
+                        </div>
+                        <button class="btn-primary" onclick="checkAdminPin()">
+                            Entrar como Admin
+                        </button>
+                        <p class="login-error" id="pin-error">
+                            PIN incorrecto. Inténtalo de nuevo.
+                        </p>
+                    </div>
+                    <div id="member-login-form" style="display: none">
+                        <p
+                            style="
+                                font-size: 0.82rem;
+                                color: var(--gray-500);
+                                margin-bottom: 20px;
+                                text-transform: none;
+                                letter-spacing: 0;
+                            "
+                        >
+                            Como integrante, dirígete a la sección de escaneo de
+                            tu código QR.
+                        </p>
+                        <button class="btn-primary" onclick="enterMemberMode()">
+                            Ir al Escáner QR
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ADMIN APP ==================== -->
+        <div id="view-admin" class="view">
+            <header class="app-header">
+                <div class="header-inner">
+                    <img
+                        src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBkYXRhLW5hbWU9IkNhcGEgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDE3NDYuMjMgMzg0LjM4Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2YyZjJmMjt9LmNscy0ye2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDcpO30uY2xzLTN7ZmlsbDp1cmwoI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yKTt9LmNscy00e2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctMyk7fS5jbHMtNXtmaWxsOnVybCgjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTQpO308L3N0eWxlPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3IiB4MT0iMjE3OS42NCIgeTE9IjE1MjYuMTUiIHgyPSIyMTc5LjY0IiB5Mj0iMTk0Ny44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiOTEzMyIvPjxzdG9wIG9mZnNldD0iMC4xNSIgc3RvcC1jb2xvcj0iI2M3YTc0OSIvPjxzdG9wIG9mZnNldD0iMC40NSIgc3RvcC1jb2xvcj0iI2U2ZGU4MSIvPjxzdG9wIG9mZnNldD0iMC41MSIgc3RvcC1jb2xvcj0iI2VkZWE4ZCIvPjxzdG9wIG9mZnNldD0iMC42NCIgc3RvcC1jb2xvcj0iI2Q2YzQ2NiIvPjxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjYmY5ZDNlIi8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYjA4NTI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYWI3YzFkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9IkRlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yIiB4MT0iMjM4MS40OCIgeTE9IjE1MjYuMTUiIHgyPSIyMzgxLjQ4IiB5Mj0iMTk0Ny44MSIgeGxpbms6aHJlZj0iI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNyIvPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTMiIHgxPSIyNTkzLjY2IiB5MT0iMTUyNi4xNSIgeDI9IjI1OTMuNjYiIHkyPSIxOTQ3LjgxIiB4bGluazpocmVmPSIjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctNCIgeDE9IjI4MTIuNDYiIHkxPSIxNTI2LjE1IiB4Mj0iMjgxMi40NiIgeTI9IjE5NDcuODEiIHhsaW5rOmhyZWY9IiNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDciLz48L2RlZnM+PHRpdGxlPmxvZ28gY29ybzwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQxMi44MywxNjE5LjM2TDEzNzguNjIsMTY1MnEtMzQuOTEtMzYuOS03OC41NC0zNi45LTM2LjgzLDAtNjIsMjUuMTh0LTI1LjIyLDYyLjA4cTAsMjUuNywxMS4xNyw0NS42NGE4MC4wNiw4MC4wNiwwLDAsMCwzMS41OSwzMS4zcTIwLjQyLDExLjM2LDQ1LjM4LDExLjM3YTkzLjUxLDkzLjUxLDAsMCwwLDM4LjkyLThxMTcuNjMtOCwzOC43NS0yOC45NGwzMy4xNiwzNC42cS0yOC40OCwyNy43OS01My44MSwzOC41NHQtNTcuODIsMTAuNzVxLTU5LjkyLDAtOTguMDktMzh0LTM4LjE3LTk3LjM5cTAtMzguNDMsMTcuMzgtNjguMzF0NDkuNzktNDhhMTQwLjQsMTQwLjQsMCwwLDEsNjkuNzktMTguMTdBMTQ4LjEyLDE0OC4xMiwwLDAsMSwxNDEyLjgzLDE2MTkuMzZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xNzc1LjIsMTYzMi4yN2E0Mi41Niw0Mi41NiwwLDAsMC0yNC4xMSw3LjM0cS0xMSw3LjM0LTE3LjY1LDIxLjQ5VjE2NTJjLTEzLjc0LDE5LjczLTI3LjQ2LDM5LjQ3LTQwLjg4LDU5LjQydjExNS43OWg0Ny4zNHYtNzYuODdsLTAuMTctOS4yNnEwLTM5LjgzLDcuNi01My40NnQxOC42MS0xMy42MnE1LjQxLDAsMTMuOCw0LjE5bDE0Ljg1LTQxLjA1QTQ0LjY0LDQ0LjY0LDAsMCwwLDE3NzUuMiwxNjMyLjI3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTkzNC4xMSwxNjQxLjExaDQ3LjY5djE5MC4wN2gtNDcuNjl2LTIwLjA5cS0xNCwxMy4yOC0yOCwxOS4xM2E3OC40Myw3OC40MywwLDAsMS0zMC40NSw1Ljg1cS0zNi44MiwwLTYzLjY5LTI4LjU2dC0yNi44Ny03MXEwLTQ0LDI2LTcyLjE1dDYzLjE2LTI4LjEyYTgwLjMzLDgwLjMzLDAsMCwxLDMyLjEsNi40Niw4Ny42NSw4Ny42NSwwLDAsMSwyNy43NCwxOS4zOXYtMjFaTTE4ODQsMTY4MC4yNHEtMjIuMTIsMC0zNi43NCwxNS42NFQxODMyLjYxLDE3MzZxMCwyNC42MywxNC44OCw0MC41M2E0OC4yMyw0OC4yMywwLDAsMCwzNi42NSwxNS45cTIyLjQ2LDAsMzcuMjYtMTUuNjR0MTQuOC00MXEwLTI0LjgtMTQuOC00MC4xOFQxODg0LDE2ODAuMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDU5LjIxLDE3MDAuMTZjNC4zNyw5LDguNjgsMTguMTUsMTMuMjUsMjcuMTdWMTU1NC42NmgtNDcuNjl2NzIuMTFDMjAzMi42NSwxNjQ3LjM2LDIwNDguODQsMTY3OC43OSwyMDU5LjIxLDE3MDAuMTZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDUwLjksMTc5MS44OGMtOS44Mi0yMC41Ni0xOC00MS44My0yNi4xMi02My4xdjg5LjMyaDM5LjYzQzIwNTkuNTQsMTgwOS41NSwyMDU1LjEyLDE4MDAuNzMsMjA1MC45LDE3OTEuODhaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMjU1Ljg5LDE2MDkuMTRsLTM2LjIzLDMycS0xOS4wOC0yNi41NS0zOC44NS0yNi41NS05LjYzLDAtMTUuNzUsNS4xNXQtNi4xMywxMS42MmExOS44OCwxOS44OCwwLDAsMCw0LjM4LDEyLjIzcTUuOTUsNy42OSwzNS44NywzMywyOCwyMy40MSwzNCwyOS41MiwxNC44NywxNSwyMS4wOSwyOC43NGE3MS43OSw3MS43OSwwLDAsMSw2LjIxLDMwcTAsMzEuNjItMjEuODYsNTIuMjN0LTU3LDIwLjYxcS0yNy40NiwwLTQ3LjgzLTEzLjQ1dC0zNC44OS00Mi4yN0wyMTQwLDE3NTcuMXExOC41NSwzNC4wNyw0Mi42OSwzNC4wNywxMi42LDAsMjEuMTctNy4zNHQ4LjU3LTE2Ljk0cTAtOC43NC02LjQ3LTE3LjQ3dC0yOC41Mi0yNi43M3EtNDItMzQuMjQtNTQuMjUtNTIuODV0LTEyLjI1LTM3LjEycTAtMjYuNzMsMjAuMzgtNDUuODZ0NTAuMjgtMTkuMTNhNzkuMzMsNzkuMzMsMCwwLDEsMzYuNjQsOC45MVEyMjM1LjYsMTU4NS41NSwyMjU1Ljg5LDE2MDkuMTRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yMjgwLjc1LDE2NDEuMTFoNDguNzRsNDkuMzcsMTE5LjI2LDU0LjQ4LTExOS4yNmg0OC44N2wtMTE5LDI1OS41OWgtNDkuMjVMMjM1MywxODE3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNMjUwOS4zNywxNjQxLjExaDQ3LjY5djE5LjQ4cTE2LjIyLTEzLjY4LDI5LjM5LTE5YTcxLDcxLDAsMCwxLDI3LTUuMzVxMjguMjYsMCw0OCwxOS43NCwxNi41NywxNi43NywxNi41Nyw0OS42MXYxMjUuNmgtNDcuMTd2LTgzLjIzcTAtMzQtMy4wNS00NS4xOXQtMTAuNjMtMTdxLTcuNTgtNS44NS0xOC43My01Ljg1YTM1LjExLDM1LjExLDAsMCwwLTI0LjgzLDkuNjhxLTEwLjM3LDkuNjktMTQuMzgsMjYuNzgtMi4wOSw4LjktMi4wOSwzOC41NnY3Ni4yNWgtNDcuNjlWMTY0MS4xMVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtNSIgZD0iTTI5MTAuMTIsMTY3OS41NGwtMzkuNywyMS44NHEtMTEuMTktMTEuNy0yMi4xMi0xNi4yNXQtMjUuNjItNC41NHEtMjYuNzYsMC00My4yOSwxNnQtMTYuNTMsNDAuOXEwLDI0LjI1LDE1LjkyLDM5LjZ0NDEuOCwxNS4zNXEzMiwwLDQ5Ljg1LTIxLjg0TDI5MDgsMTc5Ni4zcS0zMC41NywzOS43Ny04Ni4zLDM5Ljc2LTUwLjE0LDAtNzguNTItMjkuN3QtMjguMzktNjkuNTNhOTcuODcsOTcuODcsMCwwLDEsNTIuMzItODcuMzVxMjQuNzItMTMuMjcsNTUuMjktMTMuMjgsMjguMywwLDUwLjgzLDExLjI3QTk2LjQ4LDk2LjQ4LDAsMCwxLDI5MTAuMTIsMTY3OS41NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI0MjAsMTYwMS4yNWExOS45LDE5LjksMCwwLDAtMTQuNCwzMy42NmMtNC44NiwzOC4zMS0yOC40MSwxNjcuNDYtMTI3Ljc4LDIxMi42My0xNi45Myw3LjctMzMsMTEuNjgtNDguMTgsMTIuODRhMTkuOSwxOS45LDAsMCwwLTM2LjQ4LTIuN2MtMzUuNjktOC4xMS02NC43My0zMS4wOC04NS45LTU0LTE0LjYxLTE1LjgxLTQxLjIxLTU3LjI5LTg1LTE2NS4xM2wtMC44OC0yLjE4Yy0yMS43Ny01My41NS03OS44NC0xMDYuNDMtMTYwLjUtMTAzLjc2LTQyLjIsMS4zOC04MS41NCwxNS43My0xMTMuNzgsNDEuNS0zMS4wOCwyNC44NS01NC4zMiw1OS4xNi02Ny4yLDk5LjIzLTEuODIsNS42Ny00LDExLjM5LTYuNDksMTcuMDhhMjcxLjQxLDI3MS40MSwwLDAsMC0xNC41NSwyNy42OGMtOS40LDE1LjItMTkuODQsMjkuNTItMzEuNDgsMzkuMTgtNTEsNDIuMzMtMTE2LDE5LjcyLTExNC42NywxNi44N2E0OS45Miw0OS45MiwwLDAsMS05LjQ3LTcuNzdxLTE0LjYxLTE1LjM3LTE0LjYxLTQwLjE4LDAtMjQuMTEsMTQuNzktMzkuNTd0MzctMTUuNDZxMjIuNzUsMCwzNy4zNiwxNS4yOHQxNC42MSwzOS43NHEwLDI0LjQ2LTE0Ljg3LDQwYy0yLDIuMSwxMi41LTQuMzQsMjAuMS05LjYzLDEzLjU2LTkuNDMsMzEuNjYtMTguNzMsNDIuNzYtMzIuMzVhOTguNDUsOTguNDUsMCwwLDAtNTAuMTctODQuNSwxMDAuNzYsMTAwLjc2LDAsMCwwLTUwLjU3LTEzLjQ1cS0zNy4yMSwwLTY1Ljg2LDI1Ljg2LTMyLjY3LDI5LjctMzIuNjcsNzQuMjQsMCw0MS41OCwyOC45MSw3MC42NmMxOS4yNywxOS4zOSw0Mi41NSwyOC40Myw2OS43OSwyOS4wOSwzNi41NiwwLjg4LDUzLjE2LTYuODcsNTMuMTYtNi44NywxLjc3LTEuMDksMzQuNTktMTgsNjIuMzktNjAuMDlhMjQ1LjUsMjQ1LjUsMCwwLDAsMTguNjgtMzQuNzVoMGExLjEzLDEuMTMsMCwwLDAsMCwuMjNjMS4zNy0zLDIuNzEtNS44Miw0LTguODYsMTMuNzMtMjksNjIuOTQtMTE3Ljg5LDE1NS41My0xMzEuMzJsLTEuOTEtMTMuMWMtNDYuNDEsNi43My04OS43OSwzMi4zMy0xMjYsNzQuMSwzMC44Ni02MC4wNiw4OC05Ny4zOSwxNTUuNTUtOTkuNiw4NC45NC0yLjcxLDEzMi44Miw1OC43MywxNDcuNzYsOTUuNDlsMC44OCwyLjE3LDEsMi40OWExODQuODUsMTg0Ljg1LDAsMCwwLTg3LjQyLTY0LjIyLDE5Mi44OCwxOTIuODgsMCwwLDAtMzcuODQtOS4wNSwxOS45MiwxOS45MiwwLDEsMCwxLjI2LDEzLjY3YzMzLjY3LDUuMTksOTMuNDYsMjQuNDEsMTMwLjIxLDk0LjI1LDE2LjE5LDMwLjc2LDI3LjczLDU3LjUzLDM3LjkxLDgxLjE0LDIyLjA2LDUxLjE3LDM4LjY3LDg5LjYyLDgzLjgsMTIzYTE5LjkxLDE5LjkxLDAsMCwwLDM0LjA3LDIwLjQ2LDEzNy43MywxMzcuNzMsMCwwLDAsNTYsMTEuNjNjNDkuMjMsMCw4OC4xOS0yNC4xMyw5MC41NS0yNS42MmwtNy4wOS0xMS4yM2MtMC43My40Ni02OS4yMiw0Mi43MS0xMzYsMTIuMmExOS45MiwxOS45MiwwLDAsMC0yNy42NC0xNi42M2MtMzAuODctMjIuMjMtNDcuNjUtNDYuNjItNjIuNjktNzcuMjRhMTQzLjUyLDE0My41MiwwLDAsMCwxMS40MSwxNC4zM2MyMi44LDI0LjY3LDQ3LjUzLDQyLjE5LDczLjUsNTIuMDdhMTQ0LjA4LDE0NC4wOCwwLDAsMCwyMC4yOSw2LDE5LjkxLDE5LjkxLDAsMCwwLDM4LjIyLDIuODZjMTcuOC0xLjIsMzUuNzctNS44Nyw1My44LTE0LjA3LDUxLjQ1LTIzLjM5LDkxLjQyLTcxLjQ5LDExNS41Ni0xMzkuMTFhNDAzLjgyLDQwMy44MiwwLDAsMCwxOS4zOC03OS41MmMwLjU4LDAuMDUsMS4xNi4wOSwxLjc1LDAuMDlBMTkuOTIsMTkuOTIsMCwxLDAsMjQyMCwxNjAxLjI1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1OSwxODI5LjM5YTIxLjM5LDIxLjM5LDAsMCwwLTkuNjQtMi4zNiwxOS45MSwxOS45MSwwLDEsMC0uMTgsMzkuODIsMjAuMjQsMjAuMjQsMCwwLDAsMTkuMDctMTQuNDFIMTY3MHYtOTIuOTNsLTExLDE3LjE1djUyLjcyWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PC9zdmc+"
+                        class="header-logo"
+                        alt="Logo"
+                    />
+                    <div class="header-titles">
+                        <p>Panel de Administración</p>
+                    </div>
+                    <span
+                        id="sync-badge"
+                        style="
+                            display: none;
+                            padding: 4px 12px;
+                            border-radius: 20px;
+                            font-size: 0.72rem;
+                            font-weight: 700;
+                            letter-spacing: 0.05em;
+                        "
+                    ></span>
+                    <span class="header-user-badge">Admin</span>
+                    <button
+                        onclick="runSetupWizard()"
+                        title="Configurar base de datos en la nube"
+                        style="
+                            background: rgba(204, 165, 83, 0.2);
+                            border: 1px solid rgba(204, 165, 83, 0.4);
+                            color: #cca553;
+                            padding: 7px 14px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 0.78rem;
+                            font-family: &quot;Lato&quot;, sans-serif;
+                        "
+                    >
+                        ⚙ Nube
+                    </button>
+                    <button
+                        onclick="logout()"
+                        style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.25);
+                            color: white;
+                            padding: 7px 14px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 0.78rem;
+                            font-family: &quot;Lato&quot;, sans-serif;
+                        "
+                    >
+                        Salir
+                    </button>
+                </div>
+            </header>
+
+            <div class="main-container">
+                <!-- NAV TABS -->
+                <div class="nav-tabs">
+                    <button
+                        class="nav-tab active"
+                        onclick="showAdminTab('tab-members')"
+                    >
+                        👥 Integrantes
+                    </button>
+                    <button
+                        class="nav-tab"
+                        onclick="showAdminTab('tab-activities')"
+                    >
+                        🎵 Actividades
+                    </button>
+                    <button
+                        class="nav-tab"
+                        onclick="showAdminTab('tab-churches')"
+                    >
+                        ⛪ Iglesias
+                    </button>
+                    <button class="nav-tab" onclick="showAdminTab('tab-qr')">
+                        📱 Códigos QR
+                    </button>
+                    <button
+                        class="nav-tab"
+                        onclick="showAdminTab('tab-records')"
+                    >
+                        📋 Registros
+                    </button>
+                </div>
+
+                <!-- TAB: MEMBERS -->
+                <div id="tab-members" class="admin-tab">
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                ></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Agregar Integrante
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombre completo</label>
+                                <input
+                                    type="text"
+                                    id="new-member-name"
+                                    placeholder="Ej: María García López"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Iglesia</label>
+                                <select id="new-member-church">
+                                    <option value="">-- Sin iglesia --</option>
+                                </select>
+                            </div>
+                            <div
+                                class="form-group"
+                                style="
+                                    flex: 0 0 auto;
+                                    min-width: 0;
+                                    display: flex;
+                                    align-items: flex-end;
+                                "
+                            >
+                                <button
+                                    class="btn-accent"
+                                    onclick="addMember()"
+                                    style="white-space: nowrap"
+                                >
+                                    + Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                ></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                            </svg>
+                            Integrantes del Coro (<span id="members-count"
+                                >0</span
+                            >)
+                        </div>
+                        <div id="members-list" class="item-list">
+                            <div class="empty-state">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="40"
+                                    height="40"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <path
+                                        d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                    ></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                </svg>
+                                <p>Aún no hay integrantes registrados.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: ACTIVITIES -->
+                <div
+                    id="tab-activities"
+                    class="admin-tab"
+                    style="display: none"
+                >
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            Agregar Actividad
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombre de la actividad</label>
+                                <input
+                                    type="text"
+                                    id="new-activity-name"
+                                    placeholder="Ej: Ensayo General"
+                                />
+                            </div>
+                            <div
+                                class="form-group"
+                                style="flex: 0; min-width: 100px"
+                            >
+                                <label>Color</label>
+                                <input
+                                    type="color"
+                                    id="new-activity-color"
+                                    value="#1E396A"
+                                />
+                            </div>
+                            <div
+                                class="form-group"
+                                style="
+                                    flex: 0 0 auto;
+                                    min-width: 0;
+                                    display: flex;
+                                    align-items: flex-end;
+                                "
+                            >
+                                <button
+                                    class="btn-accent"
+                                    onclick="addActivity()"
+                                    style="white-space: nowrap"
+                                >
+                                    + Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path
+                                    d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                                ></path>
+                            </svg>
+                            Actividades registradas (<span id="activities-count"
+                                >0</span
+                            >)
+                        </div>
+                        <div id="activities-list" class="item-list">
+                            <div class="empty-state">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="40"
+                                    height="40"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                                </svg>
+                                <p>Aún no hay actividades registradas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: CHURCHES -->
+                <div id="tab-churches" class="admin-tab" style="display: none">
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M18 22V6l-6-4-6 4v16" />
+                                <path d="M2 22h20" />
+                                <path d="M12 2v4" />
+                                <rect x="9" y="12" width="6" height="10" />
+                            </svg>
+                            Agregar Iglesia
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombre de la iglesia</label>
+                                <input
+                                    type="text"
+                                    id="new-church-name"
+                                    placeholder="Ej: Iglesia Central"
+                                />
+                            </div>
+                            <div
+                                class="form-group"
+                                style="
+                                    flex: 0 0 auto;
+                                    min-width: 0;
+                                    display: flex;
+                                    align-items: flex-end;
+                                "
+                            >
+                                <button
+                                    class="btn-accent"
+                                    onclick="addChurch()"
+                                    style="white-space: nowrap"
+                                >
+                                    + Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M18 22V6l-6-4-6 4v16" />
+                                <path d="M2 22h20" />
+                            </svg>
+                            Iglesias registradas (<span id="churches-count"
+                                >0</span
+                            >)
+                        </div>
+                        <div id="churches-list" class="item-list">
+                            <div class="empty-state">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="40"
+                                    height="40"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <path d="M18 22V6l-6-4-6 4v16" />
+                                    <path d="M2 22h20" />
+                                </svg>
+                                <p>Aún no hay iglesias registradas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: QR CODES -->
+                <div id="tab-qr" class="admin-tab" style="display: none">
+                    <div class="card">
+                        <div class="card-title">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="3" height="3"></rect>
+                            </svg>
+                            Códigos QR por Integrante
+                        </div>
+                        <p
+                            style="
+                                color: var(--gray-500);
+                                font-size: 0.85rem;
+                                margin-bottom: 20px;
+                            "
+                        >
+                            Genera un QR único para cada integrante. Imprímelos
+                            y entrégsalos físicamente.
+                        </p>
+                        <div id="qr-grid" class="qr-grid">
+                            <div class="empty-state" style="grid-column: 1/-1">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="40"
+                                    height="40"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="3"
+                                        width="7"
+                                        height="7"
+                                    ></rect>
+                                    <rect
+                                        x="14"
+                                        y="3"
+                                        width="7"
+                                        height="7"
+                                    ></rect>
+                                    <rect
+                                        x="3"
+                                        y="14"
+                                        width="7"
+                                        height="7"
+                                    ></rect>
+                                </svg>
+                                <p>Agrega integrantes para generar sus QR.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: RECORDS -->
+                <div id="tab-records" class="admin-tab" style="display: none">
+                    <div class="stats-row" id="stats-row"></div>
+                    <div class="card">
+                        <div
+                            class="card-title"
+                            style="
+                                justify-content: space-between;
+                                flex-wrap: wrap;
+                                gap: 10px;
+                            "
+                        >
+                            <span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    style="
+                                        vertical-align: -3px;
+                                        margin-right: 8px;
+                                        color: var(--accent);
+                                    "
+                                >
+                                    <path
+                                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                    ></path>
+                                    <polyline
+                                        points="14 2 14 8 20 8"
+                                    ></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                                Registros de Actividad
+                            </span>
+                            <button
+                                class="btn-accent btn-sm"
+                                onclick="exportCSV()"
+                            >
+                                ⬇ Exportar CSV
+                            </button>
+                        </div>
+                        <!-- Barra de acciones (visible cuando hay selección) -->
+                        <div
+                            id="records-actions-bar"
+                            style="
+                                display: none;
+                                background: var(--gray-200);
+                                border-radius: 10px;
+                                padding: 10px 14px;
+                                margin-bottom: 14px;
+                                align-items: center;
+                                gap: 12px;
+                                flex-wrap: wrap;
+                            "
+                        >
+                            <span
+                                id="selected-count-label"
+                                style="
+                                    font-size: 0.85rem;
+                                    font-weight: 700;
+                                    color: var(--primary);
+                                    flex: 1;
+                                "
+                                >0 seleccionados</span
+                            >
+                            <button
+                                onclick="deleteSelectedRecords()"
+                                style="
+                                    background: var(--error);
+                                    color: white;
+                                    border: none;
+                                    border-radius: 8px;
+                                    padding: 8px 16px;
+                                    cursor: pointer;
+                                    font-family: &quot;Lato&quot;, sans-serif;
+                                    font-size: 0.82rem;
+                                    font-weight: 700;
+                                "
+                            >
+                                🗑 Eliminar seleccionados
+                            </button>
+                            <button
+                                onclick="clearRecordSelection()"
+                                style="
+                                    background: white;
+                                    border: 2px solid var(--gray-300);
+                                    border-radius: 8px;
+                                    padding: 8px 14px;
+                                    cursor: pointer;
+                                    font-family: &quot;Lato&quot;, sans-serif;
+                                    font-size: 0.82rem;
+                                    font-weight: 700;
+                                    color: var(--gray-700);
+                                "
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 36px">
+                                            <input
+                                                type="checkbox"
+                                                id="check-all-records"
+                                                onchange="
+                                                    toggleAllRecords(this)
+                                                "
+                                                style="
+                                                    cursor: pointer;
+                                                    width: 16px;
+                                                    height: 16px;
+                                                "
+                                            />
+                                        </th>
+                                        <th>#</th>
+                                        <th>Integrante</th>
+                                        <th>Actividad</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Ubicación</th>
+                                        <th style="width: 40px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="records-tbody">
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="empty-state">
+                                                <p>No hay registros aún.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== MEMBER SCANNER VIEW ==================== -->
+        <div id="view-member" class="view active">
+            <header class="app-header">
+                <div class="header-inner">
+                    <img
+                        src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBkYXRhLW5hbWU9IkNhcGEgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDE3NDYuMjMgMzg0LjM4Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2YyZjJmMjt9LmNscy0ye2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDcpO30uY2xzLTN7ZmlsbDp1cmwoI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yKTt9LmNscy00e2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctMyk7fS5jbHMtNXtmaWxsOnVybCgjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTQpO308L3N0eWxlPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3IiB4MT0iMjE3OS42NCIgeTE9IjE1MjYuMTUiIHgyPSIyMTc5LjY0IiB5Mj0iMTk0Ny44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiOTEzMyIvPjxzdG9wIG9mZnNldD0iMC4xNSIgc3RvcC1jb2xvcj0iI2M3YTc0OSIvPjxzdG9wIG9mZnNldD0iMC40NSIgc3RvcC1jb2xvcj0iI2U2ZGU4MSIvPjxzdG9wIG9mZnNldD0iMC41MSIgc3RvcC1jb2xvcj0iI2VkZWE4ZCIvPjxzdG9wIG9mZnNldD0iMC42NCIgc3RvcC1jb2xvcj0iI2Q2YzQ2NiIvPjxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjYmY5ZDNlIi8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYjA4NTI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYWI3YzFkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9IkRlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yIiB4MT0iMjM4MS40OCIgeTE9IjE1MjYuMTUiIHgyPSIyMzgxLjQ4IiB5Mj0iMTk0Ny44MSIgeGxpbms6aHJlZj0iI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNyIvPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTMiIHgxPSIyNTkzLjY2IiB5MT0iMTUyNi4xNSIgeDI9IjI1OTMuNjYiIHkyPSIxOTQ3LjgxIiB4bGluazpocmVmPSIjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctNCIgeDE9IjI4MTIuNDYiIHkxPSIxNTI2LjE1IiB4Mj0iMjgxMi40NiIgeTI9IjE5NDcuODEiIHhsaW5rOmhyZWY9IiNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDciLz48L2RlZnM+PHRpdGxlPmxvZ28gY29ybzwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQxMi44MywxNjE5LjM2TDEzNzguNjIsMTY1MnEtMzQuOTEtMzYuOS03OC41NC0zNi45LTM2LjgzLDAtNjIsMjUuMTh0LTI1LjIyLDYyLjA4cTAsMjUuNywxMS4xNyw0NS42NGE4MC4wNiw4MC4wNiwwLDAsMCwzMS41OSwzMS4zcTIwLjQyLDExLjM2LDQ1LjM4LDExLjM3YTkzLjUxLDkzLjUxLDAsMCwwLDM4LjkyLThxMTcuNjMtOCwzOC43NS0yOC45NGwzMy4xNiwzNC42cS0yOC40OCwyNy43OS01My44MSwzOC41NHQtNTcuODIsMTAuNzVxLTU5LjkyLDAtOTguMDktMzh0LTM4LjE3LTk3LjM5cTAtMzguNDMsMTcuMzgtNjguMzF0NDkuNzktNDhhMTQwLjQsMTQwLjQsMCwwLDEsNjkuNzktMTguMTdBMTQ4LjEyLDE0OC4xMiwwLDAsMSwxNDEyLjgzLDE2MTkuMzZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xNzc1LjIsMTYzMi4yN2E0Mi41Niw0Mi41NiwwLDAsMC0yNC4xMSw3LjM0cS0xMSw3LjM0LTE3LjY1LDIxLjQ5VjE2NTJjLTEzLjc0LDE5LjczLTI3LjQ2LDM5LjQ3LTQwLjg4LDU5LjQydjExNS43OWg0Ny4zNHYtNzYuODdsLTAuMTctOS4yNnEwLTM5LjgzLDcuNi01My40NnQxOC42MS0xMy42MnE1LjQxLDAsMTMuOCw0LjE5bDE0Ljg1LTQxLjA1QTQ0LjY0LDQ0LjY0LDAsMCwwLDE3NzUuMiwxNjMyLjI3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTkzNC4xMSwxNjQxLjExaDQ3LjY5djE5MC4wN2gtNDcuNjl2LTIwLjA5cS0xNCwxMy4yOC0yOCwxOS4xM2E3OC40Myw3OC40MywwLDAsMS0zMC40NSw1Ljg1cS0zNi44MiwwLTYzLjY5LTI4LjU2dC0yNi44Ny03MXEwLTQ0LDI2LTcyLjE1dDYzLjE2LTI4LjEyYTgwLjMzLDgwLjMzLDAsMCwxLDMyLjEsNi40Niw4Ny42NSw4Ny42NSwwLDAsMSwyNy43NCwxOS4zOXYtMjFaTTE4ODQsMTY4MC4yNHEtMjIuMTIsMC0zNi43NCwxNS42NFQxODMyLjYxLDE3MzZxMCwyNC42MywxNC44OCw0MC41M2E0OC4yMyw0OC4yMywwLDAsMCwzNi42NSwxNS45cTIyLjQ2LDAsMzcuMjYtMTUuNjR0MTQuOC00MXEwLTI0LjgtMTQuOC00MC4xOFQxODg0LDE2ODAuMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDU5LjIxLDE3MDAuMTZjNC4zNyw5LDguNjgsMTguMTUsMTMuMjUsMjcuMTdWMTU1NC42NmgtNDcuNjl2NzIuMTFDMjAzMi42NSwxNjQ3LjM2LDIwNDguODQsMTY3OC43OSwyMDU5LjIxLDE3MDAuMTZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDUwLjksMTc5MS44OGMtOS44Mi0yMC41Ni0xOC00MS44My0yNi4xMi02My4xdjg5LjMyaDM5LjYzQzIwNTkuNTQsMTgwOS41NSwyMDU1LjEyLDE4MDAuNzMsMjA1MC45LDE3OTEuODhaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMjU1Ljg5LDE2MDkuMTRsLTM2LjIzLDMycS0xOS4wOC0yNi41NS0zOC44NS0yNi41NS05LjYzLDAtMTUuNzUsNS4xNXQtNi4xMywxMS42MmExOS44OCwxOS44OCwwLDAsMCw0LjM4LDEyLjIzcTUuOTUsNy42OSwzNS44NywzMywyOCwyMy40MSwzNCwyOS41MiwxNC44NywxNSwyMS4wOSwyOC43NGE3MS43OSw3MS43OSwwLDAsMSw2LjIxLDMwcTAsMzEuNjItMjEuODYsNTIuMjN0LTU3LDIwLjYxcS0yNy40NiwwLTQ3LjgzLTEzLjQ1dC0zNC44OS00Mi4yN0wyMTQwLDE3NTcuMXExOC41NSwzNC4wNyw0Mi42OSwzNC4wNywxMi42LDAsMjEuMTctNy4zNHQ4LjU3LTE2Ljk0cTAtOC43NC02LjQ3LTE3LjQ3dC0yOC41Mi0yNi43M3EtNDItMzQuMjQtNTQuMjUtNTIuODV0LTEyLjI1LTM3LjEycTAtMjYuNzMsMjAuMzgtNDUuODZ0NTAuMjgtMTkuMTNhNzkuMzMsNzkuMzMsMCwwLDEsMzYuNjQsOC45MVEyMjM1LjYsMTU4NS41NSwyMjU1Ljg5LDE2MDkuMTRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yMjgwLjc1LDE2NDEuMTFoNDguNzRsNDkuMzcsMTE5LjI2LDU0LjQ4LTExOS4yNmg0OC44N2wtMTE5LDI1OS41OWgtNDkuMjVMMjM1MywxODE3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNMjUwOS4zNywxNjQxLjExaDQ3LjY5djE5LjQ4cTE2LjIyLTEzLjY4LDI5LjM5LTE5YTcxLDcxLDAsMCwxLDI3LTUuMzVxMjguMjYsMCw0OCwxOS43NCwxNi41NywxNi43NywxNi41Nyw0OS42MXYxMjUuNmgtNDcuMTd2LTgzLjIzcTAtMzQtMy4wNS00NS4xOXQtMTAuNjMtMTdxLTcuNTgtNS44NS0xOC43My01Ljg1YTM1LjExLDM1LjExLDAsMCwwLTI0LjgzLDkuNjhxLTEwLjM3LDkuNjktMTQuMzgsMjYuNzgtMi4wOSw4LjktMi4wOSwzOC41NnY3Ni4yNWgtNDcuNjlWMTY0MS4xMVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtNSIgZD0iTTI5MTAuMTIsMTY3OS41NGwtMzkuNywyMS44NHEtMTEuMTktMTEuNy0yMi4xMi0xNi4yNXQtMjUuNjItNC41NHEtMjYuNzYsMC00My4yOSwxNnQtMTYuNTMsNDAuOXEwLDI0LjI1LDE1LjkyLDM5LjZ0NDEuOCwxNS4zNXEzMiwwLDQ5Ljg1LTIxLjg0TDI5MDgsMTc5Ni4zcS0zMC41NywzOS43Ny04Ni4zLDM5Ljc2LTUwLjE0LDAtNzguNTItMjkuN3QtMjguMzktNjkuNTNhOTcuODcsOTcuODcsMCwwLDEsNTIuMzItODcuMzVxMjQuNzItMTMuMjcsNTUuMjktMTMuMjgsMjguMywwLDUwLjgzLDExLjI3QTk2LjQ4LDk2LjQ4LDAsMCwxLDI5MTAuMTIsMTY3OS41NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI0MjAsMTYwMS4yNWExOS45LDE5LjksMCwwLDAtMTQuNCwzMy42NmMtNC44NiwzOC4zMS0yOC40MSwxNjcuNDYtMTI3Ljc4LDIxMi42My0xNi45Myw3LjctMzMsMTEuNjgtNDguMTgsMTIuODRhMTkuOSwxOS45LDAsMCwwLTM2LjQ4LTIuN2MtMzUuNjktOC4xMS02NC43My0zMS4wOC04NS45LTU0LTE0LjYxLTE1LjgxLTQxLjIxLTU3LjI5LTg1LTE2NS4xM2wtMC44OC0yLjE4Yy0yMS43Ny01My41NS03OS44NC0xMDYuNDMtMTYwLjUtMTAzLjc2LTQyLjIsMS4zOC04MS41NCwxNS43My0xMTMuNzgsNDEuNS0zMS4wOCwyNC44NS01NC4zMiw1OS4xNi02Ny4yLDk5LjIzLTEuODIsNS42Ny00LDExLjM5LTYuNDksMTcuMDhhMjcxLjQxLDI3MS40MSwwLDAsMC0xNC41NSwyNy42OGMtOS40LDE1LjItMTkuODQsMjkuNTItMzEuNDgsMzkuMTgtNTEsNDIuMzMtMTE2LDE5LjcyLTExNC42NywxNi44N2E0OS45Miw0OS45MiwwLDAsMS05LjQ3LTcuNzdxLTE0LjYxLTE1LjM3LTE0LjYxLTQwLjE4LDAtMjQuMTEsMTQuNzktMzkuNTd0MzctMTUuNDZxMjIuNzUsMCwzNy4zNiwxNS4yOHQxNC42MSwzOS43NHEwLDI0LjQ2LTE0Ljg3LDQwYy0yLDIuMSwxMi41LTQuMzQsMjAuMS05LjYzLDEzLjU2LTkuNDMsMzEuNjYtMTguNzMsNDIuNzYtMzIuMzVhOTguNDUsOTguNDUsMCwwLDAtNTAuMTctODQuNSwxMDAuNzYsMTAwLjc2LDAsMCwwLTUwLjU3LTEzLjQ1cS0zNy4yMSwwLTY1Ljg2LDI1Ljg2LTMyLjY3LDI5LjctMzIuNjcsNzQuMjQsMCw0MS41OCwyOC45MSw3MC42NmMxOS4yNywxOS4zOSw0Mi41NSwyOC40Myw2OS43OSwyOS4wOSwzNi41NiwwLjg4LDUzLjE2LTYuODcsNTMuMTYtNi44NywxLjc3LTEuMDksMzQuNTktMTgsNjIuMzktNjAuMDlhMjQ1LjUsMjQ1LjUsMCwwLDAsMTguNjgtMzQuNzVoMGExLjEzLDEuMTMsMCwwLDAsMCwuMjNjMS4zNy0zLDIuNzEtNS44Miw0LTguODYsMTMuNzMtMjksNjIuOTQtMTE3Ljg5LDE1NS41My0xMzEuMzJsLTEuOTEtMTMuMWMtNDYuNDEsNi43My04OS43OSwzMi4zMy0xMjYsNzQuMSwzMC44Ni02MC4wNiw4OC05Ny4zOSwxNTUuNTUtOTkuNiw4NC45NC0yLjcxLDEzMi44Miw1OC43MywxNDcuNzYsOTUuNDlsMC44OCwyLjE3LDEsMi40OWExODQuODUsMTg0Ljg1LDAsMCwwLTg3LjQyLTY0LjIyLDE5Mi44OCwxOTIuODgsMCwwLDAtMzcuODQtOS4wNSwxOS45MiwxOS45MiwwLDEsMCwxLjI2LDEzLjY3YzMzLjY3LDUuMTksOTMuNDYsMjQuNDEsMTMwLjIxLDk0LjI1LDE2LjE5LDMwLjc2LDI3LjczLDU3LjUzLDM3LjkxLDgxLjE0LDIyLjA2LDUxLjE3LDM4LjY3LDg5LjYyLDgzLjgsMTIzYTE5LjkxLDE5LjkxLDAsMCwwLDM0LjA3LDIwLjQ2LDEzNy43MywxMzcuNzMsMCwwLDAsNTYsMTEuNjNjNDkuMjMsMCw4OC4xOS0yNC4xMyw5MC41NS0yNS42MmwtNy4wOS0xMS4yM2MtMC43My40Ni02OS4yMiw0Mi43MS0xMzYsMTIuMmExOS45MiwxOS45MiwwLDAsMC0yNy42NC0xNi42M2MtMzAuODctMjIuMjMtNDcuNjUtNDYuNjItNjIuNjktNzcuMjRhMTQzLjUyLDE0My41MiwwLDAsMCwxMS40MSwxNC4zM2MyMi44LDI0LjY3LDQ3LjUzLDQyLjE5LDczLjUsNTIuMDdhMTQ0LjA4LDE0NC4wOCwwLDAsMCwyMC4yOSw2LDE5LjkxLDE5LjkxLDAsMCwwLDM4LjIyLDIuODZjMTcuOC0xLjIsMzUuNzctNS44Nyw1My44LTE0LjA3LDUxLjQ1LTIzLjM5LDkxLjQyLTcxLjQ5LDExNS41Ni0xMzkuMTFhNDAzLjgyLDQwMy44MiwwLDAsMCwxOS4zOC03OS41MmMwLjU4LDAuMDUsMS4xNi4wOSwxLjc1LDAuMDlBMTkuOTIsMTkuOTIsMCwxLDAsMjQyMCwxNjAxLjI1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1OSwxODI5LjM5YTIxLjM5LDIxLjM5LDAsMCwwLTkuNjQtMi4zNiwxOS45MSwxOS45MSwwLDEsMC0uMTgsMzkuODIsMjAuMjQsMjAuMjQsMCwwLDAsMTkuMDctMTQuNDFIMTY3MHYtOTIuOTNsLTExLDE3LjE1djUyLjcyWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PC9zdmc+"
+                        class="header-logo"
+                        alt="Logo"
+                    />
+                    <div class="header-titles">
+                        <p>Registro de Actividad</p>
+                    </div>
+                    <button
+                        onclick="showAdminLogin()"
+                        title="Administrador"
+                        style="
+                            background: transparent;
+                            border: none;
+                            color: rgba(255, 255, 255, 0.25);
+                            padding: 7px 10px;
+                            cursor: pointer;
+                            font-size: 0.72rem;
+                            font-family: &quot;Lato&quot;, sans-serif;
+                            letter-spacing: 0.05em;
+                        "
+                        onmouseover="this.style.color = 'rgba(204,165,83,0.7)'"
+                        onmouseout="this.style.color = 'rgba(255,255,255,0.25)'"
+                    >
+                        ⚙
+                    </button>
+                </div>
+            </header>
+
+            <div class="public-wrap">
+                <div class="public-header" style="margin-top: 24px">
+                    <h2>Escanea tu Código QR</h2>
+                    <p>
+                        Apunta la cámara a tu código QR personal o regístrate
+                        manualmente
+                    </p>
+                </div>
+
+                <div class="card">
+                    <!-- Placeholder visible antes de activar cámara -->
+                    <div
+                        class="scanner-placeholder"
+                        id="scanner-placeholder"
+                        style="
+                            min-height: 240px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            background: var(--gray-200);
+                            border-radius: 16px;
+                            margin-bottom: 4px;
+                        "
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="56"
+                            height="56"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                        >
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="3" height="3"></rect>
+                        </svg>
+                        <p
+                            style="
+                                font-size: 0.88rem;
+                                color: var(--gray-500);
+                                margin-top: 10px;
+                            "
+                        >
+                            Presiona el botón para activar la cámara
+                        </p>
+                    </div>
+                    <!-- html5-qrcode monta la cámara aquí -->
+                    <div
+                        id="scanner-box"
+                        style="
+                            width: 100%;
+                            border-radius: 16px;
+                            overflow: hidden;
+                        "
+                    ></div>
+                    <div id="scan-status" class="scan-status"></div>
+                    <div
+                        style="
+                            display: flex;
+                            gap: 10px;
+                            justify-content: center;
+                            flex-wrap: wrap;
+                        "
+                    >
+                        <button
+                            class="btn-primary"
+                            onclick="startCamera()"
+                            id="btn-start-camera"
+                            style="width: auto"
+                        >
+                            📷 Activar Cámara
+                        </button>
+                        <button
+                            class="btn-accent"
+                            onclick="stopCamera()"
+                            id="btn-stop-camera"
+                            style="display: none; width: auto"
+                        >
+                            ✕ Detener
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advertencia file:// -->
+                <div
+                    id="file-protocol-warning"
+                    style="
+                        display: none;
+                        background: #fff8e1;
+                        border: 2px solid #cca553;
+                        border-radius: 14px;
+                        padding: 20px;
+                        margin-bottom: 16px;
+                    "
+                >
+                    <p
+                        style="
+                            font-weight: 700;
+                            color: #8a6000;
+                            margin-bottom: 10px;
+                        "
+                    >
+                        📁 Para usar la cámara QR necesitas abrir el archivo
+                        desde un servidor
+                    </p>
+                    <p
+                        style="
+                            font-size: 0.83rem;
+                            color: #5a5a52;
+                            line-height: 1.7;
+                            margin-bottom: 12px;
+                        "
+                    >
+                        Los navegadores bloquean la cámara cuando el archivo se
+                        abre directamente (file://). Tienes dos opciones:
+                    </p>
+                    <p
+                        style="
+                            font-size: 0.83rem;
+                            color: #1e396a;
+                            font-weight: 700;
+                            margin-bottom: 4px;
+                        "
+                    >
+                        ✅ Opción 1 — Chrome en Android/iPhone:
+                    </p>
+                    <p
+                        style="
+                            font-size: 0.82rem;
+                            color: #5a5a52;
+                            margin-bottom: 10px;
+                        "
+                    >
+                        Sube el archivo HTML a Google Drive → ábrelo con el
+                        navegador → la cámara funcionará.
+                    </p>
+                    <p
+                        style="
+                            font-size: 0.83rem;
+                            color: #1e396a;
+                            font-weight: 700;
+                            margin-bottom: 4px;
+                        "
+                    >
+                        ✅ Opción 2 — Registro manual:
+                    </p>
+                    <p style="font-size: 0.82rem; color: #5a5a52">
+                        Usa el formulario de abajo para registrar sin cámara.
+                    </p>
+                </div>
+
+                <div class="manual-form" id="manual-form">
+                    <button
+                        onclick="toggleManualForm()"
+                        id="btn-manual-toggle"
+                        style="
+                            width: 100%;
+                            padding: 12px;
+                            background: white;
+                            border: 2px solid var(--gray-300);
+                            border-radius: 12px;
+                            font-family: &quot;Lato&quot;, sans-serif;
+                            font-size: 0.88rem;
+                            font-weight: 700;
+                            color: var(--gray-700);
+                            cursor: pointer;
+                            margin-bottom: 0;
+                        "
+                    >
+                        📝 Registro Manual
+                    </button>
+                    <div
+                        id="manual-form-body"
+                        style="display: none; margin-top: 14px"
+                    >
+                        <p
+                            style="
+                                color: var(--gray-500);
+                                font-size: 0.8rem;
+                                text-align: center;
+                                margin-bottom: 16px;
+                            "
+                        >
+                            Si no puedes usar la cámara, registra tu actividad
+                            aquí.
+                        </p>
+                        <div class="form-group" style="margin-bottom: 14px">
+                            <label>Integrante</label>
+                            <select id="manual-member">
+                                <option value="">
+                                    -- Selecciona tu nombre --
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 14px">
+                            <label>Actividad</label>
+                            <select id="manual-activity">
+                                <option value="">
+                                    -- Selecciona la actividad --
+                                </option>
+                            </select>
+                        </div>
+                        <button
+                            class="btn-primary"
+                            onclick="submitManualRecord()"
+                        >
+                            ✓ Registrar Actividad
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ADMIN PIN MODAL ==================== -->
+        <div
+            id="admin-pin-modal"
+            style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(21, 40, 69, 0.85);
+                z-index: 800;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(4px);
+            "
+        >
+            <div
+                style="
+                    background: white;
+                    border-radius: 20px;
+                    padding: 36px 30px;
+                    max-width: 320px;
+                    width: 90%;
+                    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4);
+                    text-align: center;
+                "
+            >
+                <div style="margin-bottom: 20px">
+                    <p
+                        style="
+                            font-family: &quot;Cinzel&quot;, serif;
+                            color: #1e396a;
+                            font-size: 1rem;
+                            font-weight: 700;
+                            margin-bottom: 4px;
+                        "
+                    >
+                        Acceso Administrador
+                    </p>
+                    <p style="color: #9a9a92; font-size: 0.8rem">
+                        Ingresa tu PIN de 4 dígitos
+                    </p>
+                </div>
+                <input
+                    type="password"
+                    id="pin-admin"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    maxlength="4"
+                    placeholder="••••"
+                    autocomplete="one-time-code"
+                    style="
+                        width: 160px;
+                        height: 60px;
+                        border: 2px solid #ddddd8;
+                        border-radius: 12px;
+                        text-align: center;
+                        font-size: 2rem;
+                        font-family: &quot;Cinzel&quot;, serif;
+                        color: #1e396a;
+                        outline: none;
+                        letter-spacing: 0.4em;
+                        background: #f8f8f6;
+                        padding-left: 12px;
+                        display: block;
+                        margin: 0 auto 16px;
+                    "
+                    oninput="if (this.value.length === 4) checkAdminPin();"
+                />
+                <p
+                    id="pin-error"
+                    style="
+                        display: none;
+                        color: #b33a3a;
+                        font-size: 0.82rem;
+                        margin-bottom: 12px;
+                    "
+                >
+                    PIN incorrecto.
+                </p>
+                <div style="display: flex; gap: 10px">
+                    <button
+                        onclick="
+                            document.getElementById(
+                                'admin-pin-modal',
+                            ).style.display = 'none';
+                            document.getElementById('pin-admin').value = '';
+                            document.getElementById('pin-error').style.display =
+                                'none';
+                        "
+                        style="
+                            flex: 1;
+                            padding: 11px;
+                            border: 2px solid #ddddd8;
+                            background: white;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-family: &quot;Lato&quot;, sans-serif;
+                            font-size: 0.88rem;
+                            font-weight: 700;
+                            color: #5a5a52;
+                        "
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onclick="checkAdminPin()"
+                        style="
+                            flex: 1;
+                            padding: 11px;
+                            background: #1e396a;
+                            color: white;
+                            border: none;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-family: &quot;Lato&quot;, sans-serif;
+                            font-size: 0.88rem;
+                            font-weight: 700;
+                        "
+                    >
+                        Entrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SETUP WIZARD MODAL ==================== -->
+        <div
+            id="setup-modal"
+            style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(21, 40, 69, 0.96);
+                z-index: 900;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            "
+        >
+            <div
+                style="
+                    background: white;
+                    border-radius: 20px;
+                    padding: 36px 30px;
+                    max-width: 480px;
+                    width: 100%;
+                    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4);
+                "
+            >
+                <div style="text-align: center; margin-bottom: 24px">
+                    <div style="font-size: 2.5rem; margin-bottom: 8px">☁️</div>
+                    <h2
+                        style="
+                            font-family: &quot;Cinzel&quot;, serif;
+                            color: #1e396a;
+                            font-size: 1.2rem;
+                            margin-bottom: 8px;
+                        "
+                    >
+                        Configurar Almacenamiento en la Nube
+                    </h2>
+                    <p
+                        style="
+                            color: #5a5a52;
+                            font-size: 0.85rem;
+                            line-height: 1.6;
+                        "
+                    >
+                        Para que los datos sean accesibles desde cualquier
+                        dispositivo, necesitas una cuenta gratuita en
+                        <strong>JSONBin.io</strong>.
+                    </p>
+                </div>
+                <div
+                    style="
+                        background: #f0f4ff;
+                        border-radius: 12px;
+                        padding: 16px;
+                        margin-bottom: 20px;
+                        font-size: 0.83rem;
+                        line-height: 1.8;
+                        color: #1e396a;
+                    "
+                >
+                    <strong>Pasos (solo una vez):</strong><br />
+                    1. Ve a
+                    <a
+                        href="https://jsonbin.io"
+                        target="_blank"
+                        style="color: #cca553; font-weight: 700"
+                        >jsonbin.io</a
+                    >
+                    y crea una cuenta gratuita<br />
+                    2. En tu dashboard ve a <strong>API Keys</strong><br />
+                    3. Copia tu <strong>Secret Key</strong> (empieza con
+                    $2a$)<br />
+                    4. Pégala aquí abajo y presiona "Crear Base de Datos"
+                </div>
+                <label
+                    style="
+                        display: block;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        color: #5a5a52;
+                        margin-bottom: 6px;
+                    "
+                    >Tu Secret Key de JSONBin</label
+                >
+                <input
+                    id="setup-key"
+                    type="text"
+                    placeholder="$2a$10$xxxxxxxxxxxxxxxxxxxxxxxx..."
+                    style="
+                        width: 100%;
+                        padding: 12px 14px;
+                        border: 2px solid #ddddd8;
+                        border-radius: 10px;
+                        font-family: monospace;
+                        font-size: 0.82rem;
+                        margin-bottom: 12px;
+                        outline: none;
+                        box-sizing: border-box;
+                    "
+                />
+                <div
+                    id="setup-error"
+                    style="
+                        display: none;
+                        background: #fee2e2;
+                        color: #b33a3a;
+                        padding: 10px;
+                        border-radius: 8px;
+                        font-size: 0.82rem;
+                        margin-bottom: 12px;
+                    "
+                >
+                    No se pudo conectar. Verifica que la key sea correcta.
+                </div>
+                <label
+                    style="
+                        display: block;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        color: #5a5a52;
+                        margin-bottom: 6px;
+                        margin-top: 4px;
+                    "
+                    >Bin ID existente
+                    <span style="font-weight: 400; text-transform: none"
+                        >(déjalo vacío para crear uno nuevo)</span
+                    ></label
+                >
+                <input
+                    id="setup-binid-input"
+                    type="text"
+                    placeholder="Opcional: pega aquí el Bin ID si ya tienes uno"
+                    style="
+                        width: 100%;
+                        padding: 12px 14px;
+                        border: 2px solid #ddddd8;
+                        border-radius: 10px;
+                        font-family: monospace;
+                        font-size: 0.82rem;
+                        margin-bottom: 12px;
+                        outline: none;
+                        box-sizing: border-box;
+                    "
+                />
+                <button
+                    id="setup-btn"
+                    onclick="finishSetup()"
+                    style="
+                        width: 100%;
+                        padding: 13px;
+                        background: #1e396a;
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        font-family: &quot;Lato&quot;, sans-serif;
+                        font-size: 0.95rem;
+                        font-weight: 700;
+                        cursor: pointer;
+                    "
+                >
+                    Conectar / Crear Base de Datos
+                </button>
+                <p
+                    style="
+                        text-align: center;
+                        margin-top: 12px;
+                        font-size: 0.78rem;
+                        color: #9a9a92;
+                    "
+                >
+                    JSONBin.io es gratuito y no requiere tarjeta de crédito.
+                </p>
+            </div>
+        </div>
+
+        <!-- ==================== SETUP DONE MODAL ==================== -->
+        <div
+            id="setup-done-modal"
+            style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(21, 40, 69, 0.96);
+                z-index: 900;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            "
+        >
+            <div
+                style="
+                    background: white;
+                    border-radius: 20px;
+                    padding: 36px 30px;
+                    max-width: 420px;
+                    width: 100%;
+                    text-align: center;
+                "
+            >
+                <div style="font-size: 3rem; margin-bottom: 12px">✅</div>
+                <h2
+                    style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        color: #1e396a;
+                        margin-bottom: 12px;
+                    "
+                >
+                    ¡Base de Datos Creada!
+                </h2>
+                <p
+                    style="
+                        color: #5a5a52;
+                        font-size: 0.85rem;
+                        margin-bottom: 16px;
+                    "
+                >
+                    Tu Bin ID es:
+                </p>
+                <code
+                    id="setup-binid"
+                    style="
+                        display: block;
+                        background: #f0f4ff;
+                        padding: 12px;
+                        border-radius: 8px;
+                        font-size: 0.9rem;
+                        color: #1e396a;
+                        font-weight: 700;
+                        word-break: break-all;
+                        margin-bottom: 20px;
+                    "
+                ></code>
+                <p
+                    style="
+                        color: #5a5a52;
+                        font-size: 0.83rem;
+                        margin-bottom: 20px;
+                        line-height: 1.6;
+                    "
+                >
+                    Guarda este ID. Si compartes el archivo HTML con otros
+                    dispositivos, deberán ingresar la misma API Key y este Bin
+                    ID en la sección <strong>Configuración</strong>.
+                </p>
+                <button
+                    onclick="
+                        document.getElementById(
+                            'setup-done-modal',
+                        ).style.display = 'none';
+                        renderAll();
+                    "
+                    style="
+                        width: 100%;
+                        padding: 13px;
+                        background: #cca553;
+                        color: #152845;
+                        border: none;
+                        border-radius: 12px;
+                        font-family: &quot;Lato&quot;, sans-serif;
+                        font-size: 0.95rem;
+                        font-weight: 700;
+                        cursor: pointer;
+                    "
+                >
+                    ¡Listo, comenzar!
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== LOADING OVERLAY ==================== -->
+        <div
+            id="loading-overlay"
+            style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(30, 57, 106, 0.92);
+                z-index: 999;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                gap: 18px;
+            "
+        >
+            <div
+                style="
+                    width: 52px;
+                    height: 52px;
+                    border: 4px solid rgba(204, 165, 83, 0.3);
+                    border-top-color: #cca553;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                "
+            ></div>
+            <p
+                style="
+                    color: #cca553;
+                    font-family: &quot;Cinzel&quot;, serif;
+                    font-size: 1rem;
+                    letter-spacing: 0.1em;
+                "
+            >
+                Cargando datos...
+            </p>
+        </div>
+        <style>
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+
+        <!-- ==================== CONFIRM MODAL ==================== -->
+        <div
+            id="confirm-overlay"
+            style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.45);
+                z-index: 500;
+                align-items: center;
+                justify-content: center;
+            "
+        >
+            <div
+                style="
+                    background: white;
+                    border-radius: 16px;
+                    padding: 32px 28px;
+                    max-width: 320px;
+                    width: 90%;
+                    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+                    text-align: center;
+                "
+            >
+                <div style="font-size: 2rem; margin-bottom: 12px">⚠️</div>
+                <p
+                    id="confirm-msg"
+                    style="
+                        font-family: sans-serif;
+                        font-size: 0.95rem;
+                        margin-bottom: 24px;
+                        font-weight: 700;
+                    "
+                ></p>
+                <div style="display: flex; gap: 10px; justify-content: center">
+                    <button
+                        id="confirm-cancel"
+                        style="
+                            flex: 1;
+                            padding: 10px;
+                            border: 2px solid #ccc;
+                            background: white;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 0.88rem;
+                            font-weight: 700;
+                        "
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="confirm-ok"
+                        style="
+                            flex: 1;
+                            padding: 10px;
+                            border: none;
+                            background: #b33a3a;
+                            color: white;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 0.88rem;
+                            font-weight: 700;
+                        "
+                    >
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TOAST ==================== -->
+        <div class="toast" id="toast"></div>
+
+        <script>
+            // ======================== STATE ========================
+            const ADMIN_PIN = "0711";
+            let state = {
+                members: [],
+                activities: [],
+                records: [],
+                churches: [],
+            };
+
+            // ======================== CLOUD STORAGE (Firebase Firestore) ========================
+
+            // Callback para actualizaciones en tiempo real desde Firebase
+            window._onFirebaseUpdate = function(d) {
+                // Solo actualizar si no hay una operación de guardado en curso
+                state.members = d.members || [];
+                state.activities = d.activities || [];
+                state.records = d.records || [];
+                state.churches = d.churches || [];
+                localStorage.setItem("cva_cache", JSON.stringify(state));
+                renderAll();
+                updateManualSelects();
+            };
+
+            // Exponer setSyncBadge al scope global para Firebase
+            window._setSyncBadge = function(msg, type) { setSyncBadge(msg, type); };
+
+            async function save() {
+                localStorage.setItem("cva_cache", JSON.stringify(state));
+                if (window._fbSave) {
+                    await window._fbSave(state);
+                } else {
+                    // Firebase aún no cargó, reintentar en 1s
+                    setTimeout(() => window._fbSave && window._fbSave(state), 1000);
+                    setSyncBadge("Guardando...", "warn");
+                }
+            }
+
+            async function loadFromCloud() {
+                try {
+                    if (window._fbLoad) {
+                        const d = await window._fbLoad();
+                        if (d) {
+                            state.members = d.members || [];
+                            state.activities = d.activities || [];
+                            state.records = d.records || [];
+                            state.churches = d.churches || [];
+                            localStorage.setItem("cva_cache", JSON.stringify(state));
+                            setSyncBadge("✓ Sincronizado", "ok");
+                            return;
+                        }
+                    }
+                } catch(e) {}
+                // Fallback a caché local
+                try {
+                    const cache = localStorage.getItem("cva_cache");
+                    if (cache) {
+                        const d = JSON.parse(cache);
+                        state.members = d.members || [];
+                        state.activities = d.activities || [];
+                        state.records = d.records || [];
+                        state.churches = d.churches || [];
+                    }
+                } catch(e2) {}
+                setSyncBadge("Cache local", "warn");
+            }
+
+            // Funciones de setup ya no son necesarias con Firebase
+            async function runSetupWizard() { /* Firebase ya configurado */ }
+            async function finishSetup() { /* Firebase ya configurado */ }
+
+            function setSyncBadge(msg, type) {
+                const el = document.getElementById("sync-badge");
+                if (!el) return;
+                el.textContent = msg;
+                el.style.background =
+                    type === "ok"
+                        ? "rgba(46,125,82,0.15)"
+                        : "rgba(180,120,0,0.15)";
+                el.style.color = type === "ok" ? "#2E7D52" : "#8a6000";
+                el.style.display = "inline-block";
+            }
+
+            function showLoadingOverlay(show) {
+                document.getElementById("loading-overlay").style.display = show
+                    ? "flex"
+                    : "none";
+            }
+
+            // ======================== VIEWS ========================
+            function showView(id) {
+                document
+                    .querySelectorAll(".view")
+                    .forEach((v) => v.classList.remove("active"));
+                document.getElementById(id).classList.add("active");
+            }
+
+            // ======================== LOGIN ========================
+            let loginMode = "admin";
+
+            function setLoginMode(mode) {
+                loginMode = mode;
+                document
+                    .querySelectorAll(".login-tab")
+                    .forEach((t, i) =>
+                        t.classList.toggle(
+                            "active",
+                            (mode === "admin" && i === 0) ||
+                                (mode === "member" && i === 1),
+                        ),
+                    );
+                document.getElementById("admin-login-form").style.display =
+                    mode === "admin" ? "" : "none";
+                document.getElementById("member-login-form").style.display =
+                    mode === "member" ? "" : "none";
+            }
+
+            function checkAdminPin() {
+                const pin = document.getElementById("pin-admin").value;
+                if (pin === ADMIN_PIN) {
+                    document.getElementById("admin-pin-modal").style.display =
+                        "none";
+                    document.getElementById("pin-admin").value = "";
+                    document.getElementById("pin-error").style.display = "none";
+                    stopCamera();
+                    showView("view-admin");
+                    loadFromCloud().then(() => renderAll());
+                } else {
+                    document.getElementById("pin-error").style.display =
+                        "block";
+                    document.getElementById("pin-admin").value = "";
+                    document.getElementById("pin-admin").focus();
+                }
+            }
+
+            function enterMemberMode() {
+                showView("view-member");
+                // Cargar datos de la nube antes de que el integrante escanee
+                loadFromCloud().then(() => {
+                    updateManualSelects();
+                    // Mostrar confirmación de que los datos están listos
+                    const count = state.members.length;
+                    if (count > 0) {
+                        setScanStatus(
+                            `✅ Datos cargados — ${count} integrante(s) registrados. Activa la cámara.`,
+                            "success",
+                        );
+                        setTimeout(() => {
+                            const el = document.getElementById("scan-status");
+                            if (el) el.style.display = "none";
+                        }, 3000);
+                    }
+                });
+            }
+
+            function logout() {
+                stopCamera();
+                // Volver a la vista de integrante
+                document
+                    .querySelectorAll(".view")
+                    .forEach((v) => v.classList.remove("active"));
+                document.getElementById("view-member").classList.add("active");
+            }
+
+            function showAdminLogin() {
+                document.getElementById("admin-pin-modal").style.display =
+                    "flex";
+                setTimeout(
+                    () => document.getElementById("pin-admin").focus(),
+                    100,
+                );
+            }
+
+            // PIN - Enter key support
+            document.addEventListener("DOMContentLoaded", () => {
+                const pinInput = document.getElementById("pin-admin");
+                if (pinInput) {
+                    pinInput.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter") checkAdminPin();
+                    });
+                }
+            });
+
+            // ======================== ADMIN TABS ========================
+            function showAdminTab(id) {
+                document
+                    .querySelectorAll(".admin-tab")
+                    .forEach((t) => (t.style.display = "none"));
+                document.getElementById(id).style.display = "";
+                document.querySelectorAll(".nav-tab").forEach((t, i) => {
+                    const tabs = [
+                        "tab-members",
+                        "tab-activities",
+                        "tab-qr",
+                        "tab-records",
+                    ];
+                    t.classList.toggle("active", tabs[i] === id);
+                });
+                if (id === "tab-qr") renderQRCodes();
+                if (id === "tab-records") renderRecords();
+                if (id === "tab-churches") renderChurches();
+                if (id === "tab-members") renderMembers();
+                if (id === "tab-activities") renderActivities();
+            }
+
+            // ======================== MEMBERS ========================
+            function addMember() {
+                const name = document
+                    .getElementById("new-member-name")
+                    .value.trim();
+                const churchId =
+                    document.getElementById("new-member-church").value;
+                if (!name) {
+                    showToast("Ingresa el nombre del integrante.");
+                    return;
+                }
+                if (
+                    state.members.find(
+                        (m) => m.name.toLowerCase() === name.toLowerCase(),
+                    )
+                ) {
+                    showToast("Ya existe un integrante con ese nombre.");
+                    return;
+                }
+                const church = state.churches.find((c) => c.id === churchId);
+                state.members.push({
+                    id: "M" + Date.now(),
+                    name,
+                    churchId: churchId || null,
+                    churchName: church ? church.name : null,
+                });
+                save();
+                document.getElementById("new-member-name").value = "";
+                document.getElementById("new-member-church").value = "";
+                renderMembers();
+                showToast("✓ Integrante agregado: " + name);
+            }
+
+            function deleteMember(id) {
+                customConfirm("¿Eliminar este integrante?", () => {
+                    state.members = state.members.filter((m) => m.id !== id);
+                    save();
+                    renderMembers();
+                    showToast("Integrante eliminado.");
+                });
+            }
+
+            function renderMembers() {
+                const list = document.getElementById("members-list");
+                document.getElementById("members-count").textContent =
+                    state.members.length;
+
+                // Update church selector in member form
+                const churchSel = document.getElementById("new-member-church");
+                if (churchSel) {
+                    const current = churchSel.value;
+                    churchSel.innerHTML =
+                        '<option value="">-- Sin iglesia --</option>' +
+                        state.churches
+                            .map(
+                                (c) =>
+                                    `<option value="${c.id}">${c.name}</option>`,
+                            )
+                            .join("");
+                    churchSel.value = current;
+                }
+
+                if (!state.members.length) {
+                    list.innerHTML =
+                        '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><p>Aún no hay integrantes registrados.</p></div>';
+                    return;
+                }
+                list.innerHTML = state.members
+                    .map(
+                        (m) => `
+    <div class="item-row">
+      <div class="item-name">${m.name}${m.churchName ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : ""}</div>
+      <code style="font-size:0.7rem;color:var(--gray-500);">${m.id}</code>
+      <button class="btn-danger" data-delete-member="${m.id}">Eliminar</button>
+    </div>`,
+                    )
+                    .join("");
+
+                list.querySelectorAll("[data-delete-member]").forEach((btn) => {
+                    btn.addEventListener("click", () =>
+                        deleteMember(btn.getAttribute("data-delete-member")),
+                    );
+                });
+            }
+
+            // ======================== CHURCHES ========================
+            function addChurch() {
+                const name = document
+                    .getElementById("new-church-name")
+                    .value.trim();
+                if (!name) {
+                    showToast("Ingresa el nombre de la iglesia.");
+                    return;
+                }
+                if (
+                    state.churches.find(
+                        (c) => c.name.toLowerCase() === name.toLowerCase(),
+                    )
+                ) {
+                    showToast("Ya existe una iglesia con ese nombre.");
+                    return;
+                }
+                state.churches.push({ id: "C" + Date.now(), name });
+                save();
+                document.getElementById("new-church-name").value = "";
+                renderChurches();
+                renderMembers(); // refresh church selector in member form
+                showToast("✓ Iglesia agregada: " + name);
+            }
+
+            function deleteChurch(id) {
+                const inUse = state.members.some((m) => m.churchId === id);
+                if (inUse) {
+                    showToast(
+                        "No puedes eliminar una iglesia que tiene integrantes asignados.",
+                    );
+                    return;
+                }
+                customConfirm("¿Eliminar esta iglesia?", () => {
+                    state.churches = state.churches.filter((c) => c.id !== id);
+                    save();
+                    renderChurches();
+                    renderMembers();
+                    showToast("Iglesia eliminada.");
+                });
+            }
+
+            function renderChurches() {
+                const list = document.getElementById("churches-list");
+                if (!list) return;
+                const count = document.getElementById("churches-count");
+                if (count) count.textContent = state.churches.length;
+                if (!state.churches.length) {
+                    list.innerHTML =
+                        '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 22V6l-6-4-6 4v16"/><path d="M2 22h20"/></svg><p>Aún no hay iglesias registradas.</p></div>';
+                    return;
+                }
+                list.innerHTML = state.churches
+                    .map((c) => {
+                        const count = state.members.filter(
+                            (m) => m.churchId === c.id,
+                        ).length;
+                        return `
+    <div class="item-row">
+      <div class="item-name">⛪ ${c.name}<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">${count} integrante${count !== 1 ? "s" : ""}</span></div>
+      <button class="btn-danger" data-delete-church="${c.id}">Eliminar</button>
+    </div>`;
+                    })
+                    .join("");
+                list.querySelectorAll("[data-delete-church]").forEach((btn) => {
+                    btn.addEventListener("click", () =>
+                        deleteChurch(btn.getAttribute("data-delete-church")),
+                    );
+                });
+            }
+
+            // ======================== ACTIVITIES ========================
+            function addActivity() {
+                const name = document
+                    .getElementById("new-activity-name")
+                    .value.trim();
+                const color =
+                    document.getElementById("new-activity-color").value;
+                if (!name) {
+                    showToast("Ingresa el nombre de la actividad.");
+                    return;
+                }
+                state.activities.push({ id: "A" + Date.now(), name, color });
+                save();
+                document.getElementById("new-activity-name").value = "";
+                renderActivities();
+                showToast("✓ Actividad agregada: " + name);
+            }
+
+            function deleteActivity(id) {
+                customConfirm("¿Eliminar esta actividad?", () => {
+                    state.activities = state.activities.filter(
+                        (a) => a.id !== id,
+                    );
+                    save();
+                    renderActivities();
+                    showToast("Actividad eliminada.");
+                });
+            }
+
+            function renderActivities() {
+                const list = document.getElementById("activities-list");
+                document.getElementById("activities-count").textContent =
+                    state.activities.length;
+                if (!state.activities.length) {
+                    list.innerHTML =
+                        '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle></svg><p>Aún no hay actividades.</p></div>';
+                    return;
+                }
+                list.innerHTML = state.activities
+                    .map(
+                        (a) => `
+    <div class="item-row" style="border-left-color:${a.color};">
+      <div class="activity-dot" style="background:${a.color};"></div>
+      <div class="activity-label">${a.name}</div>
+      <button class="btn-danger" data-delete-activity="${a.id}">Eliminar</button>
+    </div>`,
+                    )
+                    .join("");
+
+                list.querySelectorAll("[data-delete-activity]").forEach(
+                    (btn) => {
+                        btn.addEventListener("click", () =>
+                            deleteActivity(
+                                btn.getAttribute("data-delete-activity"),
+                            ),
+                        );
+                    },
+                );
+            }
+
+            // ======================== QR CODES ========================
+            const qrInstances = {};
+
+            function renderQRCodes() {
+                const grid = document.getElementById("qr-grid");
+                if (!state.members.length) {
+                    grid.innerHTML =
+                        '<div class="empty-state" style="grid-column:1/-1;"><p>Agrega integrantes para generar sus QR.</p></div>';
+                    return;
+                }
+                grid.innerHTML = state.members
+                    .map(
+                        (m) => `
+    <div class="qr-card">
+      <div class="qr-code-container" id="qr-${m.id}"></div>
+      <h3>${m.name}</h3>
+      <p>ID: ${m.id}</p>
+      <button class="btn-download-qr" onclick="downloadQR('${m.id}','${m.name}')">⬇ Descargar</button>
+    </div>`,
+                    )
+                    .join("");
+
+                state.members.forEach((m) => {
+                    const el = document.getElementById("qr-" + m.id);
+                    if (el && !el.querySelector("canvas")) {
+                        new QRCode(el, {
+                            text: m.id,
+                            width: 140,
+                            height: 140,
+                            colorDark: "#1E396A",
+                            colorLight: "#ffffff",
+                        });
+                    }
+                });
+            }
+
+            function downloadQR(id, name) {
+                const el = document.getElementById("qr-" + id);
+                const canvas = el ? el.querySelector("canvas") : null;
+                if (!canvas) {
+                    showToast("Error al generar QR.");
+                    return;
+                }
+                const link = document.createElement("a");
+                link.download = `QR_${name.replace(/\s+/g, "_")}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                showToast("✓ QR descargado para " + name);
+            }
+
+            // ======================== RECORDS ========================
+            function addRecord(memberId, activityId, lat, lng) {
+                const member = state.members.find((m) => m.id === memberId);
+                const activity = state.activities.find(
+                    (a) => a.id === activityId,
+                );
+                if (!member || !activity) return false;
+                const now = new Date();
+                state.records.push({
+                    id: "R" + Date.now(),
+                    memberId,
+                    memberName: member.name,
+                    churchName: member.churchName || null,
+                    activityId,
+                    activityName: activity.name,
+                    activityColor: activity.color,
+                    date: now.toLocaleDateString("es-MX"),
+                    time: now.toLocaleTimeString("es-MX", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    }),
+                    lat: lat || null,
+                    lng: lng || null,
+                    ts: now.getTime(),
+                });
+                save();
+                return true;
+            }
+
+            function renderRecords() {
+                const tbody = document.getElementById("records-tbody");
+                const stats = document.getElementById("stats-row");
+
+                // Stats
+                stats.innerHTML = `
+    <div class="stat-card"><div class="num">${state.records.length}</div><div class="lbl">Total Registros</div></div>
+    <div class="stat-card"><div class="num">${state.members.length}</div><div class="lbl">Integrantes</div></div>
+    <div class="stat-card"><div class="num">${state.activities.length}</div><div class="lbl">Actividades</div></div>
+  `;
+
+                // Reset checkbox header
+                const checkAll = document.getElementById("check-all-records");
+                if (checkAll) checkAll.checked = false;
+                updateRecordsActionsBar();
+
+                if (!state.records.length) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="8"><div class="empty-state"><p>No hay registros aún.</p></div></td></tr>';
+                    return;
+                }
+                const sorted = [...state.records].sort((a, b) => b.ts - a.ts);
+                tbody.innerHTML = sorted
+                    .map((r, i) => {
+                        const mapsLink =
+                            r.lat && r.lng
+                                ? `<a class="maps-link" href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank">📍 Ver mapa</a>`
+                                : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
+                        return `
+      <tr id="row-${r.id}">
+        <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
+        <td style="color:var(--gray-500);font-size:0.78rem;">${i + 1}</td>
+        <td style="font-weight:700;">${r.memberName}${r.churchName ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
+        <td><span class="activity-badge" style="background:${r.activityColor};">${r.activityName}</span></td>
+        <td>${r.date}</td>
+        <td>${r.time}</td>
+        <td>${mapsLink}</td>
+        <td><button onclick="deleteSingleRecord('${r.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:1rem;padding:4px 6px;border-radius:6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">🗑</button></td>
+      </tr>`;
+                    })
+                    .join("");
+            }
+
+            function onRecordCheckChange() {
+                updateRecordsActionsBar();
+                // Sync "check all" state
+                const all = document.querySelectorAll(".record-check");
+                const checked = document.querySelectorAll(
+                    ".record-check:checked",
+                );
+                const checkAll = document.getElementById("check-all-records");
+                if (checkAll) {
+                    checkAll.checked =
+                        all.length > 0 && checked.length === all.length;
+                    checkAll.indeterminate =
+                        checked.length > 0 && checked.length < all.length;
+                }
+            }
+
+            function toggleAllRecords(source) {
+                document
+                    .querySelectorAll(".record-check")
+                    .forEach((cb) => (cb.checked = source.checked));
+                updateRecordsActionsBar();
+            }
+
+            function updateRecordsActionsBar() {
+                const checked = document.querySelectorAll(
+                    ".record-check:checked",
+                );
+                const bar = document.getElementById("records-actions-bar");
+                const label = document.getElementById("selected-count-label");
+                if (checked.length > 0) {
+                    bar.style.display = "flex";
+                    label.textContent = `${checked.length} registro${checked.length > 1 ? "s" : ""} seleccionado${checked.length > 1 ? "s" : ""}`;
+                } else {
+                    bar.style.display = "none";
+                }
+            }
+
+            function clearRecordSelection() {
+                document
+                    .querySelectorAll(".record-check")
+                    .forEach((cb) => (cb.checked = false));
+                const checkAll = document.getElementById("check-all-records");
+                if (checkAll) {
+                    checkAll.checked = false;
+                    checkAll.indeterminate = false;
+                }
+                updateRecordsActionsBar();
+            }
+
+            function deleteSingleRecord(id) {
+                customConfirm("¿Eliminar este registro?", () => {
+                    state.records = state.records.filter((r) => r.id !== id);
+                    save();
+                    renderRecords();
+                    showToast("✓ Registro eliminado");
+                });
+            }
+
+            function deleteSelectedRecords() {
+                const checked = document.querySelectorAll(
+                    ".record-check:checked",
+                );
+                if (!checked.length) return;
+                const ids = [...checked].map((cb) =>
+                    cb.getAttribute("data-id"),
+                );
+                customConfirm(
+                    `¿Eliminar ${ids.length} registro${ids.length > 1 ? "s" : ""} seleccionado${ids.length > 1 ? "s" : ""}?`,
+                    () => {
+                        state.records = state.records.filter(
+                            (r) => !ids.includes(r.id),
+                        );
+                        save();
+                        renderRecords();
+                        showToast(
+                            `✓ ${ids.length} registro${ids.length > 1 ? "s" : ""} eliminado${ids.length > 1 ? "s" : ""}`,
+                        );
+                    },
+                );
+            }
+
+            // ======================== EXPORT CSV ========================
+            function exportCSV() {
+                if (!state.records.length) {
+                    showToast("No hay registros para exportar.");
+                    return;
+                }
+                const header = [
+                    "#",
+                    "Nombre",
+                    "Iglesia",
+                    "Actividad",
+                    "Fecha",
+                    "Hora",
+                    "Latitud",
+                    "Longitud",
+                    "Google Maps",
+                ];
+                const rows = [...state.records]
+                    .sort((a, b) => b.ts - a.ts)
+                    .map((r, i) => [
+                        i + 1,
+                        r.memberName,
+                        r.churchName || "",
+                        r.activityName,
+                        r.date,
+                        r.time,
+                        r.lat || "",
+                        r.lng || "",
+                        r.lat && r.lng
+                            ? `https://www.google.com/maps?q=${r.lat},${r.lng}`
+                            : "",
+                    ]);
+                const csv = [header, ...rows]
+                    .map((row) =>
+                        row
+                            .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+                            .join(","),
+                    )
+                    .join("\n");
+                const blob = new Blob(["\uFEFF" + csv], {
+                    type: "text/csv;charset=utf-8;",
+                });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `RegistrosCoro_${new Date().toLocaleDateString("es-MX").replace(/\//g, "-")}.csv`;
+                a.click();
+                showToast("✓ CSV exportado correctamente");
+            }
+
+            // ======================== CAMERA SCANNER ========================
+            let html5QrScanner = null;
+            let scannerLocked = false;
+
+            function startCamera() {
+                if (html5QrScanner) {
+                    stopCamera();
+                }
+                scannerLocked = false;
+
+                // html5-qrcode necesita un div contenedor, usamos 'scanner-box'
+                const placeholder = document.getElementById(
+                    "scanner-placeholder",
+                );
+                placeholder.style.display = "none";
+                document.getElementById("btn-start-camera").style.display =
+                    "none";
+                document.getElementById("btn-stop-camera").style.display = "";
+                setScanStatus("📷 Iniciando cámara...", "info");
+
+                html5QrScanner = new Html5Qrcode("scanner-box");
+
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 220, height: 220 },
+                    aspectRatio: 1.0,
+                    disableFlip: false,
+                };
+
+                html5QrScanner
+                    .start(
+                        { facingMode: "environment" },
+                        config,
+                        (decodedText) => {
+                            // QR detectado
+                            if (scannerLocked) return;
+                            const trimmed = decodedText.trim();
+                            const member = state.members.find(
+                                (m) => m.id === trimmed,
+                            );
+                            if (member) {
+                                scannerLocked = true;
+                                setScanStatus(
+                                    "✅ ¡Hola, " +
+                                        member.name +
+                                        "! Selecciona tu actividad:",
+                                    "success",
+                                );
+                                showActivityPicker(member);
+                            } else {
+                                setScanStatus(
+                                    "⚠️ QR no reconocido: " +
+                                        trimmed.substring(0, 15),
+                                    "error",
+                                );
+                                setTimeout(() => {
+                                    if (!scannerLocked)
+                                        setScanStatus(
+                                            "📷 Acerca tu código QR a la cámara",
+                                            "info",
+                                        );
+                                }, 2500);
+                            }
+                        },
+                        (errorMsg) => {
+                            // Error de frame — normal cuando no hay QR, ignorar
+                        },
+                    )
+                    .then(() => {
+                        setScanStatus(
+                            "📷 Cámara activa — acerca tu código QR",
+                            "info",
+                        );
+                    })
+                    .catch((err) => {
+                        placeholder.style.display = "";
+                        document.getElementById(
+                            "btn-start-camera",
+                        ).style.display = "";
+                        document.getElementById(
+                            "btn-stop-camera",
+                        ).style.display = "none";
+                        if (err && err.toString().includes("Permission")) {
+                            setScanStatus(
+                                "⛔ Permiso denegado. Permite la cámara en tu navegador.",
+                                "error",
+                            );
+                        } else {
+                            setScanStatus(
+                                "❌ No se pudo activar la cámara. Usa el registro manual abajo.",
+                                "error",
+                            );
+                        }
+                    });
+            }
+
+            function stopCamera() {
+                if (html5QrScanner) {
+                    html5QrScanner
+                        .stop()
+                        .catch(() => {})
+                        .finally(() => {
+                            html5QrScanner.clear();
+                            html5QrScanner = null;
+                        });
+                }
+                scannerLocked = false;
+                document.getElementById("scanner-placeholder").style.display =
+                    "flex";
+                document.getElementById("btn-start-camera").style.display = "";
+                document.getElementById("btn-stop-camera").style.display =
+                    "none";
+                document.getElementById("scan-status").style.display = "none";
+                const picker = document.getElementById("activity-picker");
+                if (picker) picker.remove();
+            }
+
+            function showActivityPicker(member) {
+                if (!state.activities.length) {
+                    setScanStatus(
+                        "⚠️ No hay actividades configuradas. Contacta al administrador.",
+                        "error",
+                    );
+                    return;
+                }
+                const existing = document.getElementById("activity-picker");
+                if (existing) existing.remove();
+
+                const picker = document.createElement("div");
+                picker.id = "activity-picker";
+                picker.style.cssText = "margin-top:16px;";
+
+                const btnsHtml = state.activities
+                    .map((a) => {
+                        const btn = `<button data-mid="${member.id}" data-aid="${a.id}" style="background:${a.color};color:white;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;font-family:Lato,sans-serif;font-size:0.9rem;font-weight:700;">${a.name}</button>`;
+                        return btn;
+                    })
+                    .join("");
+
+                picker.innerHTML = `
+    <p style="font-size:0.88rem;font-weight:700;color:#5A5A52;margin-bottom:12px;text-align:center;">Selecciona la actividad:</p>
+    <div id="activity-btns" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:12px;">${btnsHtml}</div>
+    <button id="cancel-scan-btn" style="display:block;margin:0 auto;background:none;border:1px solid #DDDDD8;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:Lato,sans-serif;font-size:0.8rem;color:#9A9A92;">Cancelar</button>
+  `;
+
+                document
+                    .querySelector(".public-wrap .card")
+                    .appendChild(picker);
+
+                // Event listeners sin onclick inline
+                picker.querySelectorAll("[data-mid]").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        confirmRecord(
+                            btn.getAttribute("data-mid"),
+                            btn.getAttribute("data-aid"),
+                        );
+                    });
+                });
+                document
+                    .getElementById("cancel-scan-btn")
+                    .addEventListener("click", () => {
+                        picker.remove();
+                        stopCamera();
+                    });
+            }
+
+            function confirmRecord(memberId, activityId) {
+                getLocationAndSave(memberId, activityId);
+            }
+
+            function getLocationAndSave(memberId, activityId) {
+                setScanStatus("Obteniendo ubicación GPS...", "info");
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) =>
+                            saveRecord(
+                                memberId,
+                                activityId,
+                                pos.coords.latitude,
+                                pos.coords.longitude,
+                            ),
+                        () => saveRecord(memberId, activityId, null, null),
+                        { timeout: 8000 },
+                    );
+                } else {
+                    saveRecord(memberId, activityId, null, null);
+                }
+            }
+
+            function saveRecord(memberId, activityId, lat, lng) {
+                const ok = addRecord(memberId, activityId, lat, lng);
+                const picker = document.getElementById("activity-picker");
+                if (picker) picker.remove();
+                if (ok) {
+                    const member = state.members.find((m) => m.id === memberId);
+                    const activity = state.activities.find(
+                        (a) => a.id === activityId,
+                    );
+                    const locTxt = lat ? ` 📍 GPS guardado` : ` (sin GPS)`;
+                    setScanStatus(
+                        `✅ ¡Registro exitoso! ${member.name} — ${activity.name}${locTxt}`,
+                        "success",
+                    );
+                    showToast("✓ Actividad registrada correctamente");
+                    setTimeout(() => stopCamera(), 4000);
+                } else {
+                    setScanStatus(
+                        "Error al registrar. Inténtalo de nuevo.",
+                        "error",
+                    );
+                }
+            }
+
+            function setScanStatus(msg, type) {
+                const el = document.getElementById("scan-status");
+                el.textContent = msg;
+                el.className = "scan-status " + type;
+            }
+
+            // ======================== MANUAL RECORD ========================
+            function updateManualSelects() {
+                const ms = document.getElementById("manual-member");
+                const as = document.getElementById("manual-activity");
+                ms.innerHTML =
+                    '<option value="">-- Selecciona tu nombre --</option>' +
+                    state.members
+                        .map(
+                            (m) => `<option value="${m.id}">${m.name}</option>`,
+                        )
+                        .join("");
+                as.innerHTML =
+                    '<option value="">-- Selecciona la actividad --</option>' +
+                    state.activities
+                        .map(
+                            (a) => `<option value="${a.id}">${a.name}</option>`,
+                        )
+                        .join("");
+            }
+
+            function toggleManualForm() {
+                const body = document.getElementById("manual-form-body");
+                const btn = document.getElementById("btn-manual-toggle");
+                const visible = body.style.display !== "none";
+                body.style.display = visible ? "none" : "block";
+                btn.textContent = visible
+                    ? "📝 Registro Manual"
+                    : "✕ Cerrar Registro Manual";
+            }
+
+            function submitManualRecord() {
+                const memberId = document.getElementById("manual-member").value;
+                const activityId =
+                    document.getElementById("manual-activity").value;
+                if (!memberId || !activityId) {
+                    showToast("Selecciona integrante y actividad.");
+                    return;
+                }
+                getLocationAndSaveManual(memberId, activityId);
+            }
+
+            function getLocationAndSaveManual(memberId, activityId) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            addRecord(
+                                memberId,
+                                activityId,
+                                pos.coords.latitude,
+                                pos.coords.longitude,
+                            );
+                            afterManual();
+                        },
+                        () => {
+                            addRecord(memberId, activityId, null, null);
+                            afterManual();
+                        },
+                        { timeout: 8000 },
+                    );
+                } else {
+                    addRecord(memberId, activityId, null, null);
+                    afterManual();
+                }
+            }
+
+            function afterManual() {
+                showToast("✓ Actividad registrada manualmente");
+                document.getElementById("manual-member").value = "";
+                document.getElementById("manual-activity").value = "";
+                // Cerrar el formulario tras registrar
+                document.getElementById("manual-form-body").style.display =
+                    "none";
+                document.getElementById("btn-manual-toggle").textContent =
+                    "📝 Registro Manual";
+            }
+
+            // ======================== CUSTOM CONFIRM ========================
+            function customConfirm(msg, onOk) {
+                const overlay = document.getElementById("confirm-overlay");
+                document.getElementById("confirm-msg").textContent = msg;
+                overlay.style.display = "flex";
+                const ok = document.getElementById("confirm-ok");
+                const cancel = document.getElementById("confirm-cancel");
+                const cleanup = () => {
+                    overlay.style.display = "none";
+                    ok.onclick = null;
+                    cancel.onclick = null;
+                };
+                ok.onclick = () => {
+                    cleanup();
+                    onOk();
+                };
+                cancel.onclick = cleanup;
+            }
+
+            // ======================== TOAST ========================
+            let toastTimer;
+            function showToast(msg) {
+                const t = document.getElementById("toast");
+                t.textContent = msg;
+                t.classList.add("show");
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+            }
+
+            // ======================== RENDER ALL ========================
+            function renderAll() {
+                renderMembers();
+                renderActivities();
+                renderChurches();
+            }
+
+            // ======================== INIT ========================
+            async function initApp() {
+                // Primero cargar desde caché local para respuesta inmediata
+                try {
+                    const cache = localStorage.getItem("cva_cache");
+                    if (cache) {
+                        const d = JSON.parse(cache);
+                        state.members = d.members || [];
+                        state.activities = d.activities || [];
+                        state.records = d.records || [];
+                        state.churches = d.churches || [];
+                    }
+                } catch(e) {}
+                renderAll();
+                updateManualSelects();
+                setSyncBadge("Conectando...", "warn");
+
+                // Luego sincronizar con Firebase
+                await loadFromCloud();
+                renderAll();
+                updateManualSelects();
+            }
+
+            // Esperar a que Firebase esté listo
+            if (window._fbReady) {
+                initApp();
+            } else {
+                document.addEventListener("firebase-ready", initApp);
+                // Timeout por si Firebase tarda mucho
+                setTimeout(initApp, 4000);
+            }
+        
+        // ========== SPLASH SCREEN ==========
+        (function() {
+            var splash = document.getElementById('splash-screen');
+            var logo   = document.getElementById('splash-logo');
+
+            // Fase 1: aparecer (fade-in del logo)
+            setTimeout(function() {
+                logo.style.opacity = '1';
+                logo.style.transform = 'scale(1)';
+            }, 80);
+
+            // Fase 2: difuminarse (fade-out del splash)
+            setTimeout(function() {
+                splash.style.opacity = '0';
+                setTimeout(function() {
+                    splash.style.display = 'none';
+                }, 950);
+            }, 2000);
+        })();
+
+        </script>
+    </body>
+</html>
