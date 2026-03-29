@@ -9,6 +9,8 @@
             rel="stylesheet"
         />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
         <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
         <!-- Firebase SDK -->
         <script type="module">
@@ -1566,12 +1568,11 @@
                                 </svg>
                                 Registros de Actividad
                             </span>
-                            <button
-                                class="btn-accent btn-sm"
-                                onclick="exportCSV()"
-                            >
-                                ⬇ Exportar CSV
-                            </button>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button class="btn-accent btn-sm" onclick="exportCSV()">⬇ CSV</button>
+                                <button class="btn-primary btn-sm" onclick="exportPDFGeneral()" style="background:var(--primary);color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;">📄 PDF General</button>
+                                <button class="btn-primary btn-sm" onclick="showPDFMemberPicker()" style="background:var(--accent);color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;">👤 PDF por Integrante</button>
+                            </div>
                         </div>
                         <!-- Barra de acciones (visible cuando hay selección) -->
                         <div
@@ -2424,6 +2425,21 @@
             </div>
         </div>
 
+
+        <!-- ==================== MODAL PDF INTEGRANTE ==================== -->
+        <div id="pdf-member-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+            <div style="background:white;border-radius:20px;padding:32px;width:360px;max-width:95vw;box-shadow:0 24px 48px rgba(0,0,0,0.3);">
+                <h3 style="font-family:'Cinzel',serif;color:var(--primary);margin-bottom:16px;font-size:1.1rem;">📄 PDF por Integrante</h3>
+                <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:16px;">Selecciona el integrante para generar su reporte:</p>
+                <select id="pdf-member-select" style="width:100%;padding:10px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.9rem;color:var(--gray-900);margin-bottom:20px;outline:none;">
+                    <option value="">-- Selecciona un integrante --</option>
+                </select>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="document.getElementById('pdf-member-modal').style.display='none'" style="flex:1;padding:11px;border:2px solid var(--gray-300);background:white;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-weight:700;color:var(--gray-700);">Cancelar</button>
+                    <button onclick="exportPDFMember()" style="flex:1;padding:11px;border:none;background:var(--accent);color:white;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-weight:700;">Generar PDF</button>
+                </div>
+            </div>
+        </div>
         <!-- ==================== TOAST ==================== -->
         <div class="toast" id="toast"></div>
 
@@ -3464,6 +3480,295 @@
                 setTimeout(initApp, 4000);
             }
         
+            // ======================== PDF GENERATION ========================
+
+            function showPDFMemberPicker() {
+                const sel = document.getElementById('pdf-member-select');
+                sel.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
+                    state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                document.getElementById('pdf-member-modal').style.display = 'flex';
+            }
+
+            // ---- Helpers PDF ----
+            function pdfHeader(doc, title, subtitle) {
+                // Fondo azul oscuro header
+                doc.setFillColor(21, 40, 69);
+                doc.rect(0, 0, 210, 32, 'F');
+                // Línea dorada
+                doc.setFillColor(204, 165, 83);
+                doc.rect(0, 32, 210, 2, 'F');
+                // Título
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.setTextColor(204, 165, 83);
+                doc.text('CoralSync', 14, 13);
+                doc.setFontSize(10);
+                doc.setTextColor(255, 255, 255);
+                doc.text(title, 14, 22);
+                if (subtitle) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(180, 180, 180);
+                    doc.text(subtitle, 14, 29);
+                }
+                // Fecha generación
+                doc.setFontSize(7);
+                doc.setTextColor(180, 180, 180);
+                const now = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
+                doc.text('Generado: ' + now, 196, 29, {align:'right'});
+            }
+
+            function pdfFooter(doc) {
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFillColor(240, 240, 236);
+                    doc.rect(0, 287, 210, 10, 'F');
+                    doc.setFontSize(7);
+                    doc.setTextColor(130, 130, 120);
+                    doc.text('CoralSync — Coro Vista Alegre', 14, 293);
+                    doc.text('Pág. ' + i + ' / ' + pageCount, 196, 293, {align:'right'});
+                }
+            }
+
+            function statBox(doc, x, y, w, h, label, value, color) {
+                doc.setFillColor(color[0], color[1], color[2]);
+                doc.roundedRect(x, y, w, h, 3, 3, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(255, 255, 255);
+                doc.text(String(value), x + w/2, y + h/2 + 2, {align:'center'});
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
+                doc.text(label, x + w/2, y + h - 4, {align:'center'});
+            }
+
+            // ---- PDF INDIVIDUAL ----
+            function exportPDFMember() {
+                const memberId = document.getElementById('pdf-member-select').value;
+                if (!memberId) { showToast('Selecciona un integrante'); return; }
+                const member = state.members.find(m => m.id === memberId);
+                if (!member) return;
+                document.getElementById('pdf-member-modal').style.display = 'none';
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+                const memberRecords = state.records.filter(r => r.memberId === memberId)
+                    .sort((a,b) => (b.ts||0) - (a.ts||0));
+
+                const totalCoro = state.records.length;
+                const totalMember = memberRecords.length;
+
+                // Asistencias por actividad
+                const byActivity = {};
+                state.activities.forEach(a => { byActivity[a.id] = {name: a.name, count: 0}; });
+                memberRecords.forEach(r => {
+                    if (byActivity[r.activityId]) byActivity[r.activityId].count++;
+                    else byActivity[r.activityId] = {name: r.activityName, count: 1};
+                });
+
+                // Promedio coro por actividad
+                const avgCoro = {};
+                state.activities.forEach(a => {
+                    const total = state.records.filter(r => r.activityId === a.id).length;
+                    avgCoro[a.id] = state.members.length > 0 ? (total / state.members.length).toFixed(1) : 0;
+                });
+
+                // % asistencia global
+                const totalPosible = state.activities.reduce((sum, a) => {
+                    const uniqueDates = [...new Set(state.records.filter(r=>r.activityId===a.id).map(r=>r.date))];
+                    return sum + uniqueDates.length;
+                }, 0);
+                const pct = totalPosible > 0 ? Math.round((totalMember / totalPosible) * 100) : 0;
+
+                // ---- ENCABEZADO ----
+                pdfHeader(doc, 'Reporte Individual de Asistencia', member.name + (member.churchName ? '  •  ' + member.churchName : ''));
+
+                let y = 42;
+
+                // ---- STAT BOXES ----
+                statBox(doc, 14, y, 42, 22, 'Total Asistencias', totalMember, [21,40,69]);
+                statBox(doc, 60, y, 42, 22, '% Asistencia', pct + '%', [46,125,82]);
+                statBox(doc, 106, y, 42, 22, 'Actividades', Object.keys(byActivity).length, [168,99,30]);
+                statBox(doc, 152, y, 42, 22, 'Promedio Coro', (totalCoro / (state.members.length||1)).toFixed(1), [90,90,82]);
+
+                y += 30;
+
+                // ---- ASISTENCIAS POR ACTIVIDAD vs PROMEDIO ----
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(21, 40, 69);
+                doc.text('Asistencias por Actividad vs. Promedio del Coro', 14, y);
+                y += 4;
+                doc.setFillColor(204, 165, 83);
+                doc.rect(14, y, 50, 0.8, 'F');
+                y += 6;
+
+                const actRows = Object.values(byActivity).map(a => {
+                    const actObj = state.activities.find(ac => ac.name === a.name);
+                    const avg = actObj ? avgCoro[actObj.id] : '—';
+                    const diff = actObj ? (a.count - parseFloat(avg)).toFixed(1) : '—';
+                    const diffStr = diff !== '—' ? (diff > 0 ? '+' + diff : String(diff)) : '—';
+                    return [a.name, a.count, avg, diffStr];
+                });
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Actividad', 'Tus Asistencias', 'Promedio Coro', 'Diferencia']],
+                    body: actRows,
+                    theme: 'grid',
+                    headStyles: { fillColor: [21,40,69], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+                    bodyStyles: { fontSize: 9, textColor: [40,40,40] },
+                    columnStyles: {
+                        0: { cellWidth: 80 },
+                        1: { cellWidth: 35, halign: 'center' },
+                        2: { cellWidth: 35, halign: 'center' },
+                        3: { cellWidth: 35, halign: 'center' }
+                    },
+                    didParseCell: function(data) {
+                        if (data.column.index === 3 && data.section === 'body') {
+                            const v = parseFloat(data.cell.raw);
+                            if (v > 0) data.cell.styles.textColor = [46,125,82];
+                            else if (v < 0) data.cell.styles.textColor = [179,58,58];
+                        }
+                    },
+                    margin: { left: 14, right: 14 }
+                });
+
+                y = doc.lastAutoTable.finalY + 12;
+
+                // ---- HISTORIAL CRONOLÓGICO ----
+                if (y > 240) { doc.addPage(); y = 20; }
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(21, 40, 69);
+                doc.text('Historial Cronológico de Registros', 14, y);
+                y += 4;
+                doc.setFillColor(204, 165, 83);
+                doc.rect(14, y, 50, 0.8, 'F');
+                y += 6;
+
+                const histRows = memberRecords.map(r => [r.date, r.time, r.activityName]);
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Fecha', 'Hora', 'Actividad']],
+                    body: histRows.length ? histRows : [['Sin registros','','']],
+                    theme: 'striped',
+                    headStyles: { fillColor: [21,40,69], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+                    bodyStyles: { fontSize: 8.5, textColor: [40,40,40] },
+                    columnStyles: { 0:{cellWidth:40}, 1:{cellWidth:30}, 2:{cellWidth:110} },
+                    alternateRowStyles: { fillColor: [248,248,246] },
+                    margin: { left: 14, right: 14 }
+                });
+
+                pdfFooter(doc);
+                doc.save('Reporte_' + member.name.replace(/\s+/g,'_') + '.pdf');
+                showToast('✓ PDF generado para ' + member.name);
+            }
+
+            // ---- PDF GENERAL ----
+            function exportPDFGeneral() {
+                if (!state.members.length) { showToast('No hay integrantes registrados.'); return; }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+                const totalRecords = state.records.length;
+                const totalMembers = state.members.length;
+                const totalActivities = state.activities.length;
+
+                // ---- ENCABEZADO ----
+                pdfHeader(doc, 'Reporte General de Asistencia', 'Estadísticas globales del coro');
+
+                let y = 42;
+
+                // ---- STAT BOXES GENERALES ----
+                statBox(doc, 14, y, 55, 22, 'Total Registros', totalRecords, [21,40,69]);
+                statBox(doc, 73, y, 55, 22, 'Integrantes', totalMembers, [46,125,82]);
+                statBox(doc, 132, y, 55, 22, 'Actividades', totalActivities, [168,99,30]);
+                y += 30;
+
+                // ---- RANKING DE ASISTENCIA ----
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(21, 40, 69);
+                doc.text('Ranking de Asistencia por Integrante', 14, y);
+                y += 4;
+                doc.setFillColor(204, 165, 83);
+                doc.rect(14, y, 50, 0.8, 'F');
+                y += 6;
+
+                const memberStats = state.members.map(m => {
+                    const recs = state.records.filter(r => r.memberId === m.id);
+                    const totalPosible = state.activities.reduce((sum, a) => {
+                        const uniqueDates = [...new Set(state.records.filter(r=>r.activityId===a.id).map(r=>r.date))];
+                        return sum + uniqueDates.length;
+                    }, 0);
+                    const pct = totalPosible > 0 ? Math.round((recs.length / totalPosible) * 100) : 0;
+                    return { name: m.name, church: m.churchName || '—', total: recs.length, pct };
+                }).sort((a,b) => b.total - a.total);
+
+                const rankRows = memberStats.map((m, i) => [
+                    i+1, m.name, m.church, m.total, m.pct + '%'
+                ]);
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['#', 'Integrante', 'Iglesia', 'Asistencias', '% Asist.']],
+                    body: rankRows,
+                    theme: 'grid',
+                    headStyles: { fillColor: [21,40,69], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+                    bodyStyles: { fontSize: 8.5, textColor: [40,40,40] },
+                    columnStyles: { 0:{cellWidth:10,halign:'center'}, 1:{cellWidth:65}, 2:{cellWidth:55}, 3:{cellWidth:28,halign:'center'}, 4:{cellWidth:28,halign:'center'} },
+                    alternateRowStyles: { fillColor: [248,248,246] },
+                    didParseCell: function(data) {
+                        if (data.column.index === 0 && data.section === 'body' && data.row.index === 0) {
+                            data.cell.styles.fillColor = [204,165,83];
+                            data.cell.styles.textColor = [255,255,255];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    },
+                    margin: { left: 14, right: 14 }
+                });
+
+                y = doc.lastAutoTable.finalY + 12;
+
+                // ---- ASISTENCIA POR ACTIVIDAD ----
+                if (y > 240) { doc.addPage(); y = 20; }
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(21, 40, 69);
+                doc.text('Asistencia por Actividad', 14, y);
+                y += 4;
+                doc.setFillColor(204, 165, 83);
+                doc.rect(14, y, 50, 0.8, 'F');
+                y += 6;
+
+                const actStats = state.activities.map(a => {
+                    const recs = state.records.filter(r => r.activityId === a.id);
+                    const uniqueMembers = [...new Set(recs.map(r => r.memberId))].length;
+                    const avg = totalMembers > 0 ? (recs.length / totalMembers).toFixed(1) : 0;
+                    return [a.name, recs.length, uniqueMembers, avg];
+                }).sort((a,b) => b[1] - a[1]);
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Actividad', 'Total Registros', 'Integrantes únicos', 'Promedio/persona']],
+                    body: actStats.length ? actStats : [['Sin actividades','','','']],
+                    theme: 'grid',
+                    headStyles: { fillColor: [21,40,69], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+                    bodyStyles: { fontSize: 8.5, textColor: [40,40,40] },
+                    columnStyles: { 0:{cellWidth:80}, 1:{cellWidth:32,halign:'center'}, 2:{cellWidth:40,halign:'center'}, 3:{cellWidth:35,halign:'center'} },
+                    alternateRowStyles: { fillColor: [248,248,246] },
+                    margin: { left: 14, right: 14 }
+                });
+
+                pdfFooter(doc);
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                doc.save('ReporteGeneral_CoralSync_' + fecha + '.pdf');
+                showToast('✓ PDF general generado');
+            }
+
             // ======================== TOQUE SECRETO (7 clics en logo) ========================
             (function() {
                 var taps = 0;
