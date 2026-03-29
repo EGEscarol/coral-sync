@@ -95,6 +95,17 @@
                 min-height: 100vh;
             }
 
+
+            /* ========== SECRET ADMIN DOTS ========== */
+            .sdot {
+                width: 6px; height: 6px;
+                border-radius: 50%;
+                background: rgba(204, 165, 83, 0.5);
+                display: inline-block;
+                transition: background 0.2s;
+            }
+            .sdot.active { background: rgba(204, 165, 83, 1); }
+
             /* ========== HEADER ========== */
             .app-header {
                 background: var(--primary);
@@ -1670,28 +1681,20 @@
                         src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBkYXRhLW5hbWU9IkNhcGEgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDE3NDYuMjMgMzg0LjM4Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2YyZjJmMjt9LmNscy0ye2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDcpO30uY2xzLTN7ZmlsbDp1cmwoI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yKTt9LmNscy00e2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctMyk7fS5jbHMtNXtmaWxsOnVybCgjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTQpO308L3N0eWxlPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3IiB4MT0iMjE3OS42NCIgeTE9IjE1MjYuMTUiIHgyPSIyMTc5LjY0IiB5Mj0iMTk0Ny44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiOTEzMyIvPjxzdG9wIG9mZnNldD0iMC4xNSIgc3RvcC1jb2xvcj0iI2M3YTc0OSIvPjxzdG9wIG9mZnNldD0iMC40NSIgc3RvcC1jb2xvcj0iI2U2ZGU4MSIvPjxzdG9wIG9mZnNldD0iMC41MSIgc3RvcC1jb2xvcj0iI2VkZWE4ZCIvPjxzdG9wIG9mZnNldD0iMC42NCIgc3RvcC1jb2xvcj0iI2Q2YzQ2NiIvPjxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjYmY5ZDNlIi8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYjA4NTI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYWI3YzFkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9IkRlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yIiB4MT0iMjM4MS40OCIgeTE9IjE1MjYuMTUiIHgyPSIyMzgxLjQ4IiB5Mj0iMTk0Ny44MSIgeGxpbms6aHJlZj0iI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNyIvPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTMiIHgxPSIyNTkzLjY2IiB5MT0iMTUyNi4xNSIgeDI9IjI1OTMuNjYiIHkyPSIxOTQ3LjgxIiB4bGluazpocmVmPSIjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctNCIgeDE9IjI4MTIuNDYiIHkxPSIxNTI2LjE1IiB4Mj0iMjgxMi40NiIgeTI9IjE5NDcuODEiIHhsaW5rOmhyZWY9IiNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDciLz48L2RlZnM+PHRpdGxlPmxvZ28gY29ybzwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQxMi44MywxNjE5LjM2TDEzNzguNjIsMTY1MnEtMzQuOTEtMzYuOS03OC41NC0zNi45LTM2LjgzLDAtNjIsMjUuMTh0LTI1LjIyLDYyLjA4cTAsMjUuNywxMS4xNyw0NS42NGE4MC4wNiw4MC4wNiwwLDAsMCwzMS41OSwzMS4zcTIwLjQyLDExLjM2LDQ1LjM4LDExLjM3YTkzLjUxLDkzLjUxLDAsMCwwLDM4LjkyLThxMTcuNjMtOCwzOC43NS0yOC45NGwzMy4xNiwzNC42cS0yOC40OCwyNy43OS01My44MSwzOC41NHQtNTcuODIsMTAuNzVxLTU5LjkyLDAtOTguMDktMzh0LTM4LjE3LTk3LjM5cTAtMzguNDMsMTcuMzgtNjguMzF0NDkuNzktNDhhMTQwLjQsMTQwLjQsMCwwLDEsNjkuNzktMTguMTdBMTQ4LjEyLDE0OC4xMiwwLDAsMSwxNDEyLjgzLDE2MTkuMzZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xNzc1LjIsMTYzMi4yN2E0Mi41Niw0Mi41NiwwLDAsMC0yNC4xMSw3LjM0cS0xMSw3LjM0LTE3LjY1LDIxLjQ5VjE2NTJjLTEzLjc0LDE5LjczLTI3LjQ2LDM5LjQ3LTQwLjg4LDU5LjQydjExNS43OWg0Ny4zNHYtNzYuODdsLTAuMTctOS4yNnEwLTM5LjgzLDcuNi01My40NnQxOC42MS0xMy42MnE1LjQxLDAsMTMuOCw0LjE5bDE0Ljg1LTQxLjA1QTQ0LjY0LDQ0LjY0LDAsMCwwLDE3NzUuMiwxNjMyLjI3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTkzNC4xMSwxNjQxLjExaDQ3LjY5djE5MC4wN2gtNDcuNjl2LTIwLjA5cS0xNCwxMy4yOC0yOCwxOS4xM2E3OC40Myw3OC40MywwLDAsMS0zMC40NSw1Ljg1cS0zNi44MiwwLTYzLjY5LTI4LjU2dC0yNi44Ny03MXEwLTQ0LDI2LTcyLjE1dDYzLjE2LTI4LjEyYTgwLjMzLDgwLjMzLDAsMCwxLDMyLjEsNi40Niw4Ny42NSw4Ny42NSwwLDAsMSwyNy43NCwxOS4zOXYtMjFaTTE4ODQsMTY4MC4yNHEtMjIuMTIsMC0zNi43NCwxNS42NFQxODMyLjYxLDE3MzZxMCwyNC42MywxNC44OCw0MC41M2E0OC4yMyw0OC4yMywwLDAsMCwzNi42NSwxNS45cTIyLjQ2LDAsMzcuMjYtMTUuNjR0MTQuOC00MXEwLTI0LjgtMTQuOC00MC4xOFQxODg0LDE2ODAuMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDU5LjIxLDE3MDAuMTZjNC4zNyw5LDguNjgsMTguMTUsMTMuMjUsMjcuMTdWMTU1NC42NmgtNDcuNjl2NzIuMTFDMjAzMi42NSwxNjQ3LjM2LDIwNDguODQsMTY3OC43OSwyMDU5LjIxLDE3MDAuMTZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDUwLjksMTc5MS44OGMtOS44Mi0yMC41Ni0xOC00MS44My0yNi4xMi02My4xdjg5LjMyaDM5LjYzQzIwNTkuNTQsMTgwOS41NSwyMDU1LjEyLDE4MDAuNzMsMjA1MC45LDE3OTEuODhaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMjU1Ljg5LDE2MDkuMTRsLTM2LjIzLDMycS0xOS4wOC0yNi41NS0zOC44NS0yNi41NS05LjYzLDAtMTUuNzUsNS4xNXQtNi4xMywxMS42MmExOS44OCwxOS44OCwwLDAsMCw0LjM4LDEyLjIzcTUuOTUsNy42OSwzNS44NywzMywyOCwyMy40MSwzNCwyOS41MiwxNC44NywxNSwyMS4wOSwyOC43NGE3MS43OSw3MS43OSwwLDAsMSw2LjIxLDMwcTAsMzEuNjItMjEuODYsNTIuMjN0LTU3LDIwLjYxcS0yNy40NiwwLTQ3LjgzLTEzLjQ1dC0zNC44OS00Mi4yN0wyMTQwLDE3NTcuMXExOC41NSwzNC4wNyw0Mi42OSwzNC4wNywxMi42LDAsMjEuMTctNy4zNHQ4LjU3LTE2Ljk0cTAtOC43NC02LjQ3LTE3LjQ3dC0yOC41Mi0yNi43M3EtNDItMzQuMjQtNTQuMjUtNTIuODV0LTEyLjI1LTM3LjEycTAtMjYuNzMsMjAuMzgtNDUuODZ0NTAuMjgtMTkuMTNhNzkuMzMsNzkuMzMsMCwwLDEsMzYuNjQsOC45MVEyMjM1LjYsMTU4NS41NSwyMjU1Ljg5LDE2MDkuMTRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yMjgwLjc1LDE2NDEuMTFoNDguNzRsNDkuMzcsMTE5LjI2LDU0LjQ4LTExOS4yNmg0OC44N2wtMTE5LDI1OS41OWgtNDkuMjVMMjM1MywxODE3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNMjUwOS4zNywxNjQxLjExaDQ3LjY5djE5LjQ4cTE2LjIyLTEzLjY4LDI5LjM5LTE5YTcxLDcxLDAsMCwxLDI3LTUuMzVxMjguMjYsMCw0OCwxOS43NCwxNi41NywxNi43NywxNi41Nyw0OS42MXYxMjUuNmgtNDcuMTd2LTgzLjIzcTAtMzQtMy4wNS00NS4xOXQtMTAuNjMtMTdxLTcuNTgtNS44NS0xOC43My01Ljg1YTM1LjExLDM1LjExLDAsMCwwLTI0LjgzLDkuNjhxLTEwLjM3LDkuNjktMTQuMzgsMjYuNzgtMi4wOSw4LjktMi4wOSwzOC41NnY3Ni4yNWgtNDcuNjlWMTY0MS4xMVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtNSIgZD0iTTI5MTAuMTIsMTY3OS41NGwtMzkuNywyMS44NHEtMTEuMTktMTEuNy0yMi4xMi0xNi4yNXQtMjUuNjItNC41NHEtMjYuNzYsMC00My4yOSwxNnQtMTYuNTMsNDAuOXEwLDI0LjI1LDE1LjkyLDM5LjZ0NDEuOCwxNS4zNXEzMiwwLDQ5Ljg1LTIxLjg0TDI5MDgsMTc5Ni4zcS0zMC41NywzOS43Ny04Ni4zLDM5Ljc2LTUwLjE0LDAtNzguNTItMjkuN3QtMjguMzktNjkuNTNhOTcuODcsOTcuODcsMCwwLDEsNTIuMzItODcuMzVxMjQuNzItMTMuMjcsNTUuMjktMTMuMjgsMjguMywwLDUwLjgzLDExLjI3QTk2LjQ4LDk2LjQ4LDAsMCwxLDI5MTAuMTIsMTY3OS41NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI0MjAsMTYwMS4yNWExOS45LDE5LjksMCwwLDAtMTQuNCwzMy42NmMtNC44NiwzOC4zMS0yOC40MSwxNjcuNDYtMTI3Ljc4LDIxMi42My0xNi45Myw3LjctMzMsMTEuNjgtNDguMTgsMTIuODRhMTkuOSwxOS45LDAsMCwwLTM2LjQ4LTIuN2MtMzUuNjktOC4xMS02NC43My0zMS4wOC04NS45LTU0LTE0LjYxLTE1LjgxLTQxLjIxLTU3LjI5LTg1LTE2NS4xM2wtMC44OC0yLjE4Yy0yMS43Ny01My41NS03OS44NC0xMDYuNDMtMTYwLjUtMTAzLjc2LTQyLjIsMS4zOC04MS41NCwxNS43My0xMTMuNzgsNDEuNS0zMS4wOCwyNC44NS01NC4zMiw1OS4xNi02Ny4yLDk5LjIzLTEuODIsNS42Ny00LDExLjM5LTYuNDksMTcuMDhhMjcxLjQxLDI3MS40MSwwLDAsMC0xNC41NSwyNy42OGMtOS40LDE1LjItMTkuODQsMjkuNTItMzEuNDgsMzkuMTgtNTEsNDIuMzMtMTE2LDE5LjcyLTExNC42NywxNi44N2E0OS45Miw0OS45MiwwLDAsMS05LjQ3LTcuNzdxLTE0LjYxLTE1LjM3LTE0LjYxLTQwLjE4LDAtMjQuMTEsMTQuNzktMzkuNTd0MzctMTUuNDZxMjIuNzUsMCwzNy4zNiwxNS4yOHQxNC42MSwzOS43NHEwLDI0LjQ2LTE0Ljg3LDQwYy0yLDIuMSwxMi41LTQuMzQsMjAuMS05LjYzLDEzLjU2LTkuNDMsMzEuNjYtMTguNzMsNDIuNzYtMzIuMzVhOTguNDUsOTguNDUsMCwwLDAtNTAuMTctODQuNSwxMDAuNzYsMTAwLjc2LDAsMCwwLTUwLjU3LTEzLjQ1cS0zNy4yMSwwLTY1Ljg2LDI1Ljg2LTMyLjY3LDI5LjctMzIuNjcsNzQuMjQsMCw0MS41OCwyOC45MSw3MC42NmMxOS4yNywxOS4zOSw0Mi41NSwyOC40Myw2OS43OSwyOS4wOSwzNi41NiwwLjg4LDUzLjE2LTYuODcsNTMuMTYtNi44NywxLjc3LTEuMDksMzQuNTktMTgsNjIuMzktNjAuMDlhMjQ1LjUsMjQ1LjUsMCwwLDAsMTguNjgtMzQuNzVoMGExLjEzLDEuMTMsMCwwLDAsMCwuMjNjMS4zNy0zLDIuNzEtNS44Miw0LTguODYsMTMuNzMtMjksNjIuOTQtMTE3Ljg5LDE1NS41My0xMzEuMzJsLTEuOTEtMTMuMWMtNDYuNDEsNi43My04OS43OSwzMi4zMy0xMjYsNzQuMSwzMC44Ni02MC4wNiw4OC05Ny4zOSwxNTUuNTUtOTkuNiw4NC45NC0yLjcxLDEzMi44Miw1OC43MywxNDcuNzYsOTUuNDlsMC44OCwyLjE3LDEsMi40OWExODQuODUsMTg0Ljg1LDAsMCwwLTg3LjQyLTY0LjIyLDE5Mi44OCwxOTIuODgsMCwwLDAtMzcuODQtOS4wNSwxOS45MiwxOS45MiwwLDEsMCwxLjI2LDEzLjY3YzMzLjY3LDUuMTksOTMuNDYsMjQuNDEsMTMwLjIxLDk0LjI1LDE2LjE5LDMwLjc2LDI3LjczLDU3LjUzLDM3LjkxLDgxLjE0LDIyLjA2LDUxLjE3LDM4LjY3LDg5LjYyLDgzLjgsMTIzYTE5LjkxLDE5LjkxLDAsMCwwLDM0LjA3LDIwLjQ2LDEzNy43MywxMzcuNzMsMCwwLDAsNTYsMTEuNjNjNDkuMjMsMCw4OC4xOS0yNC4xMyw5MC41NS0yNS42MmwtNy4wOS0xMS4yM2MtMC43My40Ni02OS4yMiw0Mi43MS0xMzYsMTIuMmExOS45MiwxOS45MiwwLDAsMC0yNy42NC0xNi42M2MtMzAuODctMjIuMjMtNDcuNjUtNDYuNjItNjIuNjktNzcuMjRhMTQzLjUyLDE0My41MiwwLDAsMCwxMS40MSwxNC4zM2MyMi44LDI0LjY3LDQ3LjUzLDQyLjE5LDczLjUsNTIuMDdhMTQ0LjA4LDE0NC4wOCwwLDAsMCwyMC4yOSw2LDE5LjkxLDE5LjkxLDAsMCwwLDM4LjIyLDIuODZjMTcuOC0xLjIsMzUuNzctNS44Nyw1My44LTE0LjA3LDUxLjQ1LTIzLjM5LDkxLjQyLTcxLjQ5LDExNS41Ni0xMzkuMTFhNDAzLjgyLDQwMy44MiwwLDAsMCwxOS4zOC03OS41MmMwLjU4LDAuMDUsMS4xNi4wOSwxLjc1LDAuMDlBMTkuOTIsMTkuOTIsMCwxLDAsMjQyMCwxNjAxLjI1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1OSwxODI5LjM5YTIxLjM5LDIxLjM5LDAsMCwwLTkuNjQtMi4zNiwxOS45MSwxOS45MSwwLDEsMC0uMTgsMzkuODIsMjAuMjQsMjAuMjQsMCwwLDAsMTkuMDctMTQuNDFIMTY3MHYtOTIuOTNsLTExLDE3LjE1djUyLjcyWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PC9zdmc+"
                         class="header-logo"
                         alt="Logo"
+                        id="secret-logo"
+                        style="cursor:pointer;"
+                        onclick="handleSecretTap()"
                     />
                     <div class="header-titles">
                         <p>Registro de Actividad</p>
                     </div>
-                    <button
-                        onclick="showAdminLogin()"
-                        title="Administrador"
-                        style="
-                            background: transparent;
-                            border: none;
-                            color: rgba(255, 255, 255, 0.25);
-                            padding: 7px 10px;
-                            cursor: pointer;
-                            font-size: 0.72rem;
-                            font-family: &quot;Lato&quot;, sans-serif;
-                            letter-spacing: 0.05em;
-                        "
-                        onmouseover="this.style.color = 'rgba(204,165,83,0.7)'"
-                        onmouseout="this.style.color = 'rgba(255,255,255,0.25)'"
-                    >
-                        ⚙
-                    </button>
+                    <!-- Indicador visual oculto -->
+                    <div id="secret-dots" style="display:flex;gap:4px;opacity:0;transition:opacity 0.3s;align-items:center;">
+                        <span class="sdot" id="dot1"></span><span class="sdot" id="dot2"></span>
+                        <span class="sdot" id="dot3"></span><span class="sdot" id="dot4"></span>
+                        <span class="sdot" id="dot5"></span><span class="sdot" id="dot6"></span>
+                        <span class="sdot" id="dot7"></span>
+                    </div>
                 </div>
             </header>
 
@@ -3461,6 +3464,44 @@
                 setTimeout(initApp, 4000);
             }
         
+            // ======================== TOQUE SECRETO (7 clics en logo) ========================
+            (function() {
+                var taps = 0;
+                var timer = null;
+                window.handleSecretTap = function() {
+                    taps++;
+                    var dots = document.getElementById('secret-dots');
+                    if (dots) dots.style.opacity = '1';
+                    // Encender dot
+                    var dot = document.getElementById('dot' + taps);
+                    if (dot) dot.classList.add('active');
+
+                    clearTimeout(timer);
+                    if (taps >= 7) {
+                        // ¡Activado!
+                        taps = 0;
+                        setTimeout(function() {
+                            resetDots();
+                            showAdminLogin();
+                        }, 300);
+                    } else {
+                        // Resetear si pasan 3 segundos sin más toques
+                        timer = setTimeout(function() {
+                            taps = 0;
+                            resetDots();
+                        }, 3000);
+                    }
+                };
+                function resetDots() {
+                    var dots = document.getElementById('secret-dots');
+                    if (dots) dots.style.opacity = '0';
+                    for (var i = 1; i <= 7; i++) {
+                        var d = document.getElementById('dot' + i);
+                        if (d) d.classList.remove('active');
+                    }
+                }
+            })();
+
         // ========== SPLASH SCREEN ==========
         (function() {
             var splash = document.getElementById('splash-screen');
