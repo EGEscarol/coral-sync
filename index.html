@@ -1175,6 +1175,12 @@
                     >
                         📋 Registros
                     </button>
+                    <button
+                        class="nav-tab"
+                        onclick="showAdminTab('tab-reports')"
+                    >
+                        📊 Reportes
+                    </button>
                 </div>
 
                 <!-- TAB: MEMBERS -->
@@ -1569,9 +1575,7 @@
                                 Registros de Actividad
                             </span>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <button class="btn-accent btn-sm" onclick="exportCSV()">⬇ CSV</button>
-                                <button class="btn-primary btn-sm" onclick="exportPDFGeneral()" style="background:var(--primary);color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;">📄 PDF General</button>
-                                <button class="btn-primary btn-sm" onclick="showPDFMemberPicker()" style="background:var(--accent);color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;">👤 PDF por Integrante</button>
+                                <button class="btn-accent btn-sm" onclick="exportCSV()">⬇ Exportar CSV</button>
                             </div>
                         </div>
                         <!-- Barra de acciones (visible cuando hay selección) -->
@@ -1671,6 +1675,49 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB: REPORTES -->
+                <div id="tab-reports" class="admin-tab" style="display:none;">
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:20px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                            </svg>
+                            Generador de Reportes PDF
+                        </div>
+
+                        <!-- FILTROS -->
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px;background:var(--gray-100);border-radius:12px;">
+                            <div style="flex:1;min-width:160px;">
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:6px;">Filtrar por Iglesia</label>
+                                <select id="report-church-filter" onchange="renderReportMemberList()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--gray-900);outline:none;background:white;">
+                                    <option value="">— Todas las iglesias —</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:160px;">
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:6px;">Buscar integrante</label>
+                                <input id="report-member-search" type="text" placeholder="Nombre..." oninput="renderReportMemberList()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;">
+                            </div>
+                            <div style="display:flex;gap:8px;flex-shrink:0;">
+                                <button onclick="reportSelectAll()" style="padding:9px 14px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;">✓ Todos</button>
+                                <button onclick="reportSelectNone()" style="padding:9px 14px;border:2px solid var(--gray-300);background:white;color:var(--gray-700);border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;">✕ Ninguno</button>
+                            </div>
+                        </div>
+
+                        <!-- LISTA DE INTEGRANTES -->
+                        <div id="report-member-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px;max-height:340px;overflow-y:auto;padding:4px;">
+                        </div>
+
+                        <!-- CONTADOR Y BOTÓN -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                            <p id="report-selected-count" style="font-size:0.88rem;color:var(--gray-500);">0 integrantes seleccionados</p>
+                            <button onclick="exportPDFGroup()" style="padding:11px 24px;border:none;background:var(--primary);color:white;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.92rem;font-weight:700;letter-spacing:0.04em;">
+                                📄 Generar PDF del Grupo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -2639,6 +2686,7 @@
                         "tab-churches",
                         "tab-qr",
                         "tab-records",
+                        "tab-reports",
                     ];
                     t.classList.toggle("active", tabs[i] === id);
                 });
@@ -2647,6 +2695,7 @@
                 if (id === "tab-churches") renderChurches();
                 if (id === "tab-members") renderMembers();
                 if (id === "tab-activities") renderActivities();
+                if (id === "tab-reports") renderReportsTab();
             }
 
             // ======================== MEMBERS ========================
@@ -3480,6 +3529,283 @@
                 setTimeout(initApp, 4000);
             }
         
+
+            // ======================== REPORTS TAB ========================
+
+            function renderReportsTab() {
+                // Llenar filtro de iglesias
+                const churchSel = document.getElementById('report-church-filter');
+                const prev = churchSel.value;
+                churchSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
+                    state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                churchSel.value = prev;
+                renderReportMemberList();
+            }
+
+            function renderReportMemberList() {
+                const churchId = document.getElementById('report-church-filter').value;
+                const search = (document.getElementById('report-member-search').value || '').toLowerCase();
+                const container = document.getElementById('report-member-list');
+
+                let members = state.members;
+                if (churchId) members = members.filter(m => m.churchId === churchId);
+                if (search) members = members.filter(m => m.name.toLowerCase().includes(search));
+
+                if (!members.length) {
+                    container.innerHTML = '<p style="color:var(--gray-500);font-size:0.88rem;grid-column:1/-1;padding:12px;">No hay integrantes con ese filtro.</p>';
+                    updateReportCount();
+                    return;
+                }
+
+                container.innerHTML = members.map(m => {
+                    const recs = state.records.filter(r => r.memberId === m.id).length;
+                    return `
+                    <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid var(--gray-200);border-radius:10px;cursor:pointer;transition:border-color 0.15s;background:white;" 
+                           onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--accent)':'var(--gray-200)'">
+                        <input type="checkbox" class="report-member-cb" value="${m.id}" onchange="updateReportCount();this.closest('label').style.borderColor=this.checked?'var(--accent)':'var(--gray-200)'" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;font-size:0.85rem;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
+                            <div style="font-size:0.75rem;color:var(--gray-500);">${m.churchName || '—'} · ${recs} registro${recs!==1?'s':''}</div>
+                        </div>
+                    </label>`;
+                }).join('');
+                updateReportCount();
+            }
+
+            function updateReportCount() {
+                const checked = document.querySelectorAll('.report-member-cb:checked').length;
+                const el = document.getElementById('report-selected-count');
+                if (el) el.textContent = checked + ' integrante' + (checked !== 1 ? 's' : '') + ' seleccionado' + (checked !== 1 ? 's' : '');
+            }
+
+            function reportSelectAll() {
+                document.querySelectorAll('.report-member-cb').forEach(cb => {
+                    cb.checked = true;
+                    cb.closest('label').style.borderColor = 'var(--accent)';
+                });
+                updateReportCount();
+            }
+
+            function reportSelectNone() {
+                document.querySelectorAll('.report-member-cb').forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('label').style.borderColor = 'var(--gray-200)';
+                });
+                updateReportCount();
+            }
+
+            // ---- PDF DEL GRUPO ----
+            function exportPDFGroup() {
+                const selectedIds = [...document.querySelectorAll('.report-member-cb:checked')].map(cb => cb.value);
+                if (!selectedIds.length) { showToast('Selecciona al menos un integrante.'); return; }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+                const selectedMembers = state.members.filter(m => selectedIds.includes(m.id));
+                const churchFilter = document.getElementById('report-church-filter');
+                const groupLabel = churchFilter.value
+                    ? (state.churches.find(c => c.id === churchFilter.value) || {}).name || 'Grupo'
+                    : selectedMembers.length === state.members.length ? 'Todo el Coro' : 'Grupo Seleccionado';
+
+                const totalRecords = state.records.filter(r => selectedIds.includes(r.memberId)).length;
+
+                // ========== PÁGINA 1: RESUMEN DEL GRUPO ==========
+                pdfHeader(doc, 'Reporte de Grupo — ' + groupLabel,
+                    selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros totales');
+
+                let y = 42;
+
+                // Stat boxes del grupo
+                const avgAtt = selectedMembers.length > 0
+                    ? (totalRecords / selectedMembers.length).toFixed(1) : 0;
+                const topMember = selectedMembers.map(m => ({
+                    name: m.name,
+                    count: state.records.filter(r => r.memberId === m.id).length
+                })).sort((a,b) => b.count - a.count)[0];
+
+                statBox(doc, 14,  y, 55, 22, 'Integrantes', selectedMembers.length, [21,40,69]);
+                statBox(doc, 73,  y, 55, 22, 'Total Registros', totalRecords, [46,125,82]);
+                statBox(doc, 132, y, 55, 22, 'Promedio/persona', avgAtt, [168,99,30]);
+                y += 30;
+
+                // Ranking del grupo
+                doc.setFont('helvetica','bold');
+                doc.setFontSize(10);
+                doc.setTextColor(21,40,69);
+                doc.text('Ranking de Asistencia del Grupo', 14, y);
+                y += 4;
+                doc.setFillColor(204,165,83);
+                doc.rect(14, y, 50, 0.8, 'F');
+                y += 6;
+
+                const totalPosible = state.activities.reduce((sum,a) => {
+                    const ud = [...new Set(state.records.filter(r=>r.activityId===a.id).map(r=>r.date))];
+                    return sum + ud.length;
+                }, 0);
+
+                const rankRows = selectedMembers.map(m => {
+                    const recs = state.records.filter(r => r.memberId === m.id);
+                    const pct = totalPosible > 0 ? Math.round((recs.length/totalPosible)*100) : 0;
+                    return [m.name, m.churchName||'—', recs.length, pct+'%'];
+                }).sort((a,b) => b[2]-a[2]);
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Integrante','Iglesia','Asistencias','% Asist.']],
+                    body: rankRows,
+                    theme: 'grid',
+                    headStyles: {fillColor:[21,40,69],textColor:255,fontStyle:'bold',fontSize:9},
+                    bodyStyles: {fontSize:8.5,textColor:[40,40,40]},
+                    columnStyles: {0:{cellWidth:75},1:{cellWidth:55},2:{cellWidth:28,halign:'center'},3:{cellWidth:28,halign:'center'}},
+                    alternateRowStyles: {fillColor:[248,248,246]},
+                    didParseCell: function(d) {
+                        if(d.column.index===0 && d.section==='body' && d.row.index===0){
+                            d.cell.styles.fillColor=[204,165,83];
+                            d.cell.styles.textColor=[255,255,255];
+                            d.cell.styles.fontStyle='bold';
+                        }
+                    },
+                    margin:{left:14,right:14}
+                });
+
+                y = doc.lastAutoTable.finalY + 12;
+
+                // Asistencia del grupo por actividad
+                if (y > 240) { doc.addPage(); y = 20; }
+                doc.setFont('helvetica','bold');
+                doc.setFontSize(10);
+                doc.setTextColor(21,40,69);
+                doc.text('Asistencia por Actividad (solo grupo seleccionado)', 14, y);
+                y += 4;
+                doc.setFillColor(204,165,83);
+                doc.rect(14, y, 50, 0.8, 'F');
+                y += 6;
+
+                const actRows = state.activities.map(a => {
+                    const recs = state.records.filter(r => r.activityId===a.id && selectedIds.includes(r.memberId));
+                    const uniq = [...new Set(recs.map(r=>r.memberId))].length;
+                    const avg = selectedMembers.length > 0 ? (recs.length/selectedMembers.length).toFixed(1) : 0;
+                    return [a.name, recs.length, uniq + '/' + selectedMembers.length, avg];
+                }).sort((a,b)=>b[1]-a[1]);
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Actividad','Total','Integrantes únicos','Promedio/persona']],
+                    body: actRows.length ? actRows : [['Sin actividades','','','']],
+                    theme: 'grid',
+                    headStyles: {fillColor:[21,40,69],textColor:255,fontStyle:'bold',fontSize:9},
+                    bodyStyles: {fontSize:8.5,textColor:[40,40,40]},
+                    columnStyles: {0:{cellWidth:80},1:{cellWidth:25,halign:'center'},2:{cellWidth:45,halign:'center'},3:{cellWidth:35,halign:'center'}},
+                    alternateRowStyles: {fillColor:[248,248,246]},
+                    margin:{left:14,right:14}
+                });
+
+                pdfFooter(doc);
+
+                // ========== PÁGINAS INDIVIDUALES ==========
+                selectedMembers.forEach(member => {
+                    doc.addPage();
+                    const memberRecords = state.records.filter(r => r.memberId === member.id)
+                        .sort((a,b)=>(b.ts||0)-(a.ts||0));
+
+                    const totalMember = memberRecords.length;
+                    const pct = totalPosible > 0 ? Math.round((totalMember/totalPosible)*100) : 0;
+
+                    // Asistencias por actividad
+                    const byAct = {};
+                    state.activities.forEach(a => { byAct[a.id]={name:a.name,count:0}; });
+                    memberRecords.forEach(r => {
+                        if(byAct[r.activityId]) byAct[r.activityId].count++;
+                        else byAct[r.activityId]={name:r.activityName,count:1};
+                    });
+
+                    pdfHeader(doc, 'Reporte Individual — ' + groupLabel,
+                        member.name + (member.churchName ? '  •  '+member.churchName : ''));
+
+                    let iy = 42;
+
+                    // Stat boxes
+                    const coroAvg = (totalRecords / (selectedMembers.length||1)).toFixed(1);
+                    statBox(doc, 14,  iy, 44, 22, 'Asistencias', totalMember, [21,40,69]);
+                    statBox(doc, 62,  iy, 44, 22, '% Asistencia', pct+'%', [46,125,82]);
+                    statBox(doc, 110, iy, 44, 22, 'Actividades', Object.keys(byAct).length, [168,99,30]);
+                    statBox(doc, 158, iy, 38, 22, 'Prom. grupo', coroAvg, [90,90,82]);
+                    iy += 30;
+
+                    // Tabla actividades vs promedio
+                    doc.setFont('helvetica','bold');
+                    doc.setFontSize(10);
+                    doc.setTextColor(21,40,69);
+                    doc.text('Asistencias por Actividad vs. Promedio del Grupo', 14, iy);
+                    iy += 4;
+                    doc.setFillColor(204,165,83);
+                    doc.rect(14, iy, 50, 0.8, 'F');
+                    iy += 6;
+
+                    const actRowsM = Object.values(byAct).map(a => {
+                        const actObj = state.activities.find(ac=>ac.name===a.name);
+                        let avg = '—', diff = '—';
+                        if (actObj) {
+                            const groupRecs = state.records.filter(r=>r.activityId===actObj.id && selectedIds.includes(r.memberId));
+                            avg = (groupRecs.length/(selectedMembers.length||1)).toFixed(1);
+                            const d = (a.count - parseFloat(avg)).toFixed(1);
+                            diff = d > 0 ? '+'+d : String(d);
+                        }
+                        return [a.name, a.count, avg, diff];
+                    });
+
+                    doc.autoTable({
+                        startY: iy,
+                        head: [['Actividad','Tus Asistencias','Prom. Grupo','Diferencia']],
+                        body: actRowsM,
+                        theme: 'grid',
+                        headStyles: {fillColor:[21,40,69],textColor:255,fontStyle:'bold',fontSize:9},
+                        bodyStyles: {fontSize:9,textColor:[40,40,40]},
+                        columnStyles: {0:{cellWidth:80},1:{cellWidth:35,halign:'center'},2:{cellWidth:35,halign:'center'},3:{cellWidth:35,halign:'center'}},
+                        didParseCell: function(d) {
+                            if(d.column.index===3 && d.section==='body'){
+                                const v = parseFloat(d.cell.raw);
+                                if(v>0) d.cell.styles.textColor=[46,125,82];
+                                else if(v<0) d.cell.styles.textColor=[179,58,58];
+                            }
+                        },
+                        margin:{left:14,right:14}
+                    });
+
+                    iy = doc.lastAutoTable.finalY + 12;
+
+                    // Historial cronológico
+                    if(iy>240){doc.addPage();iy=20;}
+                    doc.setFont('helvetica','bold');
+                    doc.setFontSize(10);
+                    doc.setTextColor(21,40,69);
+                    doc.text('Historial Cronológico', 14, iy);
+                    iy += 4;
+                    doc.setFillColor(204,165,83);
+                    doc.rect(14, iy, 50, 0.8, 'F');
+                    iy += 6;
+
+                    const histRows = memberRecords.map(r=>[r.date,r.time,r.activityName]);
+                    doc.autoTable({
+                        startY: iy,
+                        head: [['Fecha','Hora','Actividad']],
+                        body: histRows.length ? histRows : [['Sin registros','','']],
+                        theme: 'striped',
+                        headStyles: {fillColor:[21,40,69],textColor:255,fontStyle:'bold',fontSize:9},
+                        bodyStyles: {fontSize:8.5,textColor:[40,40,40]},
+                        columnStyles: {0:{cellWidth:40},1:{cellWidth:30},2:{cellWidth:110}},
+                        alternateRowStyles: {fillColor:[248,248,246]},
+                        margin:{left:14,right:14}
+                    });
+                });
+
+                pdfFooter(doc);
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                doc.save('Reporte_' + groupLabel.replace(/\s+/g,'_') + '_' + fecha + '.pdf');
+                showToast('✓ PDF generado para ' + selectedMembers.length + ' integrante' + (selectedMembers.length!==1?'s':''));
+            }
+
             // ======================== PDF GENERATION ========================
 
             function showPDFMemberPicker() {
