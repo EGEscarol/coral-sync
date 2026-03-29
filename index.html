@@ -3212,12 +3212,7 @@
                                 if (html5QrScanner) {
                                     html5QrScanner.pause(true);
                                 }
-                                setScanStatus(
-                                    "✅ ¡Hola, " +
-                                        member.name +
-                                        "! Selecciona tu actividad:",
-                                    "success",
-                                );
+                                setScanStatus("✅ QR reconocido", "success");
                                 showActivityPicker(member);
                             } else {
                                 setScanStatus(
@@ -3310,7 +3305,10 @@
                     .join("");
 
                 picker.innerHTML = `
-    <p style="font-size:0.88rem;font-weight:700;color:#5A5A52;margin-bottom:12px;text-align:center;">Selecciona la actividad:</p>
+    <div style="text-align:center;margin-bottom:14px;padding:10px 14px;background:var(--primary);border-radius:12px;">
+        <p style="font-size:1rem;font-weight:700;color:var(--accent);font-family:'Cinzel',serif;margin-bottom:2px;">¡Hola, ${member.name}!</p>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.7);">Selecciona la actividad que deseas registrar:</p>
+    </div>
     <div id="activity-btns" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:12px;">${btnsHtml}</div>
     <button id="cancel-scan-btn" style="display:block;margin:0 auto;background:none;border:1px solid #DDDDD8;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:Lato,sans-serif;font-size:0.8rem;color:#9A9A92;">Cancelar</button>
   `;
