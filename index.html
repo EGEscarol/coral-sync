@@ -3934,6 +3934,7 @@
                     });
                 });
 
+                pdfGlosario(doc, true);
                 pdfFooter(doc);
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
                 doc.save('Reporte_' + groupLabel.replace(/\s+/g,'_') + '_' + fecha + '.pdf');
@@ -3978,6 +3979,121 @@
                 doc.text('Generado: ' + now, 196, 29, {align:'right'});
             }
 
+            function pdfGlosario(doc, esGrupal) {
+                doc.addPage();
+
+                // Encabezado de la página
+                doc.setFillColor(21, 40, 69);
+                doc.rect(0, 0, 210, 18, 'F');
+                doc.setFillColor(204, 165, 83);
+                doc.rect(0, 18, 210, 1.5, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(204, 165, 83);
+                doc.text('Guia de Conceptos', 14, 12);
+
+                let y = 28;
+
+                const terminos = [
+                    {
+                        titulo: 'Total de Asistencias',
+                        desc: 'Numero de veces que el integrante escaneo su codigo QR o fue registrado manualmente en cualquier actividad del coro.'
+                    },
+                    {
+                        titulo: '% de Asistencia',
+                        desc: 'Porcentaje que resulta de dividir las asistencias del integrante entre el total de ocasiones en que hubo actividades. Por ejemplo, si hubo 10 actividades y asistio a 7, su porcentaje es 70%. Un porcentaje alto indica gran constancia.'
+                    },
+                    {
+                        titulo: 'Racha Actual',
+                        desc: 'Numero de dias consecutivos en los que el integrante tuvo al menos un registro. Si falta un dia, la racha se reinicia. Refleja la constancia reciente.'
+                    },
+                    {
+                        titulo: 'Racha Maxima',
+                        desc: 'El mayor numero de dias consecutivos con asistencia que el integrante ha alcanzado desde que se unio al coro. Es su mejor marca personal de constancia.'
+                    },
+                    {
+                        titulo: 'Hora Promedio de Llegada',
+                        desc: 'Promedio de las horas a las que el integrante ha registrado su asistencia. Sirve para identificar si tiende a llegar temprano o tarde a las actividades.'
+                    },
+                    {
+                        titulo: 'Actividad Favorita',
+                        desc: 'La actividad a la que el integrante ha asistido mas veces. Puede indicar sus prioridades o disponibilidad dentro del coro.'
+                    },
+                    {
+                        titulo: 'Promedio del Grupo',
+                        desc: 'El promedio de asistencias de todos los integrantes incluidos en este reporte. Permite comparar el desempeno individual con respecto al grupo.'
+                    },
+                    {
+                        titulo: 'Diferencia vs. Promedio',
+                        desc: 'Indica cuantas asistencias esta el integrante por encima (+) o por debajo (-) del promedio del grupo en cada actividad. En verde significa que supera el promedio; en rojo que esta por debajo.'
+                    },
+                    {
+                        titulo: 'Asistencia por Mes',
+                        desc: 'Muestra cuantas veces asistio el integrante cada mes. El mes resaltado en dorado es el de mayor asistencia, lo que puede indicar periodos de mayor compromiso o actividad en el coro.'
+                    },
+                ];
+
+                // Solo para reporte grupal
+                const terminosGrupales = [
+                    {
+                        titulo: 'Mas Constante (Destacados)',
+                        desc: 'El integrante del grupo con mayor numero de asistencias registradas en el periodo analizado.'
+                    },
+                    {
+                        titulo: 'Menos Constante (Destacados)',
+                        desc: 'El integrante del grupo con menor numero de asistencias. No es una critica, sino una oportunidad para brindarle apoyo o seguimiento personalizado.'
+                    },
+                    {
+                        titulo: 'Integrantes Unicos por Actividad',
+                        desc: 'Cuantos integrantes diferentes del grupo asistieron al menos una vez a esa actividad. Por ejemplo, 3/10 significa que 3 de los 10 integrantes del grupo participaron.'
+                    },
+                    {
+                        titulo: 'Mes Pico del Grupo',
+                        desc: 'El mes con mayor numero de asistencias de todo el grupo. Util para identificar temporadas de alta participacion o el impacto de eventos especiales.'
+                    },
+                ];
+
+                const todos = esGrupal ? [...terminos, ...terminosGrupales] : terminos;
+
+                todos.forEach(t => {
+                    if (y > 265) { doc.addPage(); y = 20; }
+
+                    // Titulo del termino
+                    doc.setFillColor(235, 240, 250);
+                    doc.roundedRect(14, y, 182, 7, 2, 2, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(21, 40, 69);
+                    doc.text(t.titulo, 18, y + 5);
+                    y += 9;
+
+                    // Descripcion
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(60, 60, 60);
+                    const lines = doc.splitTextToSize(t.desc, 178);
+                    doc.text(lines, 18, y);
+                    y += lines.length * 4.5 + 5;
+                });
+
+                // Nota final
+                if (y > 265) { doc.addPage(); y = 20; }
+                doc.setFillColor(252, 248, 235);
+                doc.roundedRect(14, y, 182, 16, 3, 3, 'F');
+                doc.setFillColor(204, 165, 83);
+                doc.rect(14, y, 3, 16, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8.5);
+                doc.setTextColor(100, 70, 0);
+                doc.text('Nota importante', 21, y + 6);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(80, 55, 0);
+                const nota = 'Los datos de este reporte se basan unicamente en los registros capturados en CoralSync. Si algun integrante asistio sin escanear su QR o sin registro manual, esa asistencia no estara reflejada en las estadisticas.';
+                const notaLines = doc.splitTextToSize(nota, 172);
+                doc.text(notaLines, 21, y + 11);
+            }
+
             function pdfFooter(doc) {
                 const pageCount = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pageCount; i++) {
@@ -3987,7 +4103,7 @@
                     doc.setFontSize(7);
                     doc.setTextColor(130, 130, 120);
                     doc.text('CoralSync — Coro Vista Alegre', 14, 293);
-                    doc.text('Pág. ' + i + ' / ' + pageCount, 196, 293, {align:'right'});
+                    doc.text('Pag. ' + i + ' / ' + pageCount, 196, 293, {align:'right'});
                 }
             }
 
@@ -4123,6 +4239,7 @@
                     margin: { left: 14, right: 14 }
                 });
 
+                pdfGlosario(doc, false);
                 pdfFooter(doc);
                 doc.save('Reporte_' + member.name.replace(/\s+/g,'_') + '.pdf');
                 showToast('✓ PDF generado para ' + member.name);
