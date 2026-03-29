@@ -3208,6 +3208,10 @@
                             );
                             if (member) {
                                 scannerLocked = true;
+                                // Pausar cámara inmediatamente
+                                if (html5QrScanner) {
+                                    html5QrScanner.pause(true);
+                                }
                                 setScanStatus(
                                     "✅ ¡Hola, " +
                                         member.name +
@@ -3328,7 +3332,14 @@
                     .getElementById("cancel-scan-btn")
                     .addEventListener("click", () => {
                         picker.remove();
-                        stopCamera();
+                        // Reanudar cámara para escanear otro QR
+                        scannerLocked = false;
+                        if (html5QrScanner) {
+                            html5QrScanner.resume();
+                            setScanStatus("📷 Cámara activa — acerca tu código QR", "info");
+                        } else {
+                            stopCamera();
+                        }
                     });
             }
 
