@@ -3723,8 +3723,8 @@
                     startY: y,
                     head: [['','Integrante','Iglesia','Asistencias','%']],
                     body: [
-                        ['🏆 Más constante', topMember ? topMember.name : '—', topMember ? topMember.church : '—', topMember ? topMember.total : 0, topMember ? topMember.pct+'%' : '—'],
-                        ['📉 Menos constante', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.name : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.church : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.total : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.pct+'%' : '—'],
+                        ['Mas constante', topMember ? topMember.name : '—', topMember ? topMember.church : '—', topMember ? topMember.total : 0, topMember ? topMember.pct+'%' : '—'],
+                        ['Menos constante', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.name : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.church : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.total : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.pct+'%' : '—'],
                     ],
                     theme: 'grid',
                     headStyles: {fillColor:[21,40,69],textColor:255,fontStyle:'bold',fontSize:9},
@@ -3852,10 +3852,10 @@
                     doc.setFont('helvetica','normal');
                     doc.setFontSize(8);
                     doc.setTextColor(40,40,40);
-                    doc.text('⏰ Hora prom. llegada: ' + horaPromedio, 18, iy+5);
-                    doc.text('★ Actividad favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '—'), 18, iy+11);
-                    doc.text('📅 Primer registro: ' + primerReg, 105, iy+5);
-                    doc.text('📅 Último registro: ' + ultimoReg, 105, iy+11);
+                    doc.text('Hora prom. llegada: ' + horaPromedio, 18, iy+5);
+                    doc.text('Act. favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '—'), 18, iy+11);
+                    doc.text('Primer registro: ' + primerReg, 105, iy+5);
+                    doc.text('Ultimo registro: ' + ultimoReg, 105, iy+11);
                     iy += 20;
 
                     // Tabla actividades vs promedio
