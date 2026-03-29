@@ -3805,6 +3805,15 @@
                     margin:{left:14,right:14}
                 });
 
+                // Interpretacion grupal
+                {
+                    let interpY = doc.lastAutoTable.finalY + 12;
+                    pdfInterpretacionGrupal(doc, interpY, {
+                        groupLabel, totalRecords, selectedMembers, avgAtt,
+                        topMember, bottomMember: memberStats[memberStats.length-1],
+                        mesPico, mesRows, actRows
+                    });
+                }
                 pdfFooter(doc);
 
                 // ========== PÁGINAS INDIVIDUALES ==========
@@ -3932,6 +3941,16 @@
                         alternateRowStyles: {fillColor:[248,248,246]},
                         margin:{left:14,right:14}
                     });
+
+                    // Interpretacion individual
+                    let interpIY = doc.lastAutoTable.finalY + 12;
+                    pdfInterpretacionIndividual(doc, interpIY, {
+                        nombre: member.name,
+                        pct, total: totalMember,
+                        racha, actFav,
+                        mesRowsM, coroAvg: parseFloat(coroAvg),
+                        actRowsM
+                    });
                 });
 
                 pdfGlosario(doc, true);
@@ -3977,6 +3996,160 @@
                 doc.setTextColor(180, 180, 180);
                 const now = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
                 doc.text('Generado: ' + now, 196, 29, {align:'right'});
+            }
+
+
+            function pdfInterpretacionIndividual(doc, y, data) {
+                // data: { nombre, pct, total, racha, rachaMax, horaPromedio, actFav, mesRowsM, coroAvg, actRowsM }
+                if (y > 230) { doc.addPage(); y = 20; }
+
+                // Título de sección
+                doc.setFillColor(21,40,69);
+                doc.roundedRect(14, y, 182, 8, 2, 2, 'F');
+                doc.setFont('helvetica','bold');
+                doc.setFontSize(9);
+                doc.setTextColor(255,255,255);
+                doc.text('Interpretacion de los Resultados', 18, y+5.5);
+                y += 12;
+
+                // Generar frases de interpretación
+                const frases = [];
+                const nombre = data.nombre.split(' ')[0]; // solo primer nombre
+
+                // Asistencia general
+                if (data.pct >= 80) {
+                    frases.push(nombre + ' demuestra una asistencia sobresaliente del ' + data.pct + '%. Su nivel de compromiso es muy alto y es un ejemplo de constancia para el coro.');
+                } else if (data.pct >= 50) {
+                    frases.push(nombre + ' mantiene una asistencia regular del ' + data.pct + '%. Asiste con frecuencia, aunque hay oportunidad para mejorar su participacion en algunas actividades.');
+                } else if (data.pct > 0) {
+                    frases.push(nombre + ' tiene una asistencia del ' + data.pct + '%, lo que indica participacion ocasional. Podria beneficiarse de mayor involucramiento en las actividades del coro.');
+                } else {
+                    frases.push(nombre + ' no cuenta con registros de asistencia en el periodo analizado.');
+                }
+
+                // Racha
+                if (data.racha.actual >= 5) {
+                    frases.push('Actualmente lleva una racha de ' + data.racha.actual + ' dias consecutivos con asistencia, lo que refleja un momento de alta constancia. Su racha maxima ha sido de ' + data.racha.max + ' dias.');
+                } else if (data.racha.actual > 1) {
+                    frases.push('Tiene una racha activa de ' + data.racha.actual + ' dias. Si la racha maxima fue de ' + data.racha.max + ' dias, esto representa un buen potencial de constancia que puede retomar.');
+                } else if (data.total > 0) {
+                    frases.push('Su racha actual es de ' + data.racha.actual + ' dia. Mantener la asistencia en dias consecutivos fortaleceria su habito de participacion.');
+                }
+
+                // Comparativa vs promedio
+                const porArriba = data.actRowsM.filter(r => parseFloat(r[3]) > 0).length;
+                const porAbajo  = data.actRowsM.filter(r => parseFloat(r[3]) < 0).length;
+                if (porArriba > porAbajo && porArriba > 0) {
+                    frases.push('En comparacion con el promedio del grupo, supera la media en ' + porArriba + ' actividad' + (porArriba>1?'es':'') + '. Esto indica un compromiso especial en esas areas.');
+                } else if (porAbajo > porArriba && porAbajo > 0) {
+                    frases.push('En ' + porAbajo + ' actividad' + (porAbajo>1?'es':'') + ' su asistencia esta por debajo del promedio del grupo. Reforzar la participacion en esas areas contribuiria a un desempeno mas equilibrado.');
+                } else if (data.total > 0) {
+                    frases.push('Su participacion en las distintas actividades es bastante equilibrada respecto al promedio del grupo.');
+                }
+
+                // Actividad favorita
+                if (data.actFav && data.actFav.count > 0) {
+                    frases.push('La actividad a la que mas asiste es ' + data.actFav.name + ', con ' + data.actFav.count + ' registro' + (data.actFav.count>1?'s':'') + '. Esto puede indicar su mayor disponibilidad o preferencia en ese espacio.');
+                }
+
+                // Tendencia mensual
+                if (data.mesRowsM.length >= 2) {
+                    const ultimo = data.mesRowsM[data.mesRowsM.length-1][1];
+                    const penultimo = data.mesRowsM[data.mesRowsM.length-2][1];
+                    if (ultimo > penultimo) {
+                        frases.push('Su tendencia de asistencia va en aumento: en ' + data.mesRowsM[data.mesRowsM.length-1][0] + ' tuvo ' + ultimo + ' registro' + (ultimo>1?'s':'') + ', mas que el mes anterior (' + penultimo + '). Buena señal de mejora.');
+                    } else if (ultimo < penultimo) {
+                        frases.push('En el ultimo mes registrado (' + data.mesRowsM[data.mesRowsM.length-1][0] + ') su asistencia bajo a ' + ultimo + ' respecto a ' + penultimo + ' del mes anterior. Vale la pena acompañarle para mantener su participacion.');
+                    } else {
+                        frases.push('Su asistencia mensual se ha mantenido estable en los ultimos meses registrados.');
+                    }
+                }
+
+                // Dibujar las frases en el PDF
+                frases.forEach((frase, idx) => {
+                    if (y > 260) { doc.addPage(); y = 20; }
+                    // Viñeta
+                    doc.setFillColor(204,165,83);
+                    doc.circle(17, y+1.5, 1.2, 'F');
+                    doc.setFont('helvetica','normal');
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(40,40,40);
+                    const lines = doc.splitTextToSize(frase, 172);
+                    doc.text(lines, 21, y+3);
+                    y += lines.length * 4.5 + 4;
+                });
+
+                return y + 4;
+            }
+
+            function pdfInterpretacionGrupal(doc, y, data) {
+                // data: { groupLabel, totalRecords, selectedMembers, avgAtt, topMember, bottomMember, mesPico, mesRows, actRows }
+                if (y > 230) { doc.addPage(); y = 20; }
+
+                doc.setFillColor(21,40,69);
+                doc.roundedRect(14, y, 182, 8, 2, 2, 'F');
+                doc.setFont('helvetica','bold');
+                doc.setFontSize(9);
+                doc.setTextColor(255,255,255);
+                doc.text('Interpretacion de los Resultados del Grupo', 18, y+5.5);
+                y += 12;
+
+                const frases = [];
+                const n = data.selectedMembers.length;
+
+                // Tamaño y participación general
+                if (data.totalRecords === 0) {
+                    frases.push('El grupo "' + data.groupLabel + '" aun no tiene registros de asistencia. Una vez que los integrantes empiecen a registrarse, aqui apareceran sus estadisticas.');
+                } else {
+                    frases.push('El grupo "' + data.groupLabel + '" esta conformado por ' + n + ' integrante' + (n>1?'s':'') + ' y ha generado un total de ' + data.totalRecords + ' registros, con un promedio de ' + data.avgAtt + ' asistencias por persona.');
+                }
+
+                // Lider y rezagado
+                if (data.topMember && data.topMember.total > 0) {
+                    frases.push(data.topMember.name + ' es el integrante mas constante del grupo con ' + data.topMember.total + ' asistencias (' + data.topMember.pct + '%). Su participacion es un referente positivo para el resto.');
+                }
+                if (data.bottomMember && data.bottomMember.id !== (data.topMember||{}).id && data.totalRecords > 0) {
+                    frases.push(data.bottomMember.name + ' es quien menor asistencia registra con ' + data.bottomMember.total + ' registro' + (data.bottomMember.total!==1?'s':'') + '. Podria ser util brindarle atencion personalizada para fortalecer su participacion.');
+                }
+
+                // Actividad más popular
+                if (data.actRows.length > 0) {
+                    const mas = data.actRows[0];
+                    const menos = data.actRows[data.actRows.length-1];
+                    frases.push('La actividad con mayor asistencia del grupo es "' + mas[0] + '" con ' + mas[1] + ' registro' + (mas[1]>1?'s':'') + '. La de menor concurrencia es "' + menos[0] + '" con ' + menos[1] + ', lo que puede indicar una oportunidad de motivacion en esa area.');
+                }
+
+                // Tendencia mensual del grupo
+                if (data.mesRows.length >= 2) {
+                    const ult = data.mesRows[data.mesRows.length-1];
+                    const pen = data.mesRows[data.mesRows.length-2];
+                    if (ult[1] > pen[1]) {
+                        frases.push('La participacion grupal muestra una tendencia positiva: en ' + ult[0] + ' se registraron ' + ult[1] + ' asistencias, superando las ' + pen[1] + ' del mes anterior.');
+                    } else if (ult[1] < pen[1]) {
+                        frases.push('En el ultimo mes (' + ult[0] + ') la asistencia grupal bajo a ' + ult[1] + ' registros respecto a los ' + pen[1] + ' del mes previo. Puede ser util revisar que factores afectaron la participacion.');
+                    } else {
+                        frases.push('La asistencia grupal se ha mantenido estable en los ultimos meses registrados.');
+                    }
+                }
+
+                // Mes pico
+                if (data.mesPico) {
+                    frases.push('El mes con mayor actividad del grupo fue ' + data.mesPico[0] + ' con ' + data.mesPico[1] + ' registros en total. Analizar que ocurrio ese mes puede ayudar a replicar ese nivel de participacion.');
+                }
+
+                frases.forEach(frase => {
+                    if (y > 260) { doc.addPage(); y = 20; }
+                    doc.setFillColor(204,165,83);
+                    doc.circle(17, y+1.5, 1.2, 'F');
+                    doc.setFont('helvetica','normal');
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(40,40,40);
+                    const lines = doc.splitTextToSize(frase, 172);
+                    doc.text(lines, 21, y+3);
+                    y += lines.length * 4.5 + 4;
+                });
+
+                return y + 4;
             }
 
             function pdfGlosario(doc, esGrupal) {
@@ -4237,6 +4410,23 @@
                     columnStyles: { 0:{cellWidth:40}, 1:{cellWidth:30}, 2:{cellWidth:110} },
                     alternateRowStyles: { fillColor: [248,248,246] },
                     margin: { left: 14, right: 14 }
+                });
+
+                // Interpretacion individual
+                const actRowsInterp = Object.values(byActivity).map(a => {
+                    const actObj = state.activities.find(ac => ac.name === a.name);
+                    const avg = actObj ? avgCoro[actObj.id] : '0';
+                    const d = (a.count - parseFloat(avg)).toFixed(1);
+                    return [a.name, a.count, avg, d];
+                });
+                pdfInterpretacionIndividual(doc, doc.lastAutoTable.finalY + 12, {
+                    nombre: member.name,
+                    pct, total: totalMember,
+                    racha: calcRacha(memberRecords),
+                    actFav: Object.values(byActivity).sort((a,b)=>b.count-a.count)[0],
+                    mesRowsM: calcComparativaMensual(memberRecords),
+                    coroAvg: parseFloat((totalCoro/(state.members.length||1)).toFixed(1)),
+                    actRowsM: actRowsInterp
                 });
 
                 pdfGlosario(doc, false);
