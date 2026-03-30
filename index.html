@@ -1185,6 +1185,36 @@
 
                 <!-- TAB: MEMBERS -->
                 <div id="tab-members" class="admin-tab">
+                <!-- CARD CREDENCIALES ADMIN -->
+                <div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent);">
+                    <div class="card-title" style="margin-bottom:16px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:8px;color:var(--accent);"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Credenciales de Acceso Admin
+                    </div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+                        <div style="flex:1;min-width:140px;">
+                            <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nuevo usuario</label>
+                            <input type="text" id="new-admin-user" placeholder="Nuevo usuario" autocomplete="off"
+                                style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                        </div>
+                        <div style="flex:1;min-width:140px;">
+                            <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nueva contraseña</label>
+                            <input type="password" id="new-admin-pass" placeholder="Nueva contraseña" autocomplete="new-password"
+                                style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                        </div>
+                        <div style="flex:1;min-width:140px;">
+                            <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Confirmar contraseña</label>
+                            <input type="password" id="confirm-admin-pass" placeholder="Confirmar contraseña" autocomplete="new-password"
+                                style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                        </div>
+                        <button onclick="saveAdminCredentials()"
+                            style="padding:9px 20px;background:var(--primary);color:white;border:none;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.85rem;font-weight:700;flex-shrink:0;">
+                            Guardar
+                        </button>
+                    </div>
+                    <p id="creds-msg" style="display:none;font-size:0.82rem;margin-top:10px;"></p>
+                </div>
+
                     <div class="card">
                         <div class="card-title">
                             <svg
@@ -1736,8 +1766,8 @@
                     <div class="header-titles">
                         <p>Registro de Actividad</p>
                     </div>
-                    <!-- Indicador visual oculto -->
-                    <div id="secret-dots" style="display:flex;gap:4px;opacity:0;transition:opacity 0.3s;align-items:center;">
+                    <!-- Disparador secreto — invisible -->
+                    <div id="secret-dots" style="display:flex;gap:3px;opacity:0;pointer-events:none;align-items:center;">
                         <span class="sdot" id="dot1"></span><span class="sdot" id="dot2"></span>
                         <span class="sdot" id="dot3"></span><span class="sdot" id="dot4"></span>
                         <span class="sdot" id="dot5"></span><span class="sdot" id="dot6"></span>
@@ -1962,124 +1992,32 @@
             </div>
         </div>
 
-        <!-- ==================== ADMIN PIN MODAL ==================== -->
-        <div
-            id="admin-pin-modal"
-            style="
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(21, 40, 69, 0.85);
-                z-index: 800;
-                align-items: center;
-                justify-content: center;
-                backdrop-filter: blur(4px);
-            "
-        >
-            <div
-                style="
-                    background: white;
-                    border-radius: 20px;
-                    padding: 36px 30px;
-                    max-width: 320px;
-                    width: 90%;
-                    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4);
-                    text-align: center;
-                "
-            >
-                <div style="margin-bottom: 20px">
-                    <p
-                        style="
-                            font-family: &quot;Cinzel&quot;, serif;
-                            color: #1e396a;
-                            font-size: 1rem;
-                            font-weight: 700;
-                            margin-bottom: 4px;
-                        "
-                    >
-                        Acceso Administrador
-                    </p>
-                    <p style="color: #9a9a92; font-size: 0.8rem">
-                        Ingresa tu PIN de 4 dígitos
-                    </p>
+        <!-- ==================== ADMIN LOGIN MODAL ==================== -->
+        <div id="admin-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(21,40,69,0.88);z-index:800;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+            <div style="background:white;border-radius:20px;padding:36px 32px;max-width:340px;width:92%;box-shadow:0 32px 64px rgba(0,0,0,0.4);">
+                <p style="font-family:'Cinzel',serif;color:#1e396a;font-size:1.1rem;font-weight:700;margin-bottom:4px;text-align:center;">Acceso Administrador</p>
+                <p style="color:#9a9a92;font-size:0.8rem;margin-bottom:24px;text-align:center;">Ingresa tus credenciales</p>
+                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#5a5a52;margin-bottom:5px;">Usuario</label>
+                <input type="text" id="admin-username" autocomplete="username" placeholder="Usuario"
+                    style="width:100%;padding:11px 14px;border:2px solid #ddddd8;border-radius:10px;font-family:'Lato',sans-serif;font-size:0.92rem;outline:none;margin-bottom:14px;box-sizing:border-box;"
+                    onfocus="this.style.borderColor='#cca553'" onblur="this.style.borderColor='#ddddd8'"/>
+                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#5a5a52;margin-bottom:5px;">Contraseña</label>
+                <div style="position:relative;margin-bottom:6px;">
+                    <input type="password" id="admin-password" autocomplete="current-password" placeholder="••••••••"
+                        style="width:100%;padding:11px 40px 11px 14px;border:2px solid #ddddd8;border-radius:10px;font-family:'Lato',sans-serif;font-size:0.92rem;outline:none;box-sizing:border-box;"
+                        onfocus="this.style.borderColor='#cca553'" onblur="this.style.borderColor='#ddddd8'"
+                        onkeydown="if(event.key==='Enter') checkAdminCredentials()"/>
+                    <button onclick="toggleAdminPwdVisibility()" tabindex="-1"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9a9a92;font-size:0.85rem;padding:4px;">👁</button>
                 </div>
-                <input
-                    type="password"
-                    id="pin-admin"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    maxlength="4"
-                    placeholder="••••"
-                    autocomplete="one-time-code"
-                    style="
-                        width: 160px;
-                        height: 60px;
-                        border: 2px solid #ddddd8;
-                        border-radius: 12px;
-                        text-align: center;
-                        font-size: 2rem;
-                        font-family: &quot;Cinzel&quot;, serif;
-                        color: #1e396a;
-                        outline: none;
-                        letter-spacing: 0.4em;
-                        background: #f8f8f6;
-                        padding-left: 12px;
-                        display: block;
-                        margin: 0 auto 16px;
-                    "
-                    oninput="if (this.value.length === 4) checkAdminPin();"
-                />
-                <p
-                    id="pin-error"
-                    style="
-                        display: none;
-                        color: #b33a3a;
-                        font-size: 0.82rem;
-                        margin-bottom: 12px;
-                    "
-                >
-                    PIN incorrecto.
-                </p>
-                <div style="display: flex; gap: 10px">
-                    <button
-                        onclick="
-                            document.getElementById(
-                                'admin-pin-modal',
-                            ).style.display = 'none';
-                            document.getElementById('pin-admin').value = '';
-                            document.getElementById('pin-error').style.display =
-                                'none';
-                        "
-                        style="
-                            flex: 1;
-                            padding: 11px;
-                            border: 2px solid #ddddd8;
-                            background: white;
-                            border-radius: 10px;
-                            cursor: pointer;
-                            font-family: &quot;Lato&quot;, sans-serif;
-                            font-size: 0.88rem;
-                            font-weight: 700;
-                            color: #5a5a52;
-                        "
-                    >
+                <p id="pin-error" style="display:none;color:#b33a3a;font-size:0.82rem;margin-bottom:10px;">Usuario o contraseña incorrectos.</p>
+                <div style="display:flex;gap:10px;margin-top:18px;">
+                    <button onclick="closeAdminLoginModal()"
+                        style="flex:1;padding:11px;border:2px solid #ddddd8;background:white;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;color:#5a5a52;">
                         Cancelar
                     </button>
-                    <button
-                        onclick="checkAdminPin()"
-                        style="
-                            flex: 1;
-                            padding: 11px;
-                            background: #1e396a;
-                            color: white;
-                            border: none;
-                            border-radius: 10px;
-                            cursor: pointer;
-                            font-family: &quot;Lato&quot;, sans-serif;
-                            font-size: 0.88rem;
-                            font-weight: 700;
-                        "
-                    >
+                    <button onclick="checkAdminCredentials()"
+                        style="flex:1;padding:11px;background:#1e396a;color:white;border:none;border-radius:10px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;">
                         Entrar
                     </button>
                 </div>
@@ -2492,7 +2430,9 @@
 
         <script>
             // ======================== STATE ========================
-            const ADMIN_PIN = "0711";
+            // Credenciales admin — guardadas en localStorage, con defaults iniciales
+            let ADMIN_USERNAME = localStorage.getItem('cva_admin_user') || 'admin';
+            let ADMIN_PASSWORD = localStorage.getItem('cva_admin_pass') || 'coro2024';
             let state = {
                 members: [],
                 activities: [],
@@ -2607,23 +2547,73 @@
                     mode === "member" ? "" : "none";
             }
 
-            function checkAdminPin() {
-                const pin = document.getElementById("pin-admin").value;
-                if (pin === ADMIN_PIN) {
-                    document.getElementById("admin-pin-modal").style.display =
-                        "none";
-                    document.getElementById("pin-admin").value = "";
-                    document.getElementById("pin-error").style.display = "none";
+            function checkAdminCredentials() {
+                const user = (document.getElementById('admin-username').value || '').trim();
+                const pass = (document.getElementById('admin-password').value || '');
+                if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
+                    closeAdminLoginModal();
                     stopCamera();
-                    showView("view-admin");
+                    showView('view-admin');
                     loadFromCloud().then(() => renderAll());
                 } else {
-                    document.getElementById("pin-error").style.display =
-                        "block";
-                    document.getElementById("pin-admin").value = "";
-                    document.getElementById("pin-admin").focus();
+                    document.getElementById('pin-error').style.display = 'block';
+                    document.getElementById('admin-password').value = '';
+                    document.getElementById('admin-password').focus();
                 }
             }
+
+
+            function saveAdminCredentials() {
+                const newUser = (document.getElementById('new-admin-user').value || '').trim();
+                const newPass = (document.getElementById('new-admin-pass').value || '');
+                const confirmPass = (document.getElementById('confirm-admin-pass').value || '');
+                const msg = document.getElementById('creds-msg');
+
+                if (!newUser || !newPass) {
+                    msg.textContent = 'Completa usuario y contraseña.';
+                    msg.style.color = '#b33a3a';
+                    msg.style.display = 'block';
+                    return;
+                }
+                if (newPass !== confirmPass) {
+                    msg.textContent = 'Las contraseñas no coinciden.';
+                    msg.style.color = '#b33a3a';
+                    msg.style.display = 'block';
+                    return;
+                }
+                if (newPass.length < 6) {
+                    msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+                    msg.style.color = '#b33a3a';
+                    msg.style.display = 'block';
+                    return;
+                }
+                ADMIN_USERNAME = newUser;
+                ADMIN_PASSWORD = newPass;
+                localStorage.setItem('cva_admin_user', newUser);
+                localStorage.setItem('cva_admin_pass', newPass);
+                document.getElementById('new-admin-user').value = '';
+                document.getElementById('new-admin-pass').value = '';
+                document.getElementById('confirm-admin-pass').value = '';
+                msg.textContent = '✓ Credenciales actualizadas correctamente.';
+                msg.style.color = '#2e7d52';
+                msg.style.display = 'block';
+                setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                showToast('✓ Credenciales de admin actualizadas');
+            }
+            function closeAdminLoginModal() {
+                document.getElementById('admin-pin-modal').style.display = 'none';
+                document.getElementById('admin-username').value = '';
+                document.getElementById('admin-password').value = '';
+                document.getElementById('pin-error').style.display = 'none';
+            }
+
+            function toggleAdminPwdVisibility() {
+                const inp = document.getElementById('admin-password');
+                inp.type = inp.type === 'password' ? 'text' : 'password';
+            }
+
+            // Alias por compatibilidad con código existente
+            function checkAdminPin() { checkAdminCredentials(); }
 
             function enterMemberMode() {
                 showView("view-member");
@@ -2655,23 +2645,12 @@
             }
 
             function showAdminLogin() {
-                document.getElementById("admin-pin-modal").style.display =
-                    "flex";
-                setTimeout(
-                    () => document.getElementById("pin-admin").focus(),
-                    100,
-                );
+                document.getElementById('admin-pin-modal').style.display = 'flex';
+                document.getElementById('pin-error').style.display = 'none';
+                setTimeout(() => document.getElementById('admin-username').focus(), 100);
             }
 
-            // PIN - Enter key support
-            document.addEventListener("DOMContentLoaded", () => {
-                const pinInput = document.getElementById("pin-admin");
-                if (pinInput) {
-                    pinInput.addEventListener("keydown", (e) => {
-                        if (e.key === "Enter") checkAdminPin();
-                    });
-                }
-            });
+
 
             // ======================== ADMIN TABS ========================
             function showAdminTab(id) {
