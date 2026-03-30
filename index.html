@@ -29,6 +29,30 @@
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
             const DOC_REF = doc(db, "coralsync", "data");
+            const CFG_REF = doc(db, "coralsync", "config");
+
+            // Guardar credenciales en Firebase
+            window._fbSaveCredentials = async function(username, password) {
+                try {
+                    await setDoc(CFG_REF, { adminUser: username, adminPass: password }, { merge: true });
+                    return true;
+                } catch(e) {
+                    console.error("Firebase credentials save error:", e);
+                    return false;
+                }
+            };
+
+            // Cargar credenciales desde Firebase
+            window._fbLoadCredentials = async function() {
+                try {
+                    const snap = await getDoc(CFG_REF);
+                    if (snap.exists()) return snap.data();
+                    return null;
+                } catch(e) {
+                    console.error("Firebase credentials load error:", e);
+                    return null;
+                }
+            };
 
             window._fbSave = async function(state) {
                 try {
@@ -2430,9 +2454,28 @@
 
         <script>
             // ======================== STATE ========================
-            // Credenciales admin — guardadas en localStorage, con defaults iniciales
+            // Credenciales admin — se sincronizan con Firebase, localStorage como caché
             let ADMIN_USERNAME = localStorage.getItem('cva_admin_user') || 'admin';
             let ADMIN_PASSWORD = localStorage.getItem('cva_admin_pass') || 'coro2024';
+
+            // Cargar credenciales desde Firebase al iniciar
+            async function loadCredentialsFromFirebase() {
+                if (!window._fbLoadCredentials) return;
+                try {
+                    const cfg = await window._fbLoadCredentials();
+                    if (cfg && cfg.adminUser && cfg.adminPass) {
+                        ADMIN_USERNAME = cfg.adminUser;
+                        ADMIN_PASSWORD = cfg.adminPass;
+                        localStorage.setItem('cva_admin_user', cfg.adminUser);
+                        localStorage.setItem('cva_admin_pass', cfg.adminPass);
+                    } else {
+                        // Primera vez: subir los defaults a Firebase
+                        await window._fbSaveCredentials(ADMIN_USERNAME, ADMIN_PASSWORD);
+                    }
+                } catch(e) {
+                    console.error('Error cargando credenciales:', e);
+                }
+            }
             let state = {
                 members: [],
                 activities: [],
@@ -2594,10 +2637,23 @@
                 document.getElementById('new-admin-user').value = '';
                 document.getElementById('new-admin-pass').value = '';
                 document.getElementById('confirm-admin-pass').value = '';
-                msg.textContent = '✓ Credenciales actualizadas correctamente.';
-                msg.style.color = '#2e7d52';
+                msg.textContent = 'Guardando en la nube...';
+                msg.style.color = '#1e396a';
                 msg.style.display = 'block';
-                setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                // Guardar en Firebase
+                if (window._fbSaveCredentials) {
+                    window._fbSaveCredentials(newUser, newPass).then(ok => {
+                        msg.textContent = ok
+                            ? '✓ Credenciales actualizadas y sincronizadas en todos los dispositivos.'
+                            : '✓ Guardado localmente (sin conexión a la nube).';
+                        msg.style.color = '#2e7d52';
+                        setTimeout(() => { msg.style.display = 'none'; }, 4000);
+                    });
+                } else {
+                    msg.textContent = '✓ Credenciales actualizadas correctamente.';
+                    msg.style.color = '#2e7d52';
+                    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                }
                 showToast('✓ Credenciales de admin actualizadas');
             }
             function closeAdminLoginModal() {
@@ -3502,8 +3558,11 @@
                 updateManualSelects();
                 setSyncBadge("Conectando...", "warn");
 
-                // Luego sincronizar con Firebase
-                await loadFromCloud();
+                // Sincronizar datos y credenciales con Firebase en paralelo
+                await Promise.all([
+                    loadFromCloud(),
+                    loadCredentialsFromFirebase()
+                ]);
                 renderAll();
                 updateManualSelects();
             }
