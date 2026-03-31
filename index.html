@@ -3580,12 +3580,12 @@
             // ======================== REPORTS TAB ========================
 
             function renderReportsTab() {
-                // Llenar filtro de iglesias
+                // Limpiar filtros y selecciones al entrar
                 const churchSel = document.getElementById('report-church-filter');
-                const prev = churchSel.value;
                 churchSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
                     state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                churchSel.value = prev;
+                churchSel.value = '';
+                document.getElementById('report-member-search').value = '';
                 renderReportMemberList();
             }
 
