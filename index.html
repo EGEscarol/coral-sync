@@ -31,6 +31,19 @@
             const DOC_REF = doc(db, "coralsync", "data");
             const CFG_REF = doc(db, "coralsync", "config");
             const DIR_REF = doc(db, "coralsync", "directors");
+            const UNI_REF = doc(db, "coralsync", "uniforms");
+
+            window._fbSaveUniforms = async function(data) {
+                try { await setDoc(UNI_REF, data, { merge: false }); return true; }
+                catch(e) { console.error("Firebase uniforms save error:", e); return false; }
+            };
+            window._fbLoadUniforms = async function() {
+                try {
+                    const snap = await getDoc(UNI_REF);
+                    if (snap.exists()) return snap.data();
+                    return null;
+                } catch(e) { return null; }
+            };
 
             // Guardar directores en Firebase
             window._fbSaveDirectors = async function(directors) {
@@ -1226,6 +1239,13 @@
                     </button>
                     <button
                         class="nav-tab"
+                        id="tab-btn-uniforms"
+                        onclick="showAdminTab('tab-uniforms')"
+                    >
+                        🎽 Uniformes
+                    </button>
+                    <button
+                        class="nav-tab"
                         id="tab-btn-directors"
                         onclick="showAdminTab('tab-directors')"
                     >
@@ -1806,6 +1826,43 @@
                                 📄 Generar PDF del Grupo
                             </button>
                         </div>
+                    </div>
+                </div>
+
+            <!-- TAB: UNIFORMES -->
+                <div id="tab-uniforms" class="admin-tab" style="display:none;">
+                    <div class="card" style="margin-bottom:20px;">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
+                            Catálogo de Uniformes
+                        </div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre del uniforme</label>
+                                <input type="text" id="new-uniform-name" placeholder="Ej: Vestido blanco, Corbata dorada..." style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <div id="uniform-church-wrap" style="flex:1;min-width:160px;">
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Iglesia / Coro</label>
+                                <select id="new-uniform-church" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Selecciona --</option>
+                                </select>
+                            </div>
+                            <button onclick="addUniform()" class="btn-accent" style="padding:9px 20px;flex-shrink:0;">+ Agregar</button>
+                        </div>
+                        <div id="uniform-catalog-list"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Estado de Uniformes por Integrante
+                        </div>
+                        <div id="uniform-filter-bar" style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <select id="uniform-filter-church" onchange="renderUniformsTab()" style="padding:8px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.85rem;outline:none;background:white;">
+                                <option value="">-- Todas las iglesias --</option>
+                            </select>
+                        </div>
+                        <div id="uniform-matrix" style="overflow-x:auto;"></div>
                     </div>
                 </div>
 
@@ -2478,6 +2535,10 @@
             // Lista de directores de iglesia
             let directors = [];
 
+            // Uniformes: { churchId: [ { id, name } ] }
+            // Estado por integrante: member.uniforms = { uniformId: true/false }
+            let uniformCatalog = {};  // { churchId: [{id, name}] }
+
             // Sesión activa: { role: 'superadmin'|'director', churchId, churchName, name }
             let currentSession = null;
 
@@ -2827,6 +2888,7 @@
                         "tab-qr",
                         "tab-records",
                         "tab-reports",
+                        "tab-uniforms",
                         "tab-directors",
                     ];
                     t.classList.toggle("active", tabs[i] === id);
@@ -2838,6 +2900,7 @@
                 if (id === "tab-activities") renderActivities();
                 if (id === "tab-reports") renderReportsTab();
                 if (id === "tab-directors") renderDirectors();
+                if (id === "tab-uniforms") renderUniformsTab();
             }
 
             // ======================== MEMBERS ========================
@@ -3732,6 +3795,186 @@
                 }
             }
 
+
+            // ======================== UNIFORMS ========================
+
+            async function loadUniformsFromFirebase() {
+                if (!window._fbLoadUniforms) return;
+                try {
+                    const data = await window._fbLoadUniforms();
+                    if (data && data.catalog) {
+                        uniformCatalog = data.catalog;
+                        localStorage.setItem('cva_uniforms', JSON.stringify(uniformCatalog));
+                    } else {
+                        const cache = localStorage.getItem('cva_uniforms');
+                        if (cache) uniformCatalog = JSON.parse(cache);
+                    }
+                } catch(e) {
+                    const cache = localStorage.getItem('cva_uniforms');
+                    if (cache) uniformCatalog = JSON.parse(cache);
+                }
+            }
+
+            async function saveUniforms() {
+                localStorage.setItem('cva_uniforms', JSON.stringify(uniformCatalog));
+                if (window._fbSaveUniforms) {
+                    await window._fbSaveUniforms({ catalog: uniformCatalog });
+                }
+            }
+
+            function getChurchUniforms(churchId) {
+                return uniformCatalog[churchId] || [];
+            }
+
+            function addUniform() {
+                const name = (document.getElementById('new-uniform-name').value || '').trim();
+                const churchId = isDirector()
+                    ? sessionChurchId()
+                    : document.getElementById('new-uniform-church').value;
+
+                if (!name) { showToast('Ingresa el nombre del uniforme.'); return; }
+                if (!churchId) { showToast('Selecciona una iglesia.'); return; }
+
+                if (!uniformCatalog[churchId]) uniformCatalog[churchId] = [];
+                if (uniformCatalog[churchId].find(u => u.name.toLowerCase() === name.toLowerCase())) {
+                    showToast('Ya existe un uniforme con ese nombre en este coro.'); return;
+                }
+
+                uniformCatalog[churchId].push({ id: 'U' + Date.now(), name });
+                saveUniforms();
+                document.getElementById('new-uniform-name').value = '';
+                renderUniformsTab();
+                showToast('✓ Uniforme agregado: ' + name);
+            }
+
+            function deleteUniform(churchId, uniformId) {
+                customConfirm('¿Eliminar este uniforme? Se borrará de todos los integrantes.', () => {
+                    uniformCatalog[churchId] = (uniformCatalog[churchId] || []).filter(u => u.id !== uniformId);
+                    // Limpiar del state de integrantes
+                    state.members.forEach(m => {
+                        if (m.uniforms && m.uniforms[uniformId] !== undefined) {
+                            delete m.uniforms[uniformId];
+                        }
+                    });
+                    save();
+                    saveUniforms();
+                    renderUniformsTab();
+                    showToast('Uniforme eliminado.');
+                });
+            }
+
+            function toggleMemberUniform(memberId, uniformId) {
+                const member = state.members.find(m => m.id === memberId);
+                if (!member) return;
+                if (!member.uniforms) member.uniforms = {};
+                member.uniforms[uniformId] = !member.uniforms[uniformId];
+                save();
+                // Actualizar solo la celda visualmente
+                const cell = document.getElementById('ucell-' + memberId + '-' + uniformId);
+                if (cell) {
+                    cell.textContent = member.uniforms[uniformId] ? '✅' : '❌';
+                    cell.style.background = member.uniforms[uniformId] ? '#f0fdf4' : '#fff5f5';
+                }
+            }
+
+            function renderUniformsTab() {
+                // Selector de iglesia en catálogo (solo superadmin)
+                const churchWrap = document.getElementById('uniform-church-wrap');
+                const churchSel = document.getElementById('new-uniform-church');
+                if (churchWrap) churchWrap.style.display = isDirector() ? 'none' : '';
+                if (churchSel && !isDirector()) {
+                    churchSel.innerHTML = '<option value="">-- Selecciona --</option>' +
+                        state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                }
+
+                // Renderizar catálogo de uniformes
+                const catalogList = document.getElementById('uniform-catalog-list');
+                const myChurches = isDirector() ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean) : state.churches;
+
+                if (!myChurches.length || myChurches.every(c => !getChurchUniforms(c.id).length)) {
+                    catalogList.innerHTML = '<div class="empty-state" style="padding:16px 0;"><p>No hay uniformes registrados. Agrega el primero arriba.</p></div>';
+                } else {
+                    catalogList.innerHTML = myChurches.map(church => {
+                        const unis = getChurchUniforms(church.id);
+                        if (!unis.length) return '';
+                        const header = !isDirector() ? `<div style="font-size:0.78rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">⛪ ${church.name}</div>` : '';
+                        const items = unis.map(u => `
+                            <div class="item-row" style="padding:8px 14px;">
+                                <div class="item-name">🎽 ${u.name}</div>
+                                <button class="btn-danger" onclick="deleteUniform('${church.id}','${u.id}')">Eliminar</button>
+                            </div>`).join('');
+                        return header + items;
+                    }).join('');
+                }
+
+                // Filtro de iglesia para la matriz
+                const filterSel = document.getElementById('uniform-filter-church');
+                const filterBar = document.getElementById('uniform-filter-bar');
+                if (isDirector()) {
+                    filterBar.style.display = 'none';
+                } else {
+                    filterBar.style.display = '';
+                    filterSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
+                        state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                }
+
+                // Renderizar matriz integrante × uniforme
+                const filterChurchId = isDirector() ? sessionChurchId() : (filterSel ? filterSel.value : '');
+                const matrix = document.getElementById('uniform-matrix');
+
+                const churches = filterChurchId
+                    ? state.churches.filter(c => c.id === filterChurchId)
+                    : myChurches;
+
+                let html = '';
+                churches.forEach(church => {
+                    const unis = getChurchUniforms(church.id);
+                    const members = state.members.filter(m => m.churchId === church.id);
+
+                    if (!unis.length || !members.length) return;
+
+                    const churchHeader = !isDirector()
+                        ? `<div style="font-weight:700;color:var(--primary);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;margin:16px 0 8px;">⛪ ${church.name}</div>`
+                        : '';
+
+                    html += churchHeader + `
+                    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:400px;">
+                        <thead>
+                            <tr style="background:var(--primary);">
+                                <th style="padding:10px 14px;text-align:left;color:white;font-weight:700;border-radius:8px 0 0 0;min-width:160px;">Integrante</th>
+                                ${unis.map((u,i) => `<th style="padding:10px 8px;text-align:center;color:white;font-weight:600;font-size:0.78rem;${i===unis.length-1?'border-radius:0 8px 0 0;':''}">${u.name}</th>`).join('')}
+                                <th style="padding:10px 8px;text-align:center;color:var(--accent);font-weight:700;font-size:0.78rem;">Completo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${members.map((m, mi) => {
+                                const bg = mi % 2 === 0 ? '#ffffff' : '#f8f8f6';
+                                const uniStates = unis.map(u => (m.uniforms && m.uniforms[u.id]) ? true : false);
+                                const total = uniStates.filter(Boolean).length;
+                                const complete = total === unis.length;
+                                return `<tr style="background:${bg};">
+                                    <td style="padding:9px 14px;font-weight:600;color:var(--primary-dark);">${m.name}</td>
+                                    ${unis.map(u => {
+                                        const has = m.uniforms && m.uniforms[u.id];
+                                        return `<td id="ucell-${m.id}-${u.id}"
+                                            onclick="toggleMemberUniform('${m.id}','${u.id}')"
+                                            style="padding:9px 8px;text-align:center;cursor:pointer;font-size:1.1rem;background:${has?'#f0fdf4':'#fff5f5'};transition:background 0.2s;"
+                                            title="${has?'Tiene':'No tiene'} — clic para cambiar">
+                                            ${has ? '✅' : '❌'}
+                                        </td>`;
+                                    }).join('')}
+                                    <td style="padding:9px 8px;text-align:center;font-weight:700;color:${complete?'#16a34a':'#dc2626'};">
+                                        ${complete ? '✅ Completo' : total + '/' + unis.length}
+                                    </td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>`;
+                });
+
+                matrix.innerHTML = html || '<div class="empty-state" style="padding:24px 0;"><p>Agrega uniformes e integrantes para ver la tabla.</p></div>';
+            }
+
             // ======================== RENDER ALL ========================
             function renderAll() {
                 // Solo renderizar el panel admin si está activo
@@ -3763,7 +4006,8 @@
                 await Promise.all([
                     loadFromCloud(),
                     loadCredentialsFromFirebase(),
-                    loadDirectorsFromFirebase()
+                    loadDirectorsFromFirebase(),
+                    loadUniformsFromFirebase()
                 ]);
                 renderAll();
                 updateManualSelects();
