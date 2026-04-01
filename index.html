@@ -4890,10 +4890,92 @@
             var splash = document.getElementById('splash-screen');
             var logo   = document.getElementById('splash-logo');
 
-            // Fase 1: aparecer (fade-in del logo)
+            // ── Sonido coral "Haaaaa" sintetizado ──────────────────────
+            function playChoraleHaaa() {
+                try {
+                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Acorde: fundamental + tercera mayor + quinta + octava
+                    // Como un coro de sopranos/altos/tenores
+                    var voces = [
+                        { freq: 220.0,  gain: 0.18, detune:  0   },  // Alto
+                        { freq: 277.2,  gain: 0.15, detune:  4   },  // Tercera mayor
+                        { freq: 329.6,  gain: 0.14, detune: -3   },  // Quinta
+                        { freq: 440.0,  gain: 0.16, detune:  6   },  // Soprano octava
+                        { freq: 220.0,  gain: 0.10, detune: -8   },  // Tenor bajo
+                        { freq: 369.9,  gain: 0.10, detune:  2   },  // Séptima mayor suave
+                    ];
+
+                    var masterGain = ctx.createGain();
+                    masterGain.gain.setValueAtTime(0, ctx.currentTime);
+                    masterGain.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.35);
+                    masterGain.gain.setValueAtTime(1.0, ctx.currentTime + 1.1);
+                    masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.9);
+
+                    // Reverb simple con ConvolverNode
+                    var convolver = ctx.createConvolver();
+                    var reverbLen = ctx.sampleRate * 1.8;
+                    var reverbBuf = ctx.createBuffer(2, reverbLen, ctx.sampleRate);
+                    for (var ch = 0; ch < 2; ch++) {
+                        var data = reverbBuf.getChannelData(ch);
+                        for (var i = 0; i < reverbLen; i++) {
+                            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbLen, 2.5);
+                        }
+                    }
+                    convolver.buffer = reverbBuf;
+                    var reverbGain = ctx.createGain();
+                    reverbGain.gain.value = 0.32;
+
+                    masterGain.connect(ctx.destination);
+                    masterGain.connect(convolver);
+                    convolver.connect(reverbGain);
+                    reverbGain.connect(ctx.destination);
+
+                    voces.forEach(function(v) {
+                        // Oscilador principal (vocal "ah" = sawtooth + filtro)
+                        var osc = ctx.createOscillator();
+                        osc.type = 'sawtooth';
+                        osc.frequency.value = v.freq;
+                        osc.detune.value = v.detune;
+
+                        // Vibrato suave
+                        var vibrato = ctx.createOscillator();
+                        vibrato.frequency.value = 5.2;
+                        var vibratoGain = ctx.createGain();
+                        vibratoGain.gain.value = 5;
+                        vibrato.connect(vibratoGain);
+                        vibratoGain.connect(osc.frequency);
+
+                        // Filtro paso-bajo para suavizar (timbre vocal)
+                        var filter = ctx.createBiquadFilter();
+                        filter.type = 'lowpass';
+                        filter.frequency.value = 1800;
+                        filter.Q.value = 1.4;
+
+                        // Ganancia individual
+                        var gainNode = ctx.createGain();
+                        gainNode.gain.value = v.gain;
+
+                        osc.connect(filter);
+                        filter.connect(gainNode);
+                        gainNode.connect(masterGain);
+
+                        osc.start(ctx.currentTime + 0.05);
+                        vibrato.start(ctx.currentTime + 0.05);
+                        osc.stop(ctx.currentTime + 2.0);
+                        vibrato.stop(ctx.currentTime + 2.0);
+                    });
+
+                } catch(e) {
+                    // Si el navegador bloquea el audio, simplemente no suena
+                }
+            }
+
+            // Fase 1: aparecer (fade-in del logo) + sonido
             setTimeout(function() {
                 logo.style.opacity = '1';
                 logo.style.transform = 'scale(1)';
+                playChoraleHaaa();
             }, 80);
 
             // Fase 2: difuminarse (fade-out del splash)
