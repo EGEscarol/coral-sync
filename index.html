@@ -2519,10 +2519,20 @@
             function sessionChurchId() { return isDirector() ? currentSession.churchId : null; }
 
             // Filtrar datos según sesión activa
-            function visibleMembers()    { return isSuperAdmin() ? state.members    : state.members.filter(m => m.churchId === sessionChurchId()); }
-            function visibleRecords()    { return isSuperAdmin() ? state.records    : state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && m.churchId === sessionChurchId(); }); }
+            // Si no hay sesión (pantalla pública), devolver todo para que la app funcione
+            function visibleMembers()    {
+                if (!currentSession) return state.members;
+                return isSuperAdmin() ? state.members : state.members.filter(m => m.churchId === sessionChurchId());
+            }
+            function visibleRecords()    {
+                if (!currentSession) return state.records;
+                return isSuperAdmin() ? state.records : state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && m.churchId === sessionChurchId(); });
+            }
             function visibleActivities() { return state.activities; }
-            function visibleChurches()   { return isSuperAdmin() ? state.churches  : state.churches.filter(c => c.id === sessionChurchId()); }
+            function visibleChurches()   {
+                if (!currentSession) return state.churches;
+                return isSuperAdmin() ? state.churches : state.churches.filter(c => c.id === sessionChurchId());
+            }
 
             // Cargar directores desde Firebase
             async function loadDirectorsFromFirebase() {
@@ -3778,6 +3788,9 @@
 
             // ======================== RENDER ALL ========================
             function renderAll() {
+                // Solo renderizar el panel admin si está activo
+                if (!document.getElementById("view-admin") ||
+                    !document.getElementById("view-admin").classList.contains("active")) return;
                 renderMembers();
                 renderActivities();
                 renderChurches();
