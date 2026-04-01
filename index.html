@@ -4426,6 +4426,59 @@
 
                     iy = doc.lastAutoTable.finalY + 10;
 
+                    // Uniformes del integrante
+                    const churchUnis = getChurchUniforms(member.churchId || '');
+                    if (churchUnis.length > 0) {
+                        if(iy>200){doc.addPage();iy=20;}
+                        iy = sectionTitle(doc, 'Uniformes', iy);
+                        const uniRows = churchUnis.map(u => {
+                            const tiene = member.uniforms && member.uniforms[u.id];
+                            return [u.name, tiene ? '✅ Tiene' : '❌ No tiene'];
+                        });
+                        const totalTiene = uniRows.filter(r => r[1].includes('Tiene')).length;
+                        const pctUni = Math.round((totalTiene / churchUnis.length) * 100);
+                        doc.autoTable({
+                            startY: iy,
+                            head: [['Uniforme', 'Estado']],
+                            body: uniRows,
+                            theme: 'striped',
+                            headStyles: {fillColor:[21,40,69],textColor:255,fontStyle:'bold',fontSize:9},
+                            bodyStyles: {fontSize:9,textColor:[40,40,40]},
+                            columnStyles: {
+                                0:{cellWidth:140},
+                                1:{cellWidth:42, halign:'center', fontStyle:'bold'}
+                            },
+                            didParseCell: function(data) {
+                                if (data.section === 'body' && data.column.index === 1) {
+                                    data.cell.styles.textColor = data.cell.raw.includes('Tiene') ? [22,163,74] : [220,38,38];
+                                }
+                            },
+                            alternateRowStyles: {fillColor:[248,248,246]},
+                            margin:{left:14,right:14}
+                        });
+                        iy = doc.lastAutoTable.finalY + 4;
+                        // Resumen de uniformes
+                        const completo = totalTiene === churchUnis.length;
+                        if (completo) {
+                            doc.setFillColor(240,253,244);
+                        } else {
+                            doc.setFillColor(255,245,245);
+                        }
+                        doc.roundedRect(14, iy, 182, 10, 2, 2, 'F');
+                        doc.setFont('helvetica','bold');
+                        doc.setFontSize(9);
+                        if (completo) {
+                            doc.setTextColor(22,163,74);
+                        } else {
+                            doc.setTextColor(220,38,38);
+                        }
+                        const uniResumen = completo
+                            ? `✅ Uniforme completo (${totalTiene}/${churchUnis.length})`
+                            : `⚠ Le faltan ${churchUnis.length - totalTiene} uniforme(s) — tiene ${totalTiene}/${churchUnis.length} (${pctUni}%)`;
+                        doc.text(uniResumen, 105, iy + 6.5, {align:'center'});
+                        iy += 16;
+                    }
+
                     // Historial cronológico
                     if(iy>200){doc.addPage();iy=20;}
                     iy = sectionTitle(doc, 'Historial Cronológico', iy);
