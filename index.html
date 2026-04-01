@@ -369,36 +369,311 @@
                 padding: 28px 20px;
             }
 
-            /* ========== TABS NAV ========== */
-            .nav-tabs {
+            /* ========== SIDEBAR LAYOUT ========== */
+            .admin-layout {
                 display: flex;
-                gap: 6px;
-                margin-bottom: 28px;
-                flex-wrap: wrap;
+                min-height: 100vh;
             }
-            .nav-tab {
-                padding: 10px 22px;
-                border: 2px solid var(--gray-300);
-                background: white;
-                border-radius: 50px;
-                cursor: pointer;
-                font-family: "Lato", sans-serif;
-                font-size: 0.85rem;
-                color: var(--gray-700);
-                transition: all 0.2s;
-                font-weight: 700;
+            .cs-sidebar {
+                width: 220px;
+                background: var(--primary);
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 200;
+                transition: transform 0.3s ease;
+                overflow-y: auto;
+            }
+            .cs-sidebar-logo {
+                padding: 18px 20px 14px;
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+            .cs-logo-text {
+                font-family: "Cinzel", serif;
+                font-size: 1.1rem;
+                color: var(--accent);
                 letter-spacing: 0.04em;
             }
-            .nav-tab.active {
-                background: var(--primary);
-                border-color: var(--primary);
-                color: white;
-                box-shadow: 0 4px 12px rgba(21,40,69,0.25);
+            .cs-logo-sub {
+                font-size: 0.68rem;
+                color: rgba(255,255,255,0.4);
+                margin-top: 2px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
             }
-            .nav-tab:hover:not(.active) {
-                border-color: var(--primary);
+            .cs-session-badge {
+                margin: 12px 14px;
+                background: rgba(46,125,82,0.2);
+                border: 1px solid rgba(46,125,82,0.4);
+                border-radius: 12px;
+                padding: 8px 12px;
+            }
+            .cs-session-badge.superadmin {
+                background: rgba(204,165,83,0.15);
+                border-color: rgba(204,165,83,0.4);
+            }
+            .cs-session-name {
+                font-size: 0.8rem;
+                font-weight: 700;
+                color: #4ade80;
+            }
+            .cs-session-badge.superadmin .cs-session-name {
+                color: var(--accent);
+            }
+            .cs-session-church {
+                font-size: 0.7rem;
+                color: rgba(255,255,255,0.45);
+                margin-top: 2px;
+            }
+            .cs-nav {
+                flex: 1;
+                padding: 8px 0;
+            }
+            .cs-nav-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 11px 20px;
+                cursor: pointer;
+                font-size: 0.85rem;
+                color: rgba(255,255,255,0.55);
+                border-left: 3px solid transparent;
+                transition: all 0.15s;
+                font-weight: 600;
+                font-family: "Lato", sans-serif;
+            }
+            .cs-nav-item:hover {
+                background: rgba(255,255,255,0.06);
+                color: rgba(255,255,255,0.85);
+            }
+            .cs-nav-item.active {
+                background: rgba(255,255,255,0.1);
+                color: white;
+                border-left-color: var(--accent);
+            }
+            .cs-nav-icon {
+                font-size: 1rem;
+                width: 20px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+            .cs-nav-divider {
+                height: 1px;
+                background: rgba(255,255,255,0.08);
+                margin: 6px 14px;
+            }
+            .cs-sidebar-footer {
+                padding: 14px 20px;
+                border-top: 1px solid rgba(255,255,255,0.08);
+            }
+            .cs-sync-status {
+                font-size: 0.7rem;
+                color: rgba(255,255,255,0.4);
+                margin-bottom: 8px;
+                text-align: center;
+            }
+            .cs-logout-btn {
+                width: 100%;
+                padding: 8px;
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.15);
+                color: rgba(255,255,255,0.6);
+                border-radius: 50px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                font-family: "Lato", sans-serif;
+                font-weight: 700;
+                transition: all 0.2s;
+            }
+            .cs-logout-btn:hover {
+                background: rgba(255,255,255,0.14);
+                color: white;
+            }
+            /* Hamburger toggle (móvil) */
+            .cs-hamburger {
+                display: none;
+                position: fixed;
+                top: 12px;
+                left: 12px;
+                z-index: 300;
+                background: var(--primary);
+                border: none;
+                color: white;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                font-size: 1.1rem;
+                cursor: pointer;
+                box-shadow: 0 2px 12px rgba(21,40,69,0.35);
+                align-items: center;
+                justify-content: center;
+            }
+            .cs-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 190;
+            }
+            /* Contenido principal */
+            .cs-content {
+                margin-left: 220px;
+                flex: 1;
+                min-height: 100vh;
+                background: #f4f3ef;
+            }
+            .cs-topbar {
+                background: white;
+                border-bottom: 1px solid var(--gray-200);
+                padding: 14px 28px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+            .cs-topbar-title {
+                font-family: "Cinzel", serif;
+                font-size: 1rem;
                 color: var(--primary);
-                transform: translateY(-1px);
+                font-weight: 700;
+            }
+            .cs-topbar-sync {
+                font-size: 0.75rem;
+                font-weight: 700;
+            }
+            .cs-page {
+                padding: 24px 28px;
+            }
+            /* Dashboard */
+            #page-dashboard { display: block; }
+            .cs-stats-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 14px;
+                margin-bottom: 28px;
+            }
+            .cs-stat-card {
+                background: white;
+                border-radius: 14px;
+                padding: 18px;
+                border: 0.5px solid var(--gray-200);
+                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+            }
+            .cs-stat-icon {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+            .cs-stat-val {
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: var(--primary);
+                line-height: 1;
+                font-family: "Cinzel", serif;
+            }
+            .cs-stat-label {
+                font-size: 0.78rem;
+                color: var(--gray-500);
+                margin-top: 4px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .cs-stat-sub {
+                font-size: 0.72rem;
+                color: var(--accent-dark);
+                margin-top: 3px;
+                font-weight: 700;
+            }
+            .cs-quick-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 14px;
+                margin-bottom: 28px;
+            }
+            .cs-quick-card {
+                background: white;
+                border-radius: 14px;
+                padding: 18px;
+                border: 0.5px solid var(--gray-200);
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .cs-quick-card:hover {
+                border-color: var(--primary);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 18px rgba(21,40,69,0.12);
+            }
+            .cs-quick-icon {
+                font-size: 1.5rem;
+                margin-bottom: 4px;
+            }
+            .cs-quick-name {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--primary);
+                font-family: "Cinzel", serif;
+            }
+            .cs-quick-desc {
+                font-size: 0.75rem;
+                color: var(--gray-500);
+            }
+            .cs-recent-card {
+                background: white;
+                border-radius: 14px;
+                padding: 20px;
+                border: 0.5px solid var(--gray-200);
+                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+            }
+            .cs-recent-title {
+                font-family: "Cinzel", serif;
+                font-size: 0.9rem;
+                color: var(--primary);
+                font-weight: 700;
+                margin-bottom: 14px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid var(--accent);
+            }
+            .cs-recent-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 9px 0;
+                border-bottom: 0.5px solid var(--gray-200);
+            }
+            .cs-recent-row:last-child { border-bottom: none; }
+            .cs-recent-dot {
+                width: 9px; height: 9px;
+                border-radius: 50%;
+                background: var(--primary);
+                flex-shrink: 0;
+            }
+            .cs-recent-name { flex: 1; font-size: 0.85rem; font-weight: 600; color: var(--gray-900); }
+            .cs-recent-count { font-size: 0.78rem; color: var(--gray-500); }
+            .cs-section-label {
+                font-size: 0.7rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: rgba(255,255,255,0.35);
+                padding: 8px 20px 4px;
+            }
+            /* Registro manual en dashboard */
+            .cs-manual-card {
+                background: white;
+                border-radius: 14px;
+                padding: 20px;
+                border: 0.5px solid var(--gray-200);
+                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+                border-left: 4px solid var(--accent);
             }
 
             /* ========== CARDS ========== */
@@ -838,45 +1113,39 @@
                     overflow-x: hidden;
                 }
 
-                /* Header */
-                .header-inner {
-                    padding: 10px 14px;
-                    gap: 8px;
+                /* Sidebar móvil */
+                .cs-sidebar {
+                    transform: translateX(-100%);
+                    width: 240px;
                 }
-                .header-logo {
-                    width: 60px;
-                    height: auto;
+                .cs-sidebar.open {
+                    transform: translateX(0);
                 }
-                .header-titles h1 {
-                    font-size: 1rem;
+                .cs-overlay.open {
+                    display: block;
                 }
-                .header-titles p {
-                    font-size: 0.65rem;
+                .cs-hamburger {
+                    display: flex;
                 }
-                .header-user-badge {
-                    display: none;
+                .cs-content {
+                    margin-left: 0;
                 }
-                #sync-badge {
-                    display: none !important;
+                .cs-topbar {
+                    padding: 12px 16px 12px 60px;
                 }
-                .btn-nube {
-                    display: none !important;
+                .cs-page {
+                    padding: 16px 14px;
                 }
-                .btn-salir {
-                    padding: 7px 14px !important;
-                    font-size: 0;
-                    min-width: 36px;
-                    min-height: 36px;
-                    display: flex !important;
-                    align-items: center;
-                    justify-content: center;
+                .cs-stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 10px;
                 }
-                .btn-salir::before {
-                    content: "✕";
-                    font-size: 1rem;
-                    font-weight: 700;
-                    color: white;
+                .cs-quick-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 10px;
                 }
+                /* Header legacy oculto en móvil */
+                .app-header { display: none; }
 
                 /* Main container */
                 .main-container {
@@ -1172,119 +1441,146 @@
 
         <!-- ==================== ADMIN APP ==================== -->
         <div id="view-admin" class="view">
-            <header class="app-header">
-                <div class="header-inner">
-                    <img
-                        src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBkYXRhLW5hbWU9IkNhcGEgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDE3NDYuMjMgMzg0LjM4Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2YyZjJmMjt9LmNscy0ye2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDcpO30uY2xzLTN7ZmlsbDp1cmwoI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yKTt9LmNscy00e2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctMyk7fS5jbHMtNXtmaWxsOnVybCgjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTQpO308L3N0eWxlPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3IiB4MT0iMjE3OS42NCIgeTE9IjE1MjYuMTUiIHgyPSIyMTc5LjY0IiB5Mj0iMTk0Ny44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiOTEzMyIvPjxzdG9wIG9mZnNldD0iMC4xNSIgc3RvcC1jb2xvcj0iI2M3YTc0OSIvPjxzdG9wIG9mZnNldD0iMC40NSIgc3RvcC1jb2xvcj0iI2U2ZGU4MSIvPjxzdG9wIG9mZnNldD0iMC41MSIgc3RvcC1jb2xvcj0iI2VkZWE4ZCIvPjxzdG9wIG9mZnNldD0iMC42NCIgc3RvcC1jb2xvcj0iI2Q2YzQ2NiIvPjxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjYmY5ZDNlIi8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYjA4NTI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYWI3YzFkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9IkRlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yIiB4MT0iMjM4MS40OCIgeTE9IjE1MjYuMTUiIHgyPSIyMzgxLjQ4IiB5Mj0iMTk0Ny44MSIgeGxpbms6aHJlZj0iI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNyIvPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTMiIHgxPSIyNTkzLjY2IiB5MT0iMTUyNi4xNSIgeDI9IjI1OTMuNjYiIHkyPSIxOTQ3LjgxIiB4bGluazpocmVmPSIjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctNCIgeDE9IjI4MTIuNDYiIHkxPSIxNTI2LjE1IiB4Mj0iMjgxMi40NiIgeTI9IjE5NDcuODEiIHhsaW5rOmhyZWY9IiNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDciLz48L2RlZnM+PHRpdGxlPmxvZ28gY29ybzwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQxMi44MywxNjE5LjM2TDEzNzguNjIsMTY1MnEtMzQuOTEtMzYuOS03OC41NC0zNi45LTM2LjgzLDAtNjIsMjUuMTh0LTI1LjIyLDYyLjA4cTAsMjUuNywxMS4xNyw0NS42NGE4MC4wNiw4MC4wNiwwLDAsMCwzMS41OSwzMS4zcTIwLjQyLDExLjM2LDQ1LjM4LDExLjM3YTkzLjUxLDkzLjUxLDAsMCwwLDM4LjkyLThxMTcuNjMtOCwzOC43NS0yOC45NGwzMy4xNiwzNC42cS0yOC40OCwyNy43OS01My44MSwzOC41NHQtNTcuODIsMTAuNzVxLTU5LjkyLDAtOTguMDktMzh0LTM4LjE3LTk3LjM5cTAtMzguNDMsMTcuMzgtNjguMzF0NDkuNzktNDhhMTQwLjQsMTQwLjQsMCwwLDEsNjkuNzktMTguMTdBMTQ4LjEyLDE0OC4xMiwwLDAsMSwxNDEyLjgzLDE2MTkuMzZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xNzc1LjIsMTYzMi4yN2E0Mi41Niw0Mi41NiwwLDAsMC0yNC4xMSw3LjM0cS0xMSw3LjM0LTE3LjY1LDIxLjQ5VjE2NTJjLTEzLjc0LDE5LjczLTI3LjQ2LDM5LjQ3LTQwLjg4LDU5LjQydjExNS43OWg0Ny4zNHYtNzYuODdsLTAuMTctOS4yNnEwLTM5LjgzLDcuNi01My40NnQxOC42MS0xMy42MnE1LjQxLDAsMTMuOCw0LjE5bDE0Ljg1LTQxLjA1QTQ0LjY0LDQ0LjY0LDAsMCwwLDE3NzUuMiwxNjMyLjI3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTkzNC4xMSwxNjQxLjExaDQ3LjY5djE5MC4wN2gtNDcuNjl2LTIwLjA5cS0xNCwxMy4yOC0yOCwxOS4xM2E3OC40Myw3OC40MywwLDAsMS0zMC40NSw1Ljg1cS0zNi44MiwwLTYzLjY5LTI4LjU2dC0yNi44Ny03MXEwLTQ0LDI2LTcyLjE1dDYzLjE2LTI4LjEyYTgwLjMzLDgwLjMzLDAsMCwxLDMyLjEsNi40Niw4Ny42NSw4Ny42NSwwLDAsMSwyNy43NCwxOS4zOXYtMjFaTTE4ODQsMTY4MC4yNHEtMjIuMTIsMC0zNi43NCwxNS42NFQxODMyLjYxLDE3MzZxMCwyNC42MywxNC44OCw0MC41M2E0OC4yMyw0OC4yMywwLDAsMCwzNi42NSwxNS45cTIyLjQ2LDAsMzcuMjYtMTUuNjR0MTQuOC00MXEwLTI0LjgtMTQuOC00MC4xOFQxODg0LDE2ODAuMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDU5LjIxLDE3MDAuMTZjNC4zNyw5LDguNjgsMTguMTUsMTMuMjUsMjcuMTdWMTU1NC42NmgtNDcuNjl2NzIuMTFDMjAzMi42NSwxNjQ3LjM2LDIwNDguODQsMTY3OC43OSwyMDU5LjIxLDE3MDAuMTZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDUwLjksMTc5MS44OGMtOS44Mi0yMC41Ni0xOC00MS44My0yNi4xMi02My4xdjg5LjMyaDM5LjYzQzIwNTkuNTQsMTgwOS41NSwyMDU1LjEyLDE4MDAuNzMsMjA1MC45LDE3OTEuODhaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMjU1Ljg5LDE2MDkuMTRsLTM2LjIzLDMycS0xOS4wOC0yNi41NS0zOC44NS0yNi41NS05LjYzLDAtMTUuNzUsNS4xNXQtNi4xMywxMS42MmExOS44OCwxOS44OCwwLDAsMCw0LjM4LDEyLjIzcTUuOTUsNy42OSwzNS44NywzMywyOCwyMy40MSwzNCwyOS41MiwxNC44NywxNSwyMS4wOSwyOC43NGE3MS43OSw3MS43OSwwLDAsMSw2LjIxLDMwcTAsMzEuNjItMjEuODYsNTIuMjN0LTU3LDIwLjYxcS0yNy40NiwwLTQ3LjgzLTEzLjQ1dC0zNC44OS00Mi4yN0wyMTQwLDE3NTcuMXExOC41NSwzNC4wNyw0Mi42OSwzNC4wNywxMi42LDAsMjEuMTctNy4zNHQ4LjU3LTE2Ljk0cTAtOC43NC02LjQ3LTE3LjQ3dC0yOC41Mi0yNi43M3EtNDItMzQuMjQtNTQuMjUtNTIuODV0LTEyLjI1LTM3LjEycTAtMjYuNzMsMjAuMzgtNDUuODZ0NTAuMjgtMTkuMTNhNzkuMzMsNzkuMzMsMCwwLDEsMzYuNjQsOC45MVEyMjM1LjYsMTU4NS41NSwyMjU1Ljg5LDE2MDkuMTRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yMjgwLjc1LDE2NDEuMTFoNDguNzRsNDkuMzcsMTE5LjI2LDU0LjQ4LTExOS4yNmg0OC44N2wtMTE5LDI1OS41OWgtNDkuMjVMMjM1MywxODE3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNMjUwOS4zNywxNjQxLjExaDQ3LjY5djE5LjQ4cTE2LjIyLTEzLjY4LDI5LjM5LTE5YTcxLDcxLDAsMCwxLDI3LTUuMzVxMjguMjYsMCw0OCwxOS43NCwxNi41NywxNi43NywxNi41Nyw0OS42MXYxMjUuNmgtNDcuMTd2LTgzLjIzcTAtMzQtMy4wNS00NS4xOXQtMTAuNjMtMTdxLTcuNTgtNS44NS0xOC43My01Ljg1YTM1LjExLDM1LjExLDAsMCwwLTI0LjgzLDkuNjhxLTEwLjM3LDkuNjktMTQuMzgsMjYuNzgtMi4wOSw4LjktMi4wOSwzOC41NnY3Ni4yNWgtNDcuNjlWMTY0MS4xMVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtNSIgZD0iTTI5MTAuMTIsMTY3OS41NGwtMzkuNywyMS44NHEtMTEuMTktMTEuNy0yMi4xMi0xNi4yNXQtMjUuNjItNC41NHEtMjYuNzYsMC00My4yOSwxNnQtMTYuNTMsNDAuOXEwLDI0LjI1LDE1LjkyLDM5LjZ0NDEuOCwxNS4zNXEzMiwwLDQ5Ljg1LTIxLjg0TDI5MDgsMTc5Ni4zcS0zMC41NywzOS43Ny04Ni4zLDM5Ljc2LTUwLjE0LDAtNzguNTItMjkuN3QtMjguMzktNjkuNTNhOTcuODcsOTcuODcsMCwwLDEsNTIuMzItODcuMzVxMjQuNzItMTMuMjcsNTUuMjktMTMuMjgsMjguMywwLDUwLjgzLDExLjI3QTk2LjQ4LDk2LjQ4LDAsMCwxLDI5MTAuMTIsMTY3OS41NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI0MjAsMTYwMS4yNWExOS45LDE5LjksMCwwLDAtMTQuNCwzMy42NmMtNC44NiwzOC4zMS0yOC40MSwxNjcuNDYtMTI3Ljc4LDIxMi42My0xNi45Myw3LjctMzMsMTEuNjgtNDguMTgsMTIuODRhMTkuOSwxOS45LDAsMCwwLTM2LjQ4LTIuN2MtMzUuNjktOC4xMS02NC43My0zMS4wOC04NS45LTU0LTE0LjYxLTE1LjgxLTQxLjIxLTU3LjI5LTg1LTE2NS4xM2wtMC44OC0yLjE4Yy0yMS43Ny01My41NS03OS44NC0xMDYuNDMtMTYwLjUtMTAzLjc2LTQyLjIsMS4zOC04MS41NCwxNS43My0xMTMuNzgsNDEuNS0zMS4wOCwyNC44NS01NC4zMiw1OS4xNi02Ny4yLDk5LjIzLTEuODIsNS42Ny00LDExLjM5LTYuNDksMTcuMDhhMjcxLjQxLDI3MS40MSwwLDAsMC0xNC41NSwyNy42OGMtOS40LDE1LjItMTkuODQsMjkuNTItMzEuNDgsMzkuMTgtNTEsNDIuMzMtMTE2LDE5LjcyLTExNC42NywxNi44N2E0OS45Miw0OS45MiwwLDAsMS05LjQ3LTcuNzdxLTE0LjYxLTE1LjM3LTE0LjYxLTQwLjE4LDAtMjQuMTEsMTQuNzktMzkuNTd0MzctMTUuNDZxMjIuNzUsMCwzNy4zNiwxNS4yOHQxNC42MSwzOS43NHEwLDI0LjQ2LTE0Ljg3LDQwYy0yLDIuMSwxMi41LTQuMzQsMjAuMS05LjYzLDEzLjU2LTkuNDMsMzEuNjYtMTguNzMsNDIuNzYtMzIuMzVhOTguNDUsOTguNDUsMCwwLDAtNTAuMTctODQuNSwxMDAuNzYsMTAwLjc2LDAsMCwwLTUwLjU3LTEzLjQ1cS0zNy4yMSwwLTY1Ljg2LDI1Ljg2LTMyLjY3LDI5LjctMzIuNjcsNzQuMjQsMCw0MS41OCwyOC45MSw3MC42NmMxOS4yNywxOS4zOSw0Mi41NSwyOC40Myw2OS43OSwyOS4wOSwzNi41NiwwLjg4LDUzLjE2LTYuODcsNTMuMTYtNi44NywxLjc3LTEuMDksMzQuNTktMTgsNjIuMzktNjAuMDlhMjQ1LjUsMjQ1LjUsMCwwLDAsMTguNjgtMzQuNzVoMGExLjEzLDEuMTMsMCwwLDAsMCwuMjNjMS4zNy0zLDIuNzEtNS44Miw0LTguODYsMTMuNzMtMjksNjIuOTQtMTE3Ljg5LDE1NS41My0xMzEuMzJsLTEuOTEtMTMuMWMtNDYuNDEsNi43My04OS43OSwzMi4zMy0xMjYsNzQuMSwzMC44Ni02MC4wNiw4OC05Ny4zOSwxNTUuNTUtOTkuNiw4NC45NC0yLjcxLDEzMi44Miw1OC43MywxNDcuNzYsOTUuNDlsMC44OCwyLjE3LDEsMi40OWExODQuODUsMTg0Ljg1LDAsMCwwLTg3LjQyLTY0LjIyLDE5Mi44OCwxOTIuODgsMCwwLDAtMzcuODQtOS4wNSwxOS45MiwxOS45MiwwLDEsMCwxLjI2LDEzLjY3YzMzLjY3LDUuMTksOTMuNDYsMjQuNDEsMTMwLjIxLDk0LjI1LDE2LjE5LDMwLjc2LDI3LjczLDU3LjUzLDM3LjkxLDgxLjE0LDIyLjA2LDUxLjE3LDM4LjY3LDg5LjYyLDgzLjgsMTIzYTE5LjkxLDE5LjkxLDAsMCwwLDM0LjA3LDIwLjQ2LDEzNy43MywxMzcuNzMsMCwwLDAsNTYsMTEuNjNjNDkuMjMsMCw4OC4xOS0yNC4xMyw5MC41NS0yNS42MmwtNy4wOS0xMS4yM2MtMC43My40Ni02OS4yMiw0Mi43MS0xMzYsMTIuMmExOS45MiwxOS45MiwwLDAsMC0yNy42NC0xNi42M2MtMzAuODctMjIuMjMtNDcuNjUtNDYuNjItNjIuNjktNzcuMjRhMTQzLjUyLDE0My41MiwwLDAsMCwxMS40MSwxNC4zM2MyMi44LDI0LjY3LDQ3LjUzLDQyLjE5LDczLjUsNTIuMDdhMTQ0LjA4LDE0NC4wOCwwLDAsMCwyMC4yOSw2LDE5LjkxLDE5LjkxLDAsMCwwLDM4LjIyLDIuODZjMTcuOC0xLjIsMzUuNzctNS44Nyw1My44LTE0LjA3LDUxLjQ1LTIzLjM5LDkxLjQyLTcxLjQ5LDExNS41Ni0xMzkuMTFhNDAzLjgyLDQwMy44MiwwLDAsMCwxOS4zOC03OS41MmMwLjU4LDAuMDUsMS4xNi4wOSwxLjc1LDAuMDlBMTkuOTIsMTkuOTIsMCwxLDAsMjQyMCwxNjAxLjI1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1OSwxODI5LjM5YTIxLjM5LDIxLjM5LDAsMCwwLTkuNjQtMi4zNiwxOS45MSwxOS45MSwwLDEsMC0uMTgsMzkuODIsMjAuMjQsMjAuMjQsMCwwLDAsMTkuMDctMTQuNDFIMTY3MHYtOTIuOTNsLTExLDE3LjE1djUyLjcyWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PC9zdmc+"
-                        class="header-logo"
-                        alt="Logo"
-                    />
-                    <div class="header-titles">
-                        <p>Panel de Administración</p>
+        <div class="admin-layout">
+            <!-- ========== SIDEBAR ========== -->
+            <button class="cs-hamburger" id="cs-hamburger" onclick="toggleSidebar()">☰</button>
+            <div class="cs-overlay" id="cs-overlay" onclick="toggleSidebar()"></div>
+
+            <div class="cs-sidebar" id="cs-sidebar">
+                <div class="cs-sidebar-logo">
+                    <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBkYXRhLW5hbWU9IkNhcGEgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDE3NDYuMjMgMzg0LjM4Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2YyZjJmMjt9LmNscy0ye2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDcpO30uY2xzLTN7ZmlsbDp1cmwoI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yKTt9LmNscy00e2ZpbGw6dXJsKCNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctMyk7fS5jbHMtNXtmaWxsOnVybCgjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTQpO308L3N0eWxlPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3IiB4MT0iMjE3OS42NCIgeTE9IjE1MjYuMTUiIHgyPSIyMTc5LjY0IiB5Mj0iMTk0Ny44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiOTEzMyIvPjxzdG9wIG9mZnNldD0iMC4xNSIgc3RvcC1jb2xvcj0iI2M3YTc0OSIvPjxzdG9wIG9mZnNldD0iMC40NSIgc3RvcC1jb2xvcj0iI2U2ZGU4MSIvPjxzdG9wIG9mZnNldD0iMC41MSIgc3RvcC1jb2xvcj0iI2VkZWE4ZCIvPjxzdG9wIG9mZnNldD0iMC42NCIgc3RvcC1jb2xvcj0iI2Q2YzQ2NiIvPjxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjYmY5ZDNlIi8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYjA4NTI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYWI3YzFkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9IkRlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNy0yIiB4MT0iMjM4MS40OCIgeTE9IjE1MjYuMTUiIHgyPSIyMzgxLjQ4IiB5Mj0iMTk0Ny44MSIgeGxpbms6aHJlZj0iI0RlZ3JhZGFkb19zaW5fbm9tYnJlXzEwNyIvPjxsaW5lYXJHcmFkaWVudCBpZD0iRGVncmFkYWRvX3Npbl9ub21icmVfMTA3LTMiIHgxPSIyNTkzLjY2IiB5MT0iMTUyNi4xNSIgeDI9IjI1OTMuNjYiIHkyPSIxOTQ3LjgxIiB4bGluazpocmVmPSIjRGVncmFkYWRvX3Npbl9ub21icmVfMTA3Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJEZWdyYWRhZG9fc2luX25vbWJyZV8xMDctNCIgeDE9IjI4MTIuNDYiIHkxPSIxNTI2LjE1IiB4Mj0iMjgxMi40NiIgeTI9IjE5NDcuODEiIHhsaW5rOmhyZWY9IiNEZWdyYWRhZG9fc2luX25vbWJyZV8xMDciLz48L2RlZnM+PHRpdGxlPmxvZ28gY29ybzwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQxMi44MywxNjE5LjM2TDEzNzguNjIsMTY1MnEtMzQuOTEtMzYuOS03OC41NC0zNi45LTM2LjgzLDAtNjIsMjUuMTh0LTI1LjIyLDYyLjA4cTAsMjUuNywxMS4xNyw0NS42NGE4MC4wNiw4MC4wNiwwLDAsMCwzMS41OSwzMS4zcTIwLjQyLDExLjM2LDQ1LjM4LDExLjM3YTkzLjUxLDkzLjUxLDAsMCwwLDM4LjkyLThxMTcuNjMtOCwzOC43NS0yOC45NGwzMy4xNiwzNC42cS0yOC40OCwyNy43OS01My44MSwzOC41NHQtNTcuODIsMTAuNzVxLTU5LjkyLDAtOTguMDktMzh0LTM4LjE3LTk3LjM5cTAtMzguNDMsMTcuMzgtNjguMzF0NDkuNzktNDhhMTQwLjQsMTQwLjQsMCwwLDEsNjkuNzktMTguMTdBMTQ4LjEyLDE0OC4xMiwwLDAsMSwxNDEyLjgzLDE2MTkuMzZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xNzc1LjIsMTYzMi4yN2E0Mi41Niw0Mi41NiwwLDAsMC0yNC4xMSw3LjM0cS0xMSw3LjM0LTE3LjY1LDIxLjQ5VjE2NTJjLTEzLjc0LDE5LjczLTI3LjQ2LDM5LjQ3LTQwLjg4LDU5LjQydjExNS43OWg0Ny4zNHYtNzYuODdsLTAuMTctOS4yNnEwLTM5LjgzLDcuNi01My40NnQxOC42MS0xMy42MnE1LjQxLDAsMTMuOCw0LjE5bDE0Ljg1LTQxLjA1QTQ0LjY0LDQ0LjY0LDAsMCwwLDE3NzUuMiwxNjMyLjI3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTkzNC4xMSwxNjQxLjExaDQ3LjY5djE5MC4wN2gtNDcuNjl2LTIwLjA5cS0xNCwxMy4yOC0yOCwxOS4xM2E3OC40Myw3OC40MywwLDAsMS0zMC40NSw1Ljg1cS0zNi44MiwwLTYzLjY5LTI4LjU2dC0yNi44Ny03MXEwLTQ0LDI2LTcyLjE1dDYzLjE2LTI4LjEyYTgwLjMzLDgwLjMzLDAsMCwxLDMyLjEsNi40Niw4Ny42NSw4Ny42NSwwLDAsMSwyNy43NCwxOS4zOXYtMjFaTTE4ODQsMTY4MC4yNHEtMjIuMTIsMC0zNi43NCwxNS42NFQxODMyLjYxLDE3MzZxMCwyNC42MywxNC44OCw0MC41M2E0OC4yMyw0OC4yMywwLDAsMCwzNi42NSwxNS45cTIyLjQ2LDAsMzcuMjYtMTUuNjR0MTQuOC00MXEwLTI0LjgtMTQuOC00MC4xOFQxODg0LDE2ODAuMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDU5LjIxLDE3MDAuMTZjNC4zNyw5LDguNjgsMTguMTUsMTMuMjUsMjcuMTdWMTU1NC42NmgtNDcuNjl2NzIuMTFDMjAzMi42NSwxNjQ3LjM2LDIwNDguODQsMTY3OC43OSwyMDU5LjIxLDE3MDAuMTZaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMDUwLjksMTc5MS44OGMtOS44Mi0yMC41Ni0xOC00MS44My0yNi4xMi02My4xdjg5LjMyaDM5LjYzQzIwNTkuNTQsMTgwOS41NSwyMDU1LjEyLDE4MDAuNzMsMjA1MC45LDE3OTEuODhaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMjU1Ljg5LDE2MDkuMTRsLTM2LjIzLDMycS0xOS4wOC0yNi41NS0zOC44NS0yNi41NS05LjYzLDAtMTUuNzUsNS4xNXQtNi4xMywxMS42MmExOS44OCwxOS44OCwwLDAsMCw0LjM4LDEyLjIzcTUuOTUsNy42OSwzNS44NywzMywyOCwyMy40MSwzNCwyOS41MiwxNC44NywxNSwyMS4wOSwyOC43NGE3MS43OSw3MS43OSwwLDAsMSw2LjIxLDMwcTAsMzEuNjItMjEuODYsNTIuMjN0LTU3LDIwLjYxcS0yNy40NiwwLTQ3LjgzLTEzLjQ1dC0zNC44OS00Mi4yN0wyMTQwLDE3NTcuMXExOC41NSwzNC4wNyw0Mi42OSwzNC4wNywxMi42LDAsMjEuMTctNy4zNHQ4LjU3LTE2Ljk0cTAtOC43NC02LjQ3LTE3LjQ3dC0yOC41Mi0yNi43M3EtNDItMzQuMjQtNTQuMjUtNTIuODV0LTEyLjI1LTM3LjEycTAtMjYuNzMsMjAuMzgtNDUuODZ0NTAuMjgtMTkuMTNhNzkuMzMsNzkuMzMsMCwwLDEsMzYuNjQsOC45MVEyMjM1LjYsMTU4NS41NSwyMjU1Ljg5LDE2MDkuMTRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTE2My44OSAtMTUzMi41NCkiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yMjgwLjc1LDE2NDEuMTFoNDguNzRsNDkuMzcsMTE5LjI2LDU0LjQ4LTExOS4yNmg0OC44N2wtMTE5LDI1OS41OWgtNDkuMjVMMjM1MywxODE3WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNMjUwOS4zNywxNjQxLjExaDQ3LjY5djE5LjQ4cTE2LjIyLTEzLjY4LDI5LjM5LTE5YTcxLDcxLDAsMCwxLDI3LTUuMzVxMjguMjYsMCw0OCwxOS43NCwxNi41NywxNi43NywxNi41Nyw0OS42MXYxMjUuNmgtNDcuMTd2LTgzLjIzcTAtMzQtMy4wNS00NS4xOXQtMTAuNjMtMTdxLTcuNTgtNS44NS0xOC43My01Ljg1YTM1LjExLDM1LjExLDAsMCwwLTI0LjgzLDkuNjhxLTEwLjM3LDkuNjktMTQuMzgsMjYuNzgtMi4wOSw4LjktMi4wOSwzOC41NnY3Ni4yNWgtNDcuNjlWMTY0MS4xMVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtNSIgZD0iTTI5MTAuMTIsMTY3OS41NGwtMzkuNywyMS44NHEtMTEuMTktMTEuNy0yMi4xMi0xNi4yNXQtMjUuNjItNC41NHEtMjYuNzYsMC00My4yOSwxNnQtMTYuNTMsNDAuOXEwLDI0LjI1LDE1LjkyLDM5LjZ0NDEuOCwxNS4zNXEzMiwwLDQ5Ljg1LTIxLjg0TDI5MDgsMTc5Ni4zcS0zMC41NywzOS43Ny04Ni4zLDM5Ljc2LTUwLjE0LDAtNzguNTItMjkuN3QtMjguMzktNjkuNTNhOTcuODcsOTcuODcsMCwwLDEsNTIuMzItODcuMzVxMjQuNzItMTMuMjcsNTUuMjktMTMuMjgsMjguMywwLDUwLjgzLDExLjI3QTk2LjQ4LDk2LjQ4LDAsMCwxLDI5MTAuMTIsMTY3OS41NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMTYzLjg5IC0xNTMyLjU0KSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI0MjAsMTYwMS4yNWExOS45LDE5LjksMCwwLDAtMTQuNCwzMy42NmMtNC44NiwzOC4zMS0yOC40MSwxNjcuNDYtMTI3Ljc4LDIxMi42My0xNi45Myw3LjctMzMsMTEuNjgtNDguMTgsMTIuODRhMTkuOSwxOS45LDAsMCwwLTM2LjQ4LTIuN2MtMzUuNjktOC4xMS02NC43My0zMS4wOC04NS45LTU0LTE0LjYxLTE1LjgxLTQxLjIxLTU3LjI5LTg1LTE2NS4xM2wtMC44OC0yLjE4Yy0yMS43Ny01My41NS03OS44NC0xMDYuNDMtMTYwLjUtMTAzLjc2LTQyLjIsMS4zOC04MS41NCwxNS43My0xMTMuNzgsNDEuNS0zMS4wOCwyNC44NS01NC4zMiw1OS4xNi02Ny4yLDk5LjIzLTEuODIsNS42Ny00LDExLjM5LTYuNDksMTcuMDhhMjcxLjQxLDI3MS40MSwwLDAsMC0xNC41NSwyNy42OGMtOS40LDE1LjItMTkuODQsMjkuNTItMzEuNDgsMzkuMTgtNTEsNDIuMzMtMTE2LDE5LjcyLTExNC42NywxNi44N2E0OS45Miw0OS45MiwwLDAsMS05LjQ3LTcuNzdxLTE0LjYxLTE1LjM3LTE0LjYxLTQwLjE4LDAtMjQuMTEsMTQuNzktMzkuNTd0MzctMTUuNDZxMjIuNzUsMCwzNy4zNiwxNS4yOHQxNC42MSwzOS43NHEwLDI0LjQ2LTE0Ljg3LDQwYy0yLDIuMSwxMi41LTQuMzQsMjAuMS05LjYzLDEzLjU2LTkuNDMsMzEuNjYtMTguNzMsNDIuNzYtMzIuMzVhOTguNDUsOTguNDUsMCwwLDAtNTAuMTctODQuNSwxMDAuNzYsMTAwLjc2LDAsMCwwLTUwLjU3LTEzLjQ1cS0zNy4yMSwwLTY1Ljg2LDI1Ljg2LTMyLjY3LDI5LjctMzIuNjcsNzQuMjQsMCw0MS41OCwyOC45MSw3MC42NmMxOS4yNywxOS4zOSw0Mi41NSwyOC40Myw2OS43OSwyOS4wOSwzNi41NiwwLjg4LDUzLjE2LTYuODcsNTMuMTYtNi44NywxLjc3LTEuMDksMzQuNTktMTgsNjIuMzktNjAuMDlhMjQ1LjUsMjQ1LjUsMCwwLDAsMTguNjgtMzQuNzVoMGExLjEzLDEuMTMsMCwwLDAsMCwuMjNjMS4zNy0zLDIuNzEtNS44Miw0LTguODYsMTMuNzMtMjksNjIuOTQtMTE3Ljg5LDE1NS41My0xMzEuMzJsLTEuOTEtMTMuMWMtNDYuNDEsNi43My04OS43OSwzMi4zMy0xMjYsNzQuMSwzMC44Ni02MC4wNiw4OC05Ny4zOSwxNTUuNTUtOTkuNiw4NC45NC0yLjcxLDEzMi44Miw1OC43MywxNDcuNzYsOTUuNDlsMC44OCwyLjE3LDEsMi40OWExODQuODUsMTg0Ljg1LDAsMCwwLTg3LjQyLTY0LjIyLDE5Mi44OCwxOTIuODgsMCwwLDAtMzcuODQtOS4wNSwxOS45MiwxOS45MiwwLDEsMCwxLjI2LDEzLjY3YzMzLjY3LDUuMTksOTMuNDYsMjQuNDEsMTMwLjIxLDk0LjI1LDE2LjE5LDMwLjc2LDI3LjczLDU3LjUzLDM3LjkxLDgxLjE0LDIyLjA2LDUxLjE3LDM4LjY3LDg5LjYyLDgzLjgsMTIzYTE5LjkxLDE5LjkxLDAsMCwwLDM0LjA3LDIwLjQ2LDEzNy43MywxMzcuNzMsMCwwLDAsNTYsMTEuNjNjNDkuMjMsMCw4OC4xOS0yNC4xMyw5MC41NS0yNS42MmwtNy4wOS0xMS4yM2MtMC43My40Ni02OS4yMiw0Mi43MS0xMzYsMTIuMmExOS45MiwxOS45MiwwLDAsMC0yNy42NC0xNi42M2MtMzAuODctMjIuMjMtNDcuNjUtNDYuNjItNjIuNjktNzcuMjRhMTQzLjUyLDE0My41MiwwLDAsMCwxMS40MSwxNC4zM2MyMi44LDI0LjY3LDQ3LjUzLDQyLjE5LDczLjUsNTIuMDdhMTQ0LjA4LDE0NC4wOCwwLDAsMCwyMC4yOSw2LDE5LjkxLDE5LjkxLDAsMCwwLDM4LjIyLDIuODZjMTcuOC0xLjIsMzUuNzctNS44Nyw1My44LTE0LjA3LDUxLjQ1LTIzLjM5LDkxLjQyLTcxLjQ5LDExNS41Ni0xMzkuMTFhNDAzLjgyLDQwMy44MiwwLDAsMCwxOS4zOC03OS41MmMwLjU4LDAuMDUsMS4xNi4wOSwxLjc1LDAuMDlBMTkuOTIsMTkuOTIsMCwxLDAsMjQyMCwxNjAxLjI1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1OSwxODI5LjM5YTIxLjM5LDIxLjM5LDAsMCwwLTkuNjQtMi4zNiwxOS45MSwxOS45MSwwLDEsMC0uMTgsMzkuODIsMjAuMjQsMjAuMjQsMCwwLDAsMTkuMDctMTQuNDFIMTY3MHYtOTIuOTNsLTExLDE3LjE1djUyLjcyWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTExNjMuODkgLTE1MzIuNTQpIi8+PC9zdmc+" style="width:100px;height:auto;margin-bottom:6px;display:block;" alt="CoralSync"/>
+                    <div class="cs-logo-sub">Panel de Administración</div>
+                </div>
+                <div class="cs-session-badge" id="cs-session-badge">
+                    <div class="cs-session-name" id="cs-session-name">Admin</div>
+                    <div class="cs-session-church" id="cs-session-church"></div>
+                </div>
+                <div class="cs-nav" id="cs-nav">
+                    <div class="cs-section-label">MENÚ</div>
+                    <div class="cs-nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+                        <span class="cs-nav-icon">⊞</span> Dashboard
                     </div>
-                    <span
-                        id="sync-badge"
-                        style="
-                            display: none;
-                            padding: 4px 12px;
-                            border-radius: 20px;
-                            font-size: 0.72rem;
-                            font-weight: 700;
-                            letter-spacing: 0.05em;
-                        "
-                    ></span>
-                    <span class="header-user-badge" id="session-badge">Admin</span>
-                    <button
-                        onclick="runSetupWizard()"
-                        title="Configurar base de datos en la nube"
-                        class="btn-nube"
-                        style="
-                            background: rgba(204, 165, 83, 0.2);
-                            border: 1px solid rgba(204, 165, 83, 0.4);
-                            color: #cca553;
-                            padding: 7px 14px;
-                            border-radius: 50px;
-                            cursor: pointer;
-                            font-size: 0.78rem;
-                            font-family: &quot;Lato&quot;, sans-serif;
-                        "
-                    >
-                        ⚙ Nube
-                    </button>
-                    <button
-                        onclick="logout()"
-                        class="btn-salir"
-                        style="
-                            background: rgba(255, 255, 255, 0.1);
-                            border: 1px solid rgba(255, 255, 255, 0.25);
-                            color: white;
-                            padding: 7px 14px;
-                            border-radius: 50px;
-                            cursor: pointer;
-                            font-size: 0.78rem;
-                            font-family: &quot;Lato&quot;, sans-serif;
-                        "
-                    >
-                        Salir
-                    </button>
+                    <div class="cs-nav-item" data-page="members" onclick="showPage('members')">
+                        <span class="cs-nav-icon">👥</span> Integrantes
+                    </div>
+                    <div class="cs-nav-item" data-page="activities" onclick="showPage('activities')">
+                        <span class="cs-nav-icon">♪</span> Actividades
+                    </div>
+                    <div class="cs-nav-item" data-page="qr" onclick="showPage('qr')">
+                        <span class="cs-nav-icon">▦</span> Códigos QR
+                    </div>
+                    <div class="cs-nav-item" data-page="records" onclick="showPage('records')">
+                        <span class="cs-nav-icon">☰</span> Registros
+                    </div>
+                    <div class="cs-nav-item" data-page="reports" onclick="showPage('reports')">
+                        <span class="cs-nav-icon">📊</span> Reportes
+                    </div>
+                    <div class="cs-nav-item" data-page="uniforms" onclick="showPage('uniforms')">
+                        <span class="cs-nav-icon">🎽</span> Uniformes
+                    </div>
+                    <div class="cs-nav-divider"></div>
+                    <div class="cs-section-label" id="nav-admin-label">ADMINISTRACIÓN</div>
+                    <div class="cs-nav-item" data-page="churches" id="nav-churches" onclick="showPage('churches')">
+                        <span class="cs-nav-icon">⛪</span> Iglesias
+                    </div>
+                    <div class="cs-nav-item" data-page="directors" id="nav-directors" onclick="showPage('directors')">
+                        <span class="cs-nav-icon">🎼</span> Directores
+                    </div>
                 </div>
-            </header>
+                <div class="cs-sidebar-footer">
+                    <div class="cs-sync-status" id="cs-sync-status">Conectando...</div>
+                    <button class="cs-logout-btn" onclick="logout()">✕ Cerrar sesión</button>
+                </div>
+            </div>
 
-            <div class="main-container">
-                <!-- NAV TABS -->
-                <div class="nav-tabs">
-                    <button
-                        class="nav-tab active"
-                        onclick="showAdminTab('tab-members')"
-                    >
-                        👥 Integrantes
-                    </button>
-                    <button
-                        class="nav-tab"
-                        onclick="showAdminTab('tab-activities')"
-                    >
-                        🎵 Actividades
-                    </button>
-                    <button
-                        class="nav-tab"
-                        id="tab-btn-churches"
-                        onclick="showAdminTab('tab-churches')"
-                    >
-                        ⛪ Iglesias
-                    </button>
-                    <button class="nav-tab" onclick="showAdminTab('tab-qr')">
-                        📱 Códigos QR
-                    </button>
-                    <button
-                        class="nav-tab"
-                        onclick="showAdminTab('tab-records')"
-                    >
-                        📋 Registros
-                    </button>
-                    <button
-                        class="nav-tab"
-                        onclick="showAdminTab('tab-reports')"
-                    >
-                        📊 Reportes
-                    </button>
-                    <button
-                        class="nav-tab"
-                        id="tab-btn-uniforms"
-                        onclick="showAdminTab('tab-uniforms')"
-                    >
-                        🎽 Uniformes
-                    </button>
-                    <button
-                        class="nav-tab"
-                        id="tab-btn-directors"
-                        onclick="showAdminTab('tab-directors')"
-                    >
-                        🎼 Directores
-                    </button>
+            <!-- ========== CONTENIDO PRINCIPAL ========== -->
+            <div class="cs-content">
+                <div class="cs-topbar">
+                    <div class="cs-topbar-title" id="cs-topbar-title">Dashboard</div>
+                    <span id="sync-badge" class="cs-topbar-sync"></span>
+                </div>
+                <div class="cs-page">
+
+            <!-- ========== DASHBOARD ========== -->
+                <div id="page-dashboard">
+                    <!-- Stats row -->
+                    <div class="cs-stats-grid" id="dashboard-stats"></div>
+
+                    <!-- Acceso rápido -->
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gray-500);margin-bottom:12px;">Acceso rápido</div>
+                        <div class="cs-quick-grid">
+                            <div class="cs-quick-card" onclick="showPage('members')">
+                                <div class="cs-quick-icon">👥</div>
+                                <div class="cs-quick-name">Integrantes</div>
+                                <div class="cs-quick-desc">Gestionar miembros del coro</div>
+                            </div>
+                            <div class="cs-quick-card" onclick="showPage('qr')">
+                                <div class="cs-quick-icon">▦</div>
+                                <div class="cs-quick-name">Códigos QR</div>
+                                <div class="cs-quick-desc">Ver e imprimir códigos</div>
+                            </div>
+                            <div class="cs-quick-card" onclick="showPage('reports')">
+                                <div class="cs-quick-icon">📊</div>
+                                <div class="cs-quick-name">Reportes PDF</div>
+                                <div class="cs-quick-desc">Generar reportes de asistencia</div>
+                            </div>
+                            <div class="cs-quick-card" onclick="showPage('uniforms')">
+                                <div class="cs-quick-icon">🎽</div>
+                                <div class="cs-quick-name">Uniformes</div>
+                                <div class="cs-quick-desc">Estado del uniforme del coro</div>
+                            </div>
+                            <div class="cs-quick-card" onclick="showPage('records')">
+                                <div class="cs-quick-icon">☰</div>
+                                <div class="cs-quick-name">Registros</div>
+                                <div class="cs-quick-desc">Historial de asistencia</div>
+                            </div>
+                            <div class="cs-quick-card" onclick="showPage('activities')">
+                                <div class="cs-quick-icon">♪</div>
+                                <div class="cs-quick-name">Actividades</div>
+                                <div class="cs-quick-desc">Gestionar actividades del coro</div>
+                            </div>
+                            <div class="cs-quick-card" onclick="focusManualRecord()">
+                                <div class="cs-quick-icon">✏</div>
+                                <div class="cs-quick-name">Reg. Manual</div>
+                                <div class="cs-quick-desc">Registrar sin código QR</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Registro manual integrado en dashboard -->
+                    <div class="cs-manual-card" id="dashboard-manual" style="margin-bottom:24px;">
+                        <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--primary);font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--accent);">
+                            ✏ Registro Manual de Asistencia
+                        </div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:1;min-width:160px;">
+                                <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:5px;">Integrante</label>
+                                <select id="dash-manual-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;background:white;">
+                                    <option value="">-- Selecciona --</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:160px;">
+                                <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:5px;">Actividad</label>
+                                <select id="dash-manual-activity" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;background:white;">
+                                    <option value="">-- Selecciona --</option>
+                                </select>
+                            </div>
+                            <button onclick="submitDashManual()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">
+                                ✓ Registrar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Últimas actividades -->
+                    <div class="cs-recent-card">
+                        <div class="cs-recent-title">Últimas actividades registradas</div>
+                        <div id="dashboard-recent"></div>
+                    </div>
                 </div>
 
-                <!-- TAB: MEMBERS -->
-                <div id="tab-members" class="admin-tab">
+                        <!-- PAGE: MEMBERS -->
+                <div id="page-members" class="admin-page" style="display:none;">
                 <!-- CARD CREDENCIALES ADMIN -->
                 <div class="card" id="creds-admin-card" style="margin-bottom:20px;border-left:4px solid var(--accent);">
                     <div class="card-title" style="margin-bottom:16px;">
@@ -1411,12 +1707,8 @@
                     </div>
                 </div>
 
-                <!-- TAB: ACTIVITIES -->
-                <div
-                    id="tab-activities"
-                    class="admin-tab"
-                    style="display: none"
-                >
+                <!-- PAGE: ACTIVITIES -->
+                <div id="page-activities" class="admin-page" style="display:none;">
                     <div class="card" id="activity-add-form">
                         <div class="card-title">Agregar Actividad</div>
                         <div class="form-row">
@@ -1499,8 +1791,8 @@
                     </div>
                 </div>
 
-                <!-- TAB: CHURCHES -->
-                <div id="tab-churches" class="admin-tab" style="display: none">
+                <!-- PAGE: CHURCHES -->
+                <div id="page-churches" class="admin-page" style="display:none;">
                     <div class="card">
                         <div class="card-title">
                             <svg
@@ -1585,8 +1877,8 @@
                     </div>
                 </div>
 
-                <!-- TAB: QR CODES -->
-                <div id="tab-qr" class="admin-tab" style="display: none">
+                <!-- PAGE: QR -->
+                <div id="page-qr" class="admin-page" style="display:none;">
                     <div class="card">
                         <div class="card-title">
                             <svg
@@ -1651,8 +1943,8 @@
                     </div>
                 </div>
 
-                <!-- TAB: RECORDS -->
-                <div id="tab-records" class="admin-tab" style="display: none">
+                <!-- PAGE: RECORDS -->
+                <div id="page-records" class="admin-page" style="display:none;">
                     <div class="stats-row" id="stats-row"></div>
 
                     <!-- Registro manual para directores -->
@@ -1817,8 +2109,8 @@
                     </div>
                 </div>
 
-                <!-- TAB: REPORTES -->
-                <div id="tab-reports" class="admin-tab" style="display:none;">
+                <!-- PAGE: REPORTS -->
+                <div id="page-reports" class="admin-page" style="display:none;">
                     <div class="card">
                         <div class="card-title" style="margin-bottom:20px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);">
@@ -1859,8 +2151,8 @@
                     </div>
                 </div>
 
-            <!-- TAB: UNIFORMES -->
-                <div id="tab-uniforms" class="admin-tab" style="display:none;">
+            <!-- PAGE: UNIFORMS -->
+                <div id="page-uniforms" class="admin-page" style="display:none;">
                     <div class="card" style="margin-bottom:20px;">
                         <div class="card-title" style="margin-bottom:16px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
@@ -1896,8 +2188,8 @@
                     </div>
                 </div>
 
-            <!-- TAB: DIRECTORES -->
-                <div id="tab-directors" class="admin-tab" style="display:none;">
+            <!-- PAGE: DIRECTORS -->
+                <div id="page-directors" class="admin-page" style="display:none;">
                     <div class="card">
                         <div class="card-title" style="margin-bottom:20px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -1934,8 +2226,9 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
+            </div><!-- /cs-page -->
+            </div><!-- /cs-content -->
+        </div><!-- /admin-layout -->
 
         <!-- ==================== MEMBER SCANNER VIEW ==================== -->
         <div id="view-member" class="view active">
@@ -2754,7 +3047,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    loadFromCloud().then(() => renderAll());
+                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -2766,7 +3059,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    loadFromCloud().then(() => renderAll());
+                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -2776,30 +3069,33 @@
             }
 
             function applySessionUI() {
-                // Badge del header
-                const badge = document.getElementById('session-badge');
-                if (badge) {
+                // Sidebar badge de sesión
+                const badgeEl = document.getElementById('cs-session-badge');
+                const nameEl  = document.getElementById('cs-session-name');
+                const churchEl= document.getElementById('cs-session-church');
+                if (badgeEl && nameEl) {
                     if (isSuperAdmin()) {
-                        badge.textContent = 'Super Admin';
-                        badge.style.background = 'rgba(204,165,83,0.2)';
-                        badge.style.borderColor = 'rgba(204,165,83,0.5)';
-                        badge.style.color = 'var(--accent)';
+                        badgeEl.className = 'cs-session-badge superadmin';
+                        nameEl.textContent = 'Super Admin';
+                        if (churchEl) churchEl.textContent = '';
                     } else {
-                        badge.textContent = currentSession.name + ' — ' + (currentSession.churchName || '');
-                        badge.style.background = 'rgba(46,125,82,0.2)';
-                        badge.style.borderColor = 'rgba(46,125,82,0.5)';
-                        badge.style.color = '#4ade80';
+                        badgeEl.className = 'cs-session-badge';
+                        nameEl.textContent = currentSession.name;
+                        if (churchEl) churchEl.textContent = '⛪ ' + (currentSession.churchName || '');
                     }
                 }
-                // Ocultar/mostrar tabs según rol
-                const tabChurches  = document.getElementById('tab-btn-churches');
-                const tabDirectors = document.getElementById('tab-btn-directors');
+                // Ocultar/mostrar nav items según rol
+                const navChurches  = document.getElementById('nav-churches');
+                const navDirectors = document.getElementById('nav-directors');
+                const navAdminLabel= document.getElementById('nav-admin-label');
                 if (isDirector()) {
-                    if (tabChurches)  tabChurches.style.display  = 'none';
-                    if (tabDirectors) tabDirectors.style.display = 'none';
+                    if (navChurches)   navChurches.style.display   = 'none';
+                    if (navDirectors)  navDirectors.style.display  = 'none';
+                    if (navAdminLabel) navAdminLabel.style.display = 'none';
                 } else {
-                    if (tabChurches)  tabChurches.style.display  = '';
-                    if (tabDirectors) tabDirectors.style.display = '';
+                    if (navChurches)   navChurches.style.display   = '';
+                    if (navDirectors)  navDirectors.style.display  = '';
+                    if (navAdminLabel) navAdminLabel.style.display = '';
                 }
             }
 
@@ -2905,32 +3201,79 @@
 
 
             // ======================== ADMIN TABS ========================
-            function showAdminTab(id) {
-                document
-                    .querySelectorAll(".admin-tab")
-                    .forEach((t) => (t.style.display = "none"));
-                document.getElementById(id).style.display = "";
-                document.querySelectorAll(".nav-tab").forEach((t, i) => {
-                    const tabs = [
-                        "tab-members",
-                        "tab-activities",
-                        "tab-churches",
-                        "tab-qr",
-                        "tab-records",
-                        "tab-reports",
-                        "tab-uniforms",
-                        "tab-directors",
-                    ];
-                    t.classList.toggle("active", tabs[i] === id);
+            const PAGE_TITLES = {
+                dashboard: 'Dashboard',
+                members: 'Integrantes',
+                activities: 'Actividades',
+                churches: 'Iglesias',
+                qr: 'Códigos QR',
+                records: 'Registros',
+                reports: 'Reportes',
+                uniforms: 'Uniformes',
+                directors: 'Directores',
+            };
+
+            function showPage(page) {
+                // Ocultar todas las páginas
+                document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
+                const dashboard = document.getElementById('page-dashboard');
+                if (dashboard) dashboard.style.display = 'none';
+
+                // Mostrar la página seleccionada
+                const el = document.getElementById('page-' + page);
+                if (el) el.style.display = '';
+
+                // Actualizar nav sidebar
+                document.querySelectorAll('.cs-nav-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.page === page);
                 });
-                if (id === "tab-qr") renderQRCodes();
-                if (id === "tab-records") { renderRecords(); updateManualSelects(); }
-                if (id === "tab-churches") renderChurches();
-                if (id === "tab-members") renderMembers();
-                if (id === "tab-activities") renderActivities();
-                if (id === "tab-reports") renderReportsTab();
-                if (id === "tab-directors") renderDirectors();
-                if (id === "tab-uniforms") renderUniformsTab();
+
+                // Actualizar título topbar
+                const titleEl = document.getElementById('cs-topbar-title');
+                if (titleEl) titleEl.textContent = PAGE_TITLES[page] || page;
+
+                // Cerrar sidebar en móvil
+                if (window.innerWidth < 768) closeSidebar();
+
+                // Callbacks de render
+                if (page === 'qr') renderQRCodes();
+                if (page === 'records') { renderRecords(); updateManualSelects(); }
+                if (page === 'churches') renderChurches();
+                if (page === 'members') renderMembers();
+                if (page === 'activities') renderActivities();
+                if (page === 'reports') renderReportsTab();
+                if (page === 'directors') renderDirectors();
+                if (page === 'uniforms') renderUniformsTab();
+                if (page === 'dashboard') renderDashboard();
+            }
+
+            // Alias para compatibilidad con referencias antiguas
+            function showAdminTab(id) {
+                const map = {
+                    'tab-members':'members','tab-activities':'activities','tab-churches':'churches',
+                    'tab-qr':'qr','tab-records':'records','tab-reports':'reports',
+                    'tab-uniforms':'uniforms','tab-directors':'directors'
+                };
+                showPage(map[id] || id);
+            }
+
+            function toggleSidebar() {
+                const sb = document.getElementById('cs-sidebar');
+                const ov = document.getElementById('cs-overlay');
+                sb.classList.toggle('open');
+                ov.classList.toggle('open');
+            }
+            function closeSidebar() {
+                document.getElementById('cs-sidebar').classList.remove('open');
+                document.getElementById('cs-overlay').classList.remove('open');
+            }
+
+            function focusManualRecord() {
+                showPage('dashboard');
+                setTimeout(() => {
+                    const el = document.getElementById('dashboard-manual');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
             }
 
             // ======================== MEMBERS ========================
@@ -4007,12 +4350,131 @@
 
             // ======================== RENDER ALL ========================
             function renderAll() {
-                // Solo renderizar el panel admin si está activo
                 if (!document.getElementById("view-admin") ||
                     !document.getElementById("view-admin").classList.contains("active")) return;
                 renderMembers();
                 renderActivities();
                 renderChurches();
+                renderDashboard();
+            }
+
+            function renderDashboard() {
+                if (!document.getElementById('page-dashboard')) return;
+
+                const members = visibleMembers();
+                const records = visibleRecords();
+
+                // Stats del mes actual
+                const now = new Date();
+                const mesActual = now.toLocaleDateString('es-MX', {month:'2-digit', year:'numeric'});
+                const asistenciasMes = records.filter(r => {
+                    const parts = r.date ? r.date.split('/') : [];
+                    if (parts.length < 3) return false;
+                    const rDate = parts[1] + '/' + parts[2];
+                    return rDate === (now.getMonth()+1).toString().padStart(2,'0') + '/' + now.getFullYear();
+                }).length;
+
+                // Última actividad
+                const sortedRecs = [...records].sort((a,b) => (b.ts||0)-(a.ts||0));
+                const lastRec = sortedRecs[0];
+                const lastActName = lastRec ? lastRec.activityName : '—';
+                const lastActDate = lastRec ? lastRec.date : '—';
+
+                // Cuántos asistieron a la última actividad
+                const lastActId = lastRec ? lastRec.activityId : null;
+                const lastActCount = lastActId
+                    ? records.filter(r => r.activityId === lastActId &&
+                        r.date === lastRec.date).length
+                    : 0;
+
+                // Render stats
+                const statsEl = document.getElementById('dashboard-stats');
+                if (statsEl) statsEl.innerHTML = `
+                    <div class="cs-stat-card">
+                        <div class="cs-stat-icon">👥</div>
+                        <div class="cs-stat-val">${members.length}</div>
+                        <div class="cs-stat-label">Integrantes</div>
+                        <div class="cs-stat-sub">${isDirector() ? currentSession.churchName : 'en total'}</div>
+                    </div>
+                    <div class="cs-stat-card">
+                        <div class="cs-stat-icon">📋</div>
+                        <div class="cs-stat-val">${asistenciasMes}</div>
+                        <div class="cs-stat-label">Asistencias</div>
+                        <div class="cs-stat-sub">este mes</div>
+                    </div>
+                    <div class="cs-stat-card">
+                        <div class="cs-stat-icon">⭐</div>
+                        <div class="cs-stat-val" style="font-size:1rem;padding-top:4px;">${lastActName}</div>
+                        <div class="cs-stat-label">Última actividad</div>
+                        <div class="cs-stat-sub">${lastActDate}</div>
+                    </div>
+                    <div class="cs-stat-card">
+                        <div class="cs-stat-icon">✓</div>
+                        <div class="cs-stat-val">${lastActCount}</div>
+                        <div class="cs-stat-label">Asistieron</div>
+                        <div class="cs-stat-sub">al último evento</div>
+                    </div>
+                `;
+
+                // Render últimas actividades
+                const recentEl = document.getElementById('dashboard-recent');
+                if (recentEl) {
+                    if (!records.length) {
+                        recentEl.innerHTML = '<div class="empty-state"><p>No hay registros aún.</p></div>';
+                        return;
+                    }
+                    // Agrupar por actividad+fecha y mostrar las 5 más recientes
+                    const groups = {};
+                    sortedRecs.forEach(r => {
+                        const key = r.activityId + '_' + r.date;
+                        if (!groups[key]) groups[key] = { name: r.activityName, date: r.date, color: r.activityColor, count: 0 };
+                        groups[key].count++;
+                    });
+                    const recent = Object.values(groups).slice(0, 5);
+                    recentEl.innerHTML = recent.map(g => `
+                        <div class="cs-recent-row">
+                            <div class="cs-recent-dot" style="background:${g.color||'#1e396a'}"></div>
+                            <div class="cs-recent-name">${g.name}</div>
+                            <div class="cs-recent-count">${g.date} · ${g.count} asistente${g.count!==1?'s':''}</div>
+                        </div>`).join('');
+                }
+
+                // Actualizar selectores del registro manual del dashboard
+                updateDashManualSelects();
+            }
+
+            function updateDashManualSelects() {
+                const ms = document.getElementById('dash-manual-member');
+                const as = document.getElementById('dash-manual-activity');
+                if (!ms || !as) return;
+                const members = visibleMembers();
+                ms.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
+                    members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                as.innerHTML = '<option value="">-- Selecciona la actividad --</option>' +
+                    state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            }
+
+            function submitDashManual() {
+                const memberId = document.getElementById('dash-manual-member').value;
+                const activityId = document.getElementById('dash-manual-activity').value;
+                if (!memberId || !activityId) { showToast('Selecciona integrante y actividad.'); return; }
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude); afterDashManual(); },
+                        () => { addRecord(memberId, activityId, null, null); afterDashManual(); },
+                        { timeout: 5000 }
+                    );
+                } else {
+                    addRecord(memberId, activityId, null, null);
+                    afterDashManual();
+                }
+            }
+
+            function afterDashManual() {
+                showToast('✓ Asistencia registrada correctamente');
+                document.getElementById('dash-manual-member').value = '';
+                document.getElementById('dash-manual-activity').value = '';
+                renderDashboard();
             }
 
             // ======================== INIT ========================
