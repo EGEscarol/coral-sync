@@ -1204,6 +1204,7 @@
                     </button>
                     <button
                         class="nav-tab"
+                        id="tab-btn-churches"
                         onclick="showAdminTab('tab-churches')"
                     >
                         ⛪ Iglesias
@@ -2722,8 +2723,8 @@
                     }
                 }
                 // Ocultar/mostrar tabs según rol
-                const tabChurches  = document.querySelector('[onclick="showAdminTab('tab-churches')"]');
-                const tabDirectors = document.querySelector('[onclick="showAdminTab('tab-directors')"]');
+                const tabChurches  = document.getElementById('tab-btn-churches');
+                const tabDirectors = document.getElementById('tab-btn-directors');
                 if (isDirector()) {
                     if (tabChurches)  tabChurches.style.display  = 'none';
                     if (tabDirectors) tabDirectors.style.display = 'none';
