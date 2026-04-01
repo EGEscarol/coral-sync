@@ -3068,7 +3068,7 @@
     <div class="item-row" style="border-left-color:${a.color};">
       <div class="activity-dot" style="background:${a.color};"></div>
       <div class="activity-label">${a.name}</div>
-      <button class="btn-danger" data-delete-activity="${a.id}">Eliminar</button>
+      <button class="btn-danger" data-delete-activity="${a.id}" ${isDirector() ? 'style="display:none"' : ''}>Eliminar</button>
     </div>`,
                     )
                     .join("");
