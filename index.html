@@ -3889,6 +3889,15 @@
                 const existing = document.getElementById("activity-picker");
                 if (existing) existing.remove();
 
+                // Verificar qué actividades ya registró este integrante en las últimas 2 horas
+                const BLOCK_MS = 2 * 60 * 60 * 1000; // 2 horas en ms
+                const now = Date.now();
+                const recentActivityIds = new Set(
+                    state.records
+                        .filter(r => r.memberId === member.id && (now - (r.ts || 0)) < BLOCK_MS)
+                        .map(r => r.activityId)
+                );
+
                 const picker = document.createElement("div");
                 picker.id = "activity-picker";
                 picker.style.cssText = `
@@ -3900,8 +3909,29 @@
 
                 const btnsHtml = state.activities
                     .map((a) => {
-                        const btn = `<button data-mid="${member.id}" data-aid="${a.id}" style="background:${a.color};color:white;border:none;border-radius:50px;padding:14px 20px;cursor:pointer;font-family:Lato,sans-serif;font-size:0.95rem;font-weight:700;width:100%;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">${a.name}</button>`;
-                        return btn;
+                        const blocked = recentActivityIds.has(a.id);
+                        // Calcular tiempo restante si está bloqueada
+                        let remainLabel = '';
+                        if (blocked) {
+                            const lastRec = state.records
+                                .filter(r => r.memberId === member.id && r.activityId === a.id)
+                                .sort((x,y) => (y.ts||0)-(x.ts||0))[0];
+                            if (lastRec) {
+                                const remaining = BLOCK_MS - (now - (lastRec.ts||0));
+                                const mins = Math.ceil(remaining / 60000);
+                                const hrs = Math.floor(mins / 60);
+                                const minLeft = mins % 60;
+                                remainLabel = hrs > 0
+                                    ? ` (disponible en ${hrs}h ${minLeft}m)`
+                                    : ` (disponible en ${minLeft}m)`;
+                            }
+                        }
+                        if (blocked) {
+                            return `<button disabled style="background:#CCCCCC;color:#888;border:none;border-radius:50px;padding:14px 20px;cursor:not-allowed;font-family:Lato,sans-serif;font-size:0.95rem;font-weight:700;width:100%;opacity:0.65;position:relative;">
+                                ✓ ${a.name} — Ya registrado${remainLabel}
+                            </button>`;
+                        }
+                        return `<button data-mid="${member.id}" data-aid="${a.id}" style="background:${a.color};color:white;border:none;border-radius:50px;padding:14px 20px;cursor:pointer;font-family:Lato,sans-serif;font-size:0.95rem;font-weight:700;width:100%;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">${a.name}</button>`;
                     })
                     .join("");
 
