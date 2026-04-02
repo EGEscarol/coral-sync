@@ -1600,6 +1600,21 @@
                         <div class="cs-recent-title">Últimas actividades registradas</div>
                         <div id="dashboard-recent"></div>
                     </div>
+
+                    <!-- Card de archivo de datos -->
+                    <div class="cs-recent-card" style="margin-top:20px;border-left:4px solid var(--accent);">
+                        <div class="cs-recent-title">Base de datos</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+                            <div>
+                                <div style="font-size:1.6rem;font-weight:700;color:var(--primary);font-family:'Cinzel',serif;" id="db-record-count">—</div>
+                                <div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;">registros de asistencia acumulados</div>
+                                <div style="font-size:0.72rem;color:var(--accent-dark);margin-top:4px;font-weight:700;" id="db-oldest-record"></div>
+                            </div>
+                            <button onclick="showArchiveModal()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 3px 10px rgba(21,40,69,0.25);">
+                                ⬇ Exportar y archivar
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                         <!-- PAGE: MEMBERS -->
@@ -2784,6 +2799,45 @@
                 }
             }
         </style>
+
+        <!-- ==================== ARCHIVE MODAL ==================== -->
+        <div id="archive-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;align-items:center;justify-content:center;">
+            <div style="background:white;border-radius:20px;padding:32px 28px;max-width:420px;width:92%;box-shadow:0 32px 64px rgba(0,0,0,0.3);">
+                <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--primary);font-weight:700;margin-bottom:6px;">⬇ Exportar y archivar</div>
+                <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:20px;line-height:1.5;">Descarga los registros anteriores a la fecha elegida y luego elimínalos de la base de datos para mantenerla limpia.</p>
+
+                <div style="margin-bottom:18px;">
+                    <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:6px;">Archivar registros anteriores a:</label>
+                    <select id="archive-period" style="width:100%;padding:10px 14px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.9rem;outline:none;background:white;">
+                        <option value="1">Hace 1 mes</option>
+                        <option value="3" selected>Hace 3 meses</option>
+                        <option value="6">Hace 6 meses</option>
+                        <option value="12">Hace 1 año</option>
+                        <option value="all">Todos los registros</option>
+                    </select>
+                </div>
+
+                <div id="archive-preview" style="background:var(--gray-100);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:0.85rem;color:var(--gray-700);">
+                    Calculando...
+                </div>
+
+                <div style="background:#fff8e6;border:1px solid #f0c040;border-radius:10px;padding:10px 14px;margin-bottom:20px;font-size:0.8rem;color:#7a5c00;">
+                    ⚠️ <strong>Importante:</strong> Descarga el archivo Excel antes de confirmar el borrado. Una vez eliminados, los registros no se pueden recuperar.
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button onclick="downloadArchiveExcel()" id="btn-archive-download" style="flex:1;padding:10px;background:var(--green,#2e7d52);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;">
+                        ⬇ Descargar Excel
+                    </button>
+                    <button onclick="confirmArchiveDelete()" id="btn-archive-delete" disabled style="flex:1;padding:10px;background:#fee2e2;color:#b33a3a;border:none;border-radius:50px;cursor:not-allowed;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;opacity:0.5;">
+                        🗑 Eliminar de BD
+                    </button>
+                </div>
+                <button onclick="closeArchiveModal()" style="width:100%;margin-top:10px;padding:8px;background:none;border:1px solid var(--gray-300);border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;color:var(--gray-500);">
+                    Cancelar
+                </button>
+            </div>
+        </div>
 
         <!-- ==================== CONFIRM MODAL ==================== -->
         <div
@@ -4094,6 +4148,98 @@
                 renderRecords();
             }
 
+            // ======================== ARCHIVE ========================
+            let archiveDownloaded = false;
+
+            function showArchiveModal() {
+                archiveDownloaded = false;
+                const delBtn = document.getElementById('btn-archive-delete');
+                if (delBtn) { delBtn.disabled = true; delBtn.style.opacity='0.5'; delBtn.style.cursor='not-allowed'; }
+                document.getElementById('archive-overlay').style.display = 'flex';
+                updateArchivePreview();
+            }
+
+            function closeArchiveModal() {
+                document.getElementById('archive-overlay').style.display = 'none';
+                archiveDownloaded = false;
+            }
+
+            function getArchiveCutoffDate() {
+                const val = document.getElementById('archive-period').value;
+                if (val === 'all') return new Date(0);
+                const d = new Date();
+                d.setMonth(d.getMonth() - parseInt(val));
+                return d;
+            }
+
+            function getArchiveRecords() {
+                const cutoff = getArchiveCutoffDate();
+                const records = visibleRecords();
+                return records.filter(r => {
+                    if (!r.ts) return false;
+                    return new Date(r.ts) < cutoff;
+                });
+            }
+
+            function updateArchivePreview() {
+                const recs = getArchiveRecords();
+                const preview = document.getElementById('archive-preview');
+                if (!preview) return;
+                if (!recs.length) {
+                    preview.innerHTML = '<span style="color:var(--gray-500);">No hay registros en ese rango para archivar.</span>';
+                } else {
+                    const oldest = new Date(Math.min(...recs.map(r=>r.ts))).toLocaleDateString('es-MX');
+                    const newest = new Date(Math.max(...recs.map(r=>r.ts))).toLocaleDateString('es-MX');
+                    preview.innerHTML = `Se archivarán <strong>${recs.length} registros</strong> del <strong>${oldest}</strong> al <strong>${newest}</strong>.`;
+                }
+                // Actualizar listener del select
+                document.getElementById('archive-period').onchange = updateArchivePreview;
+            }
+
+            function downloadArchiveExcel() {
+                const recs = getArchiveRecords();
+                if (!recs.length) { showToast('No hay registros en ese rango.'); return; }
+
+                // Generar CSV (compatible con Excel)
+                const headers = ['ID','Integrante','Iglesia','Actividad','Fecha','Hora','Lat','Lng'];
+                const rows = recs.map(r => [
+                    r.id, r.memberName, r.churchName||'', r.activityName, r.date, r.time, r.lat||'', r.lng||''
+                ]);
+                const csvContent = [headers, ...rows]
+                    .map(row => row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','))
+                    .join('\n');
+
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                link.download = `CoralSync_Archivo_${fecha}.csv`;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+
+                // Habilitar botón de borrado
+                archiveDownloaded = true;
+                const delBtn = document.getElementById('btn-archive-delete');
+                if (delBtn) { delBtn.disabled = false; delBtn.style.opacity='1'; delBtn.style.cursor='pointer'; }
+                showToast('✓ Excel descargado. Ya puedes eliminar los registros si lo deseas.');
+            }
+
+            function confirmArchiveDelete() {
+                if (!archiveDownloaded) { showToast('Primero descarga el Excel.'); return; }
+                const recs = getArchiveRecords();
+                if (!recs.length) { showToast('No hay registros para eliminar.'); return; }
+                customConfirm(
+                    `¿Eliminar ${recs.length} registros de la base de datos? Esta acción no se puede deshacer.`,
+                    () => {
+                        const idsToDelete = new Set(recs.map(r => r.id));
+                        state.records = state.records.filter(r => !idsToDelete.has(r.id));
+                        save();
+                        closeArchiveModal();
+                        renderDashboard();
+                        showToast(`✓ ${recs.length} registros eliminados de la base de datos.`);
+                    }
+                );
+            }
+
             // ======================== CUSTOM CONFIRM ========================
             function customConfirm(msg, onOk) {
                 const overlay = document.getElementById("confirm-overlay");
@@ -4491,6 +4637,17 @@
                             <div class="cs-recent-name">${g.name}</div>
                             <div class="cs-recent-count">${g.date} · ${g.count} asistente${g.count!==1?'s':''}</div>
                         </div>`).join('');
+                }
+
+                // Actualizar conteo de BD
+                const dbCount = document.getElementById('db-record-count');
+                const dbOldest = document.getElementById('db-oldest-record');
+                if (dbCount) dbCount.textContent = records.length.toLocaleString('es-MX');
+                if (dbOldest && records.length) {
+                    const oldest = new Date(Math.min(...records.map(r=>r.ts||Date.now())));
+                    dbOldest.textContent = 'Registro más antiguo: ' + oldest.toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
+                } else if (dbOldest) {
+                    dbOldest.textContent = '';
                 }
 
                 // Actualizar selectores del registro manual del dashboard
