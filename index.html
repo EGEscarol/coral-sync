@@ -1719,9 +1719,17 @@
                                 ></path>
                                 <circle cx="9" cy="7" r="4"></circle>
                             </svg>
-                            Integrantes del Coro (<span id="members-count"
-                                >0</span
-                            >)
+                            Integrantes del Coro (<span id="members-count">0</span>)
+                        </div>
+                        <!-- Buscador + exportar QR -->
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+                            <div style="flex:1;min-width:180px;position:relative;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-500);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="members-search" placeholder="Buscar integrante..." oninput="renderMembers()" style="width:100%;padding:9px 12px 9px 34px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--gray-300)'">
+                            </div>
+                            <button onclick="exportAllQR()" style="padding:9px 18px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;white-space:nowrap;box-shadow:0 3px 10px rgba(21,40,69,0.2);">
+                                ⬇ QR en lote
+                            </button>
                         </div>
                         <div id="members-list" class="item-list">
                             <div class="empty-state">
@@ -3390,6 +3398,10 @@
             function renderMembers() {
                 const list = document.getElementById("members-list");
                 const members = visibleMembers();
+                // Filtrar por búsqueda
+                const searchVal = (document.getElementById('members-search')?.value || '').toLowerCase().trim();
+                const filtered = searchVal ? members.filter(m => m.name.toLowerCase().includes(searchVal)) : members;
+
                 document.getElementById("members-count").textContent = members.length;
                 // Ocultar card de credenciales si es director
                 const credsCard = document.getElementById("creds-admin-card");
@@ -3405,12 +3417,11 @@
                     churchSel.innerHTML =
                         '<option value="">-- Sin iglesia --</option>' +
                         churches.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-                    // Si es director, preseleccionar su iglesia
                     if (isDirector()) churchSel.value = sessionChurchId();
                     else churchSel.value = current;
                 }
 
-                // Ocultar campo de iglesia si es director (siempre es la suya)
+                // Ocultar campo de iglesia si es director
                 const churchRow = document.getElementById("member-church-row");
                 if (churchRow) churchRow.style.display = isDirector() ? 'none' : '';
 
@@ -3418,23 +3429,59 @@
                     list.innerHTML = '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><p>Aún no hay integrantes registrados.</p></div>';
                     return;
                 }
-                list.innerHTML = members.map(m => `
-    <div class="item-row">
-      <div class="item-name">${m.name}${m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : ""}</div>
-      <code style="font-size:0.7rem;color:var(--gray-500);">${m.id}</code>
-      <button style="padding:5px 14px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.78rem;font-weight:700;transition:all 0.2s;" data-edit-member="${m.id}">✏ Editar</button>
-      <button class="btn-danger" data-delete-member="${m.id}">Eliminar</button>
-    </div>`).join("");
+                if (!filtered.length) {
+                    list.innerHTML = '<div class="empty-state"><p>No se encontraron integrantes con ese nombre.</p></div>';
+                    return;
+                }
 
+                // Calcular porcentaje de asistencia por integrante
+                const totalActivities = state.activities.length;
+                const memberRecordCounts = {};
+                visibleRecords().forEach(r => {
+                    memberRecordCounts[r.memberId] = (memberRecordCounts[r.memberId] || new Set());
+                    memberRecordCounts[r.memberId].add(r.activityId + '_' + r.date);
+                });
+
+                list.innerHTML = filtered.map(m => {
+                    const recCount = memberRecordCounts[m.id] ? memberRecordCounts[m.id].size : 0;
+                    const totalRecs = visibleRecords().filter(r => r.memberId === m.id).length;
+                    const totalAll = visibleRecords().length;
+                    // % asistencia = registros del integrante vs total de registros del grupo / integrantes
+                    const avgPerMember = members.length > 0 ? (totalAll / members.length) : 0;
+                    let pct = 0, badge = '', badgeColor = '';
+                    if (avgPerMember > 0) {
+                        pct = Math.round((totalRecs / avgPerMember) * 100);
+                        pct = Math.min(pct, 100);
+                    }
+                    if (totalRecs === 0) { badge = 'Sin registros'; badgeColor = '#9A9A92'; }
+                    else if (pct >= 80) { badge = pct+'%'; badgeColor = '#16a34a'; }
+                    else if (pct >= 50) { badge = pct+'%'; badgeColor = '#ca8a04'; }
+                    else { badge = pct+'%'; badgeColor = '#dc2626'; }
+
+                    const notePreview = m.note ? `<span style="font-size:0.72rem;color:var(--accent-dark);margin-left:8px;font-style:italic;">📝 ${m.note.length>40?m.note.substring(0,40)+'…':m.note}</span>` : '';
+                    const churchBadge = m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : '';
+
+                    return `
+    <div class="item-row" style="flex-wrap:wrap;gap:8px;">
+      <div style="flex:1;min-width:140px;">
+        <div class="item-name" style="margin-bottom:2px;">${m.name}${churchBadge}</div>
+        ${notePreview}
+      </div>
+      <span style="padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:700;color:white;background:${badgeColor};flex-shrink:0;">${badge}</span>
+      <button style="padding:5px 12px;border:2px solid var(--accent);background:white;color:var(--accent-dark);border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.75rem;font-weight:700;" data-note-member="${m.id}">📝 Nota</button>
+      <button style="padding:5px 12px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.75rem;font-weight:700;" data-edit-member="${m.id}">✏ Editar</button>
+      <button class="btn-danger" data-delete-member="${m.id}">Eliminar</button>
+    </div>`;
+                }).join("");
+
+                list.querySelectorAll("[data-note-member]").forEach(btn => {
+                    btn.addEventListener("click", () => editMemberNote(btn.getAttribute("data-note-member")));
+                });
                 list.querySelectorAll("[data-edit-member]").forEach((btn) => {
-                    btn.addEventListener("click", () =>
-                        editMember(btn.getAttribute("data-edit-member")),
-                    );
+                    btn.addEventListener("click", () => editMember(btn.getAttribute("data-edit-member")));
                 });
                 list.querySelectorAll("[data-delete-member]").forEach((btn) => {
-                    btn.addEventListener("click", () =>
-                        deleteMember(btn.getAttribute("data-delete-member")),
-                    );
+                    btn.addEventListener("click", () => deleteMember(btn.getAttribute("data-delete-member")));
                 });
             }
 
@@ -3445,20 +3492,107 @@
                 if (!newName || !newName.trim()) return;
                 const trimmed = newName.trim();
                 if (trimmed === member.name) return;
-                // Verificar que no exista otro integrante con ese nombre
                 if (state.members.find(m => m.id !== id && m.name.toLowerCase() === trimmed.toLowerCase())) {
                     showToast('Ya existe un integrante con ese nombre.'); return;
                 }
                 const oldName = member.name;
-                // Actualizar nombre en integrante
                 member.name = trimmed;
-                // Actualizar nombre en todos sus registros históricos
-                state.records.forEach(r => {
-                    if (r.memberId === id) r.memberName = trimmed;
-                });
+                state.records.forEach(r => { if (r.memberId === id) r.memberName = trimmed; });
                 save();
                 renderMembers();
                 showToast(`✓ Nombre actualizado: "${oldName}" → "${trimmed}"`);
+            }
+
+            function editMemberNote(id) {
+                const member = state.members.find(m => m.id === id);
+                if (!member) return;
+                const currentNote = member.note || '';
+                const newNote = prompt(`Nota para ${member.name}:\n(Deja vacío para borrar la nota)`, currentNote);
+                if (newNote === null) return; // canceló
+                member.note = newNote.trim();
+                save();
+                renderMembers();
+                showToast(member.note ? `✓ Nota guardada para ${member.name}` : `Nota eliminada para ${member.name}`);
+            }
+
+            function exportAllQR() {
+                const members = visibleMembers();
+                if (!members.length) { showToast('No hay integrantes para exportar.'); return; }
+                showToast('Generando PDF con todos los QR...');
+
+                // Esperar a que los QR estén renderizados en el tab de QR
+                // Usamos qrcodejs para generar los QR en un canvas oculto
+                setTimeout(() => {
+                    try {
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+                        const perRow = 3, perCol = 4, perPage = perRow * perCol;
+                        const cellW = 60, cellH = 60, marginX = 15, marginY = 15;
+
+                        members.forEach((m, idx) => {
+                            if (idx > 0 && idx % perPage === 0) doc.addPage();
+                            const pos = idx % perPage;
+                            const col = pos % perRow, row = Math.floor(pos / perRow);
+                            const x = marginX + col * cellW, y = marginY + row * cellH;
+
+                            // Generar QR en canvas temporal
+                            const container = document.createElement('div');
+                            container.style.position = 'absolute';
+                            container.style.left = '-9999px';
+                            document.body.appendChild(container);
+
+                            new QRCode(container, {
+                                text: m.id,
+                                width: 120, height: 120,
+                                colorDark: '#1E396A', colorLight: '#ffffff'
+                            });
+
+                            const canvas = container.querySelector('canvas');
+                            if (canvas) {
+                                const imgData = canvas.toDataURL('image/png');
+                                doc.addImage(imgData, 'PNG', x+8, y+2, 42, 42);
+                            }
+                            document.body.removeChild(container);
+
+                            // Nombre e ID
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(8);
+                            doc.setTextColor(21, 40, 69);
+                            const nameLines = doc.splitTextToSize(m.name, cellW-10);
+                            doc.text(nameLines, x + cellW/2, y+48, { align:'center' });
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(6);
+                            doc.setTextColor(150,150,150);
+                            doc.text(m.id, x + cellW/2, y+54, { align:'center' });
+
+                            // Borde de celda
+                            doc.setDrawColor(220,220,220);
+                            doc.setLineWidth(0.3);
+                            doc.rect(x+1, y+1, cellW-4, cellH-4);
+                        });
+
+                        // Header de cada página
+                        const totalPages = doc.getNumberOfPages();
+                        for (let p = 1; p <= totalPages; p++) {
+                            doc.setPage(p);
+                            doc.setFillColor(21,40,69);
+                            doc.rect(0, 0, 210, 10, 'F');
+                            doc.setFont('helvetica','bold');
+                            doc.setFontSize(8);
+                            doc.setTextColor(204,165,83);
+                            doc.text('CoralSync — Códigos QR del Coro', 14, 7);
+                            doc.setTextColor(180,180,180);
+                            doc.text(`Página ${p}/${totalPages}`, 196, 7, { align:'right' });
+                        }
+
+                        const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                        doc.save(`CoralSync_QR_${fecha}.pdf`);
+                        showToast(`✓ PDF generado con ${members.length} códigos QR`);
+                    } catch(e) {
+                        showToast('Error al generar el PDF. Verifica que jsPDF esté cargado.');
+                        console.error(e);
+                    }
+                }, 200);
             }
 
             // ======================== CHURCHES ========================
