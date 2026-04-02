@@ -3422,14 +3422,43 @@
     <div class="item-row">
       <div class="item-name">${m.name}${m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : ""}</div>
       <code style="font-size:0.7rem;color:var(--gray-500);">${m.id}</code>
+      <button style="padding:5px 14px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.78rem;font-weight:700;transition:all 0.2s;" data-edit-member="${m.id}">✏ Editar</button>
       <button class="btn-danger" data-delete-member="${m.id}">Eliminar</button>
     </div>`).join("");
 
+                list.querySelectorAll("[data-edit-member]").forEach((btn) => {
+                    btn.addEventListener("click", () =>
+                        editMember(btn.getAttribute("data-edit-member")),
+                    );
+                });
                 list.querySelectorAll("[data-delete-member]").forEach((btn) => {
                     btn.addEventListener("click", () =>
                         deleteMember(btn.getAttribute("data-delete-member")),
                     );
                 });
+            }
+
+            function editMember(id) {
+                const member = state.members.find(m => m.id === id);
+                if (!member) return;
+                const newName = prompt(`Editar nombre de "${member.name}":`, member.name);
+                if (!newName || !newName.trim()) return;
+                const trimmed = newName.trim();
+                if (trimmed === member.name) return;
+                // Verificar que no exista otro integrante con ese nombre
+                if (state.members.find(m => m.id !== id && m.name.toLowerCase() === trimmed.toLowerCase())) {
+                    showToast('Ya existe un integrante con ese nombre.'); return;
+                }
+                const oldName = member.name;
+                // Actualizar nombre en integrante
+                member.name = trimmed;
+                // Actualizar nombre en todos sus registros históricos
+                state.records.forEach(r => {
+                    if (r.memberId === id) r.memberName = trimmed;
+                });
+                save();
+                renderMembers();
+                showToast(`✓ Nombre actualizado: "${oldName}" → "${trimmed}"`);
             }
 
             // ======================== CHURCHES ========================
