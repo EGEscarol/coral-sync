@@ -1722,13 +1722,14 @@
                             Integrantes del Coro (<span id="members-count">0</span>)
                         </div>
                         <!-- Buscador + exportar QR -->
-                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-                            <div style="flex:1;min-width:180px;position:relative;">
+                        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+                            <div style="flex:1;position:relative;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-500);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                 <input type="text" id="members-search" placeholder="Buscar integrante..." oninput="renderMembers()" style="width:100%;padding:9px 12px 9px 34px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--gray-300)'">
                             </div>
-                            <button onclick="exportAllQR()" style="padding:9px 18px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;white-space:nowrap;box-shadow:0 3px 10px rgba(21,40,69,0.2);">
-                                ⬇ QR en lote
+                            <button onclick="exportAllQR()" title="Exportar todos los QR en PDF" style="flex-shrink:0;padding:9px 16px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:700;white-space:nowrap;box-shadow:0 3px 10px rgba(21,40,69,0.2);display:flex;align-items:center;gap:6px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg>
+                                QR en lote
                             </button>
                         </div>
                         <div id="members-list" class="item-list">
