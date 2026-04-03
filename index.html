@@ -1678,6 +1678,16 @@
                                     placeholder="Ej: María García López"
                                 />
                             </div>
+                            <div class="form-group" style="flex:0 0 auto;min-width:150px;">
+                                <label>Voz</label>
+                                <select id="new-member-voice">
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="Soprano">🎵 Soprano</option>
+                                    <option value="Contralto">🎵 Contralto</option>
+                                    <option value="Tenor">🎵 Tenor</option>
+                                    <option value="Bajo">🎵 Bajo</option>
+                                </select>
+                            </div>
                             <div class="form-group" id="member-church-row">
                                 <label>Iglesia</label>
                                 <select id="new-member-church">
@@ -3366,6 +3376,7 @@
             // ======================== MEMBERS ========================
             function addMember() {
                 const name = document.getElementById("new-member-name").value.trim();
+                const voice = document.getElementById("new-member-voice").value;
                 // Si es director, usa su iglesia automáticamente
                 const churchId = isDirector()
                     ? sessionChurchId()
@@ -3377,12 +3388,13 @@
                 const church = state.churches.find(c => c.id === churchId);
                 state.members.push({
                     id: "M" + Date.now(), name,
+                    voice: voice || null,
                     churchId: churchId || null,
                     churchName: church ? church.name : null,
                 });
                 save();
                 document.getElementById("new-member-name").value = "";
-                if (!isDirector()) document.getElementById("new-member-church").value = "";
+                document.getElementById("new-member-voice").value = "";
                 renderMembers();
                 showToast("✓ Integrante agregado: " + name);
             }
@@ -3459,13 +3471,17 @@
                     else if (pct >= 50) { badge = pct+'%'; badgeColor = '#ca8a04'; }
                     else { badge = pct+'%'; badgeColor = '#dc2626'; }
 
+                    const voiceColors = { 'Soprano':'#7c3aed', 'Contralto':'#0891b2', 'Tenor':'#16a34a', 'Bajo':'#b45309' };
+                    const voiceBadge = m.voice
+                        ? `<span style="font-size:0.68rem;font-weight:700;color:white;background:${voiceColors[m.voice]||'#888'};padding:2px 8px;border-radius:50px;margin-left:6px;">${m.voice}</span>`
+                        : '';
                     const notePreview = m.note ? `<span style="font-size:0.72rem;color:var(--accent-dark);margin-left:8px;font-style:italic;">📝 ${m.note.length>40?m.note.substring(0,40)+'…':m.note}</span>` : '';
                     const churchBadge = m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : '';
 
                     return `
     <div class="item-row" style="flex-wrap:wrap;gap:8px;">
       <div style="flex:1;min-width:140px;">
-        <div class="item-name" style="margin-bottom:2px;">${m.name}${churchBadge}</div>
+        <div class="item-name" style="margin-bottom:2px;">${m.name}${voiceBadge}${churchBadge}</div>
         ${notePreview}
       </div>
       <span style="padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:700;color:white;background:${badgeColor};flex-shrink:0;">${badge}</span>
@@ -3498,16 +3514,26 @@
                 const newName = prompt(`Editar nombre de "${member.name}":`, member.name);
                 if (!newName || !newName.trim()) return;
                 const trimmed = newName.trim();
-                if (trimmed === member.name) return;
-                if (state.members.find(m => m.id !== id && m.name.toLowerCase() === trimmed.toLowerCase())) {
-                    showToast('Ya existe un integrante con ese nombre.'); return;
+                if (trimmed !== member.name) {
+                    if (state.members.find(m => m.id !== id && m.name.toLowerCase() === trimmed.toLowerCase())) {
+                        showToast('Ya existe un integrante con ese nombre.'); return;
+                    }
+                    const oldName = member.name;
+                    member.name = trimmed;
+                    state.records.forEach(r => { if (r.memberId === id) r.memberName = trimmed; });
                 }
-                const oldName = member.name;
-                member.name = trimmed;
-                state.records.forEach(r => { if (r.memberId === id) r.memberName = trimmed; });
+                // Editar voz
+                const voices = ['', 'Soprano', 'Contralto', 'Tenor', 'Bajo'];
+                const currentIdx = voices.indexOf(member.voice || '');
+                const voiceStr = voices.filter(v=>v).map((v,i)=>`${i+1}=${v}`).join(', ');
+                const voiceInput = prompt(`Voz de ${member.name}:\n(${voiceStr}, 0=Sin voz)\nActual: ${member.voice||'Sin asignar'}`, voices.indexOf(member.voice||'') || '0');
+                if (voiceInput !== null) {
+                    const idx = parseInt(voiceInput);
+                    member.voice = voices[idx] || null;
+                }
                 save();
                 renderMembers();
-                showToast(`✓ Nombre actualizado: "${oldName}" → "${trimmed}"`);
+                showToast(`✓ Integrante actualizado: ${member.name}`);
             }
 
             function editMemberNote(id) {
