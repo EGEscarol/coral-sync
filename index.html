@@ -3788,30 +3788,49 @@
                 const list = document.getElementById("churches-list");
                 if (!list) return;
                 const churches = visibleChurches();
-                const count = document.getElementById("churches-count");
-                if (count) count.textContent = churches.length;
+                const countEl = document.getElementById("churches-count");
+                if (countEl) countEl.textContent = churches.length;
                 if (!churches.length) {
-                    list.innerHTML =
-                        '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 22V6l-6-4-6 4v16"/><path d="M2 22h20"/></svg><p>Aún no hay iglesias registradas.</p></div>';
+                    list.innerHTML = '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 22V6l-6-4-6 4v16"/><path d="M2 22h20"/></svg><p>Aún no hay iglesias registradas.</p></div>';
                     return;
                 }
-                list.innerHTML = churches
-                    .map((c) => {
-                        const count = state.members.filter(
-                            (m) => m.churchId === c.id,
-                        ).length;
-                        return `
+                list.innerHTML = churches.map(c => {
+                    const cnt = state.members.filter(m => m.churchId === c.id).length;
+                    const stateBadge = c.state
+                        ? `<span style="font-size:0.68rem;font-weight:700;color:white;background:#0855b2;padding:2px 8px;border-radius:50px;margin-left:6px;">🗺 ${c.state}</span>`
+                        : `<span style="font-size:0.68rem;color:#dc2626;font-style:italic;margin-left:8px;">sin estado asignado</span>`;
+                    return `
     <div class="item-row">
-      <div class="item-name">⛪ ${c.name}<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">${count} integrante${count !== 1 ? "s" : ""}</span></div>
-      <button class="btn-danger" data-delete-church="${c.id}">Eliminar</button>
+      <div style="flex:1;">
+        <div class="item-name">⛪ ${c.name}${stateBadge}</div>
+        <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">${cnt} integrante${cnt!==1?'s':''}</div>
+      </div>
+      <button title="Editar estado" style="width:32px;height:32px;border:2px solid #0855b2;background:white;color:#0855b2;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-edit-church="${c.id}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </button>
+      <button title="Eliminar iglesia" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-church="${c.id}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
     </div>`;
-                    })
-                    .join("");
-                list.querySelectorAll("[data-delete-church]").forEach((btn) => {
-                    btn.addEventListener("click", () =>
-                        deleteChurch(btn.getAttribute("data-delete-church")),
-                    );
+                }).join("");
+
+                list.querySelectorAll("[data-edit-church]").forEach(btn => {
+                    btn.addEventListener("click", () => editChurchState(btn.getAttribute("data-edit-church")));
                 });
+                list.querySelectorAll("[data-delete-church]").forEach(btn => {
+                    btn.addEventListener("click", () => deleteChurch(btn.getAttribute("data-delete-church")));
+                });
+            }
+
+            function editChurchState(id) {
+                const church = state.churches.find(c => c.id === id);
+                if (!church) return;
+                const newState = prompt(`Estado para "${church.name}":\n(Ej: Guerrero, Oaxaca, CDMX)\nDeja vacío para quitar el estado.`, church.state || '');
+                if (newState === null) return;
+                church.state = newState.trim() || null;
+                save();
+                renderChurches();
+                showToast(church.state ? `✓ Estado asignado: ${church.state}` : 'Estado eliminado de la iglesia.');
             }
 
             // ======================== ACTIVITIES ========================
