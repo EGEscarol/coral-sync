@@ -3805,6 +3805,9 @@
         <div class="item-name">⛪ ${c.name}${stateBadge}</div>
         <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">${cnt} integrante${cnt!==1?'s':''}</div>
       </div>
+      <button title="Editar nombre" style="width:32px;height:32px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-edit-church-name="${c.id}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      </button>
       <button title="Editar estado" style="width:32px;height:32px;border:2px solid #0855b2;background:white;color:#0855b2;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-edit-church="${c.id}">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </button>
@@ -3814,12 +3817,35 @@
     </div>`;
                 }).join("");
 
+                list.querySelectorAll("[data-edit-church-name]").forEach(btn => {
+                    btn.addEventListener("click", () => editChurchName(btn.getAttribute("data-edit-church-name")));
+                });
                 list.querySelectorAll("[data-edit-church]").forEach(btn => {
                     btn.addEventListener("click", () => editChurchState(btn.getAttribute("data-edit-church")));
                 });
                 list.querySelectorAll("[data-delete-church]").forEach(btn => {
                     btn.addEventListener("click", () => deleteChurch(btn.getAttribute("data-delete-church")));
                 });
+            }
+
+            function editChurchName(id) {
+                const church = state.churches.find(c => c.id === id);
+                if (!church) return;
+                const newName = prompt(`Editar nombre de "${church.name}":`, church.name);
+                if (!newName || !newName.trim()) return;
+                const trimmed = newName.trim();
+                if (trimmed === church.name) return;
+                if (state.churches.find(c => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())) {
+                    showToast('Ya existe una iglesia con ese nombre.'); return;
+                }
+                const oldName = church.name;
+                church.name = trimmed;
+                // Actualizar churchName en todos los integrantes y registros
+                state.members.forEach(m => { if (m.churchId === id) m.churchName = trimmed; });
+                state.records.forEach(r => { if (r.churchId === id) r.churchName = trimmed; });
+                save();
+                renderChurches();
+                showToast(`✓ Nombre actualizado: "${oldName}" → "${trimmed}"`);
             }
 
             function editChurchState(id) {
