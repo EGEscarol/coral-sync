@@ -4948,11 +4948,14 @@
                 if (!member.uniforms) member.uniforms = {};
                 member.uniforms[uniformId] = !member.uniforms[uniformId];
                 save();
-                // Actualizar solo la celda visualmente
+                // Actualizar solo la celda visualmente sin borrar el HTML interno
                 const cell = document.getElementById('ucell-' + memberId + '-' + uniformId);
                 if (cell) {
-                    cell.textContent = member.uniforms[uniformId] ? '✅' : '❌';
-                    cell.style.background = member.uniforms[uniformId] ? '#f0fdf4' : '#fff5f5';
+                    const has = member.uniforms[uniformId];
+                    cell.style.background = has ? '#f0fdf4' : '#fff5f5';
+                    // Actualizar solo el ícono (último span)
+                    const icon = cell.querySelector('span:last-child');
+                    if (icon) icon.textContent = has ? '✅' : '❌';
                 }
             }
 
@@ -5051,8 +5054,8 @@
                                 onclick="toggleMemberUniform('${m.id}','${u.id}')"
                                 style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-radius:6px;cursor:pointer;transition:background 0.15s;background:${has?'#f0fdf4':'#fff5f5'};"
                                 title="${has?'Tiene':'No tiene'} — clic para cambiar">
-                                <span style="font-size:0.78rem;color:var(--gray-700);">${u.isState?'<span style="font-size:0.65rem;color:#0855b2;font-weight:700;margin-right:4px;">EST</span>':''}${u.name}</span>
-                                <span style="font-size:0.9rem;">${has ? '✅' : '❌'}</span>
+                                <span style="font-size:0.78rem;color:#1a1a1a;">${u.isState?'<span style="font-size:0.65rem;color:#0855b2;font-weight:700;margin-right:4px;">EST</span>':''}${u.name}</span>
+                                <span style="font-size:0.9rem;flex-shrink:0;margin-left:8px;">${has ? '✅' : '❌'}</span>
                             </div>`).join('');
 
                         return `<div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:14px;box-shadow:0 1px 4px rgba(21,40,69,0.06);">
