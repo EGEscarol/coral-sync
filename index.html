@@ -2167,6 +2167,12 @@
                                 </select>
                             </div>
                             <div style="flex:1;min-width:160px;">
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:6px;">Filtrar por Mes</label>
+                                <select id="report-month-filter" onchange="renderReportMemberList()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;color:var(--gray-900);outline:none;background:white;">
+                                    <option value="">— Todos los meses —</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:160px;">
                                 <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:6px;">Buscar integrante</label>
                                 <input id="report-member-search" type="text" placeholder="Nombre..." oninput="renderReportMemberList()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;">
                             </div>
@@ -5339,9 +5345,31 @@
 
             // ======================== REPORTS TAB ========================
 
+            // Helper: obtener registros filtrados por mes seleccionado
+            function getReportRecords() {
+                const monthVal = document.getElementById('report-month-filter')?.value || '';
+                let recs = visibleRecords();
+                if (monthVal) {
+                    recs = recs.filter(r => {
+                        if (!r.ts) return false;
+                        const d = new Date(r.ts);
+                        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                        return key === monthVal;
+                    });
+                }
+                return recs;
+            }
+
+            // Helper: etiqueta legible de mes
+            function monthLabel(key) {
+                const [y, m] = key.split('-');
+                const date = new Date(parseInt(y), parseInt(m)-1, 1);
+                return date.toLocaleDateString('es-MX', { month:'long', year:'numeric' })
+                    .replace(/^\w/, c => c.toUpperCase());
+            }
+
             function renderReportsTab() {
                 const churchSel = document.getElementById('report-church-filter');
-                // Si es director, solo ve su iglesia y no puede cambiar el filtro
                 if (isDirector()) {
                     churchSel.innerHTML = `<option value="${sessionChurchId()}">${currentSession.churchName}</option>`;
                     churchSel.value = sessionChurchId();
@@ -5352,6 +5380,21 @@
                     churchSel.value = '';
                     churchSel.disabled = false;
                 }
+
+                // Poblar selector de meses con los meses que tienen registros
+                const monthSel = document.getElementById('report-month-filter');
+                if (monthSel) {
+                    const monthsSet = new Set();
+                    visibleRecords().forEach(r => {
+                        if (!r.ts) return;
+                        const d = new Date(r.ts);
+                        monthsSet.add(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
+                    });
+                    const months = [...monthsSet].sort().reverse();
+                    monthSel.innerHTML = '<option value="">— Todos los meses —</option>' +
+                        months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
+                }
+
                 document.getElementById('report-member-search').value = '';
                 renderReportMemberList();
             }
@@ -5360,6 +5403,8 @@
                 const churchId = document.getElementById('report-church-filter').value;
                 const search = (document.getElementById('report-member-search').value || '').toLowerCase();
                 const container = document.getElementById('report-member-list');
+                const monthVal = document.getElementById('report-month-filter')?.value || '';
+                const filteredRecs = getReportRecords();
 
                 let members = visibleMembers();
                 if (churchId) members = members.filter(m => m.churchId === churchId);
@@ -5372,15 +5417,20 @@
                 }
 
                 container.innerHTML = members.map(m => {
-                    const recs = state.records.filter(r => r.memberId === m.id).length;
+                    const recs = filteredRecs.filter(r => r.memberId === m.id).length;
+                    const totalRecs = visibleRecords().filter(r => r.memberId === m.id).length;
+                    const subLabel = monthVal
+                        ? `${recs} registro${recs!==1?'s':''} en el mes · ${totalRecs} total`
+                        : `${totalRecs} registro${totalRecs!==1?'s':''}`;
                     return `
-                    <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid var(--gray-200);border-radius:10px;cursor:pointer;transition:border-color 0.15s;background:white;" 
+                    <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid var(--gray-200);border-radius:10px;cursor:pointer;transition:border-color 0.15s;background:white;"
                            onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--accent)':'var(--gray-200)'">
                         <input type="checkbox" class="report-member-cb" value="${m.id}" onchange="updateReportCount();this.closest('label').style.borderColor=this.checked?'var(--accent)':'var(--gray-200)'" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;">
                         <div style="flex:1;min-width:0;">
                             <div style="font-weight:700;font-size:0.85rem;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
-                            <div style="font-size:0.75rem;color:var(--gray-500);">${m.churchName || '—'} · ${recs} registro${recs!==1?'s':''}</div>
+                            <div style="font-size:0.75rem;color:var(--gray-500);">${m.churchName || '—'} · ${subLabel}</div>
                         </div>
+                        ${monthVal && recs === 0 ? '<span style="font-size:0.68rem;color:#dc2626;font-weight:700;">Sin asistencia</span>' : ''}
                     </label>`;
                 }).join('');
                 updateReportCount();
@@ -5490,21 +5540,28 @@
 
                 const selectedMembers = state.members.filter(m => selectedIds.includes(m.id));
                 const churchFilter = document.getElementById('report-church-filter');
+                const monthVal = document.getElementById('report-month-filter')?.value || '';
+                const monthLbl = monthVal ? monthLabel(monthVal) : '';
+
                 const groupLabel = churchFilter.value
                     ? (state.churches.find(c => c.id === churchFilter.value)||{}).name||'Grupo'
                     : selectedMembers.length === state.members.length ? 'Todo el Coro' : 'Grupo Seleccionado';
 
-                const groupRecs = state.records.filter(r => selectedIds.includes(r.memberId));
+                const fullLabel = monthLbl ? groupLabel + ' — ' + monthLbl : groupLabel;
+
+                // Registros filtrados por mes si aplica
+                const filteredRecs = getReportRecords();
+                const groupRecs = filteredRecs.filter(r => selectedIds.includes(r.memberId));
                 const totalRecords = groupRecs.length;
 
                 const totalPosible = state.activities.reduce((sum,a) => {
-                    const ud = [...new Set(state.records.filter(r=>r.activityId===a.id).map(r=>r.date))];
+                    const ud = [...new Set(filteredRecs.filter(r=>r.activityId===a.id).map(r=>r.date))];
                     return sum + ud.length;
                 }, 0);
 
                 // Calc stats por miembro para resumen
                 const memberStats = selectedMembers.map(m => {
-                    const recs = state.records.filter(r => r.memberId === m.id);
+                    const recs = filteredRecs.filter(r => r.memberId === m.id);
                     const pct = totalPosible > 0 ? Math.round((recs.length/totalPosible)*100) : 0;
                     const racha = calcRacha(recs);
                     return { id: m.id, name: m.name, church: m.churchName||'—', total: recs.length, pct, racha };
@@ -5520,7 +5577,7 @@
 
                 // ========== PÁGINA 1: RESUMEN DEL GRUPO ==========
                 pdfHeader(doc, 'Reporte de Grupo — ' + groupLabel,
-                    selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros totales');
+                    selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros' + (monthLbl ? '  •  ' + monthLbl : ''));
 
                 let y = 42;
 
@@ -5663,7 +5720,7 @@
                 // ========== PÁGINAS INDIVIDUALES ==========
                 selectedMembers.forEach(member => {
                     doc.addPage();
-                    const memberRecords = state.records.filter(r => r.memberId === member.id)
+                    const memberRecords = filteredRecs.filter(r => r.memberId === member.id)
                         .sort((a,b)=>(b.ts||0)-(a.ts||0));
 
                     const totalMember = memberRecords.length;
@@ -5867,7 +5924,7 @@
                 pdfGlosario(doc, true);
                 pdfFooter(doc);
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
-                doc.save('Reporte_' + groupLabel.replace(/\s+/g,'_') + '_' + fecha + '.pdf');
+                doc.save('Reporte_' + groupLabel.replace(/\s+/g,'_') + (monthVal ? '_' + monthVal : '') + '_' + fecha + '.pdf');
                 showToast('✓ PDF generado para ' + selectedMembers.length + ' integrante' + (selectedMembers.length!==1?'s':''));
             }
 
