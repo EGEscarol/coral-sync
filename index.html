@@ -31,6 +31,18 @@
             const DOC_REF = doc(db, "coralsync", "data");
             const CFG_REF = doc(db, "coralsync", "config");
             const DIR_REF = doc(db, "coralsync", "directors");
+            const STATEDIR_REF = doc(db, "coralsync", "statedirectors");
+
+            window._fbSaveStateDirs = async function(data) {
+                try { await setDoc(STATEDIR_REF, { directors: data }, { merge: false }); return true; }
+                catch(e) { console.error(e); return false; }
+            };
+            window._fbLoadStateDirs = async function() {
+                try {
+                    const snap = await getDoc(STATEDIR_REF);
+                    return snap.exists() ? snap.data().directors || [] : [];
+                } catch(e) { return []; }
+            };
             const UNI_REF = doc(db, "coralsync", "uniforms");
 
             window._fbSaveUniforms = async function(data) {
@@ -1506,6 +1518,9 @@
                     <div class="cs-nav-item" data-page="churches" id="nav-churches" onclick="showPage('churches')">
                         <span class="cs-nav-icon">⛪</span> Iglesias
                     </div>
+                    <div class="cs-nav-item" data-page="statedirectors" id="nav-statedirectors" onclick="showPage('statedirectors')">
+                        <span class="cs-nav-icon">🗺</span> Dir. Estatales
+                    </div>
                     <div class="cs-nav-item" data-page="settings" id="nav-settings" onclick="showPage('settings')">
                         <span class="cs-nav-icon">⚙</span> Configuración
                     </div>
@@ -1845,28 +1860,14 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Nombre de la iglesia</label>
-                                <input
-                                    type="text"
-                                    id="new-church-name"
-                                    placeholder="Ej: Iglesia Central"
-                                />
+                                <input type="text" id="new-church-name" placeholder="Ej: Iglesia Central"/>
                             </div>
-                            <div
-                                class="form-group"
-                                style="
-                                    flex: 0 0 auto;
-                                    min-width: 0;
-                                    display: flex;
-                                    align-items: flex-end;
-                                "
-                            >
-                                <button
-                                    class="btn-accent"
-                                    onclick="addChurch()"
-                                    style="white-space: nowrap"
-                                >
-                                    + Agregar
-                                </button>
+                            <div class="form-group" style="flex:0 0 auto;min-width:160px;">
+                                <label>Estado</label>
+                                <input type="text" id="new-church-state" placeholder="Ej: Guerrero"/>
+                            </div>
+                            <div class="form-group" style="flex:0 0 auto;min-width:0;display:flex;align-items:flex-end;">
+                                <button class="btn-accent" onclick="addChurch()" style="white-space:nowrap;">+ Agregar</button>
                             </div>
                         </div>
                     </div>
@@ -2200,6 +2201,13 @@
                                     <option value="">-- Selecciona --</option>
                                 </select>
                             </div>
+                            <div id="uniform-state-wrap" style="flex:1;min-width:160px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Tipo</label>
+                                <select id="new-uniform-type" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="church">De la iglesia</option>
+                                    <option value="state">Estatal (aplica a todo el estado)</option>
+                                </select>
+                            </div>
                             <button onclick="addUniform()" class="btn-accent" style="padding:9px 20px;flex-shrink:0;">+ Agregar</button>
                         </div>
                         <div id="uniform-catalog-list"></div>
@@ -2216,6 +2224,44 @@
                             </select>
                         </div>
                         <div id="uniform-matrix" style="overflow-x:auto;"></div>
+                    </div>
+                </div>
+
+            <!-- PAGE: STATE DIRECTORS -->
+                <div id="page-statedirectors" class="admin-page" style="display:none;">
+                    <div class="card" style="margin-bottom:20px;">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            Agregar Director Estatal
+                        </div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:1;min-width:150px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre</label>
+                                <input type="text" id="new-statedir-name" placeholder="Nombre del director" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <div style="flex:1;min-width:130px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Estado</label>
+                                <input type="text" id="new-statedir-state" placeholder="Ej: Guerrero" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <div style="flex:1;min-width:130px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Usuario</label>
+                                <input type="text" id="new-statedir-user" placeholder="Usuario" autocomplete="off" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <div style="flex:1;min-width:130px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contraseña</label>
+                                <input type="password" id="new-statedir-pass" placeholder="Contraseña" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <button onclick="addStateDirector()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">+ Agregar</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Directores Estatales registrados
+                        </div>
+                        <div id="statedirectors-list" class="item-list">
+                            <div class="empty-state"><p>No hay directores estatales registrados.</p></div>
+                        </div>
                     </div>
                 </div>
 
@@ -2961,33 +3007,54 @@
 
             // Lista de directores de iglesia
             let directors = [];
+            // Lista de directores estatales
+            let stateDirectors = [];
 
             // Uniformes: { churchId: [ { id, name } ] }
             // Estado por integrante: member.uniforms = { uniformId: true/false }
             let uniformCatalog = {};  // { churchId: [{id, name}] }
 
-            // Sesión activa: { role: 'superadmin'|'director', churchId, churchName, name }
+            // Sesión activa: { role: 'superadmin'|'director'|'statedirector', churchId, churchName, name, stateName }
             let currentSession = null;
 
             // Helpers de sesión
-            function isSuperAdmin() { return currentSession && currentSession.role === 'superadmin'; }
-            function isDirector()   { return currentSession && currentSession.role === 'director'; }
-            function sessionChurchId() { return isDirector() ? currentSession.churchId : null; }
+            function isSuperAdmin()     { return currentSession && currentSession.role === 'superadmin'; }
+            function isDirector()       { return currentSession && currentSession.role === 'director'; }
+            function isStateDirector()  { return currentSession && currentSession.role === 'statedirector'; }
+            function sessionChurchId()  { return isDirector() ? currentSession.churchId : null; }
+            function sessionStateName() { return isStateDirector() ? currentSession.stateName : null; }
+
+            // Iglesias del estado del director estatal
+            function stateChurches() {
+                if (!isStateDirector()) return state.churches;
+                return state.churches.filter(c => c.state && c.state.toLowerCase() === sessionStateName().toLowerCase());
+            }
 
             // Filtrar datos según sesión activa
-            // Si no hay sesión (pantalla pública), devolver todo para que la app funcione
-            function visibleMembers()    {
+            function visibleMembers() {
                 if (!currentSession) return state.members;
-                return isSuperAdmin() ? state.members : state.members.filter(m => m.churchId === sessionChurchId());
+                if (isSuperAdmin()) return state.members;
+                if (isStateDirector()) {
+                    const ids = new Set(stateChurches().map(c=>c.id));
+                    return state.members.filter(m => ids.has(m.churchId));
+                }
+                return state.members.filter(m => m.churchId === sessionChurchId());
             }
-            function visibleRecords()    {
+            function visibleRecords() {
                 if (!currentSession) return state.records;
-                return isSuperAdmin() ? state.records : state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && m.churchId === sessionChurchId(); });
+                if (isSuperAdmin()) return state.records;
+                if (isStateDirector()) {
+                    const ids = new Set(stateChurches().map(c=>c.id));
+                    return state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && ids.has(m.churchId); });
+                }
+                return state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && m.churchId === sessionChurchId(); });
             }
             function visibleActivities() { return state.activities; }
-            function visibleChurches()   {
+            function visibleChurches() {
                 if (!currentSession) return state.churches;
-                return isSuperAdmin() ? state.churches : state.churches.filter(c => c.id === sessionChurchId());
+                if (isSuperAdmin()) return state.churches;
+                if (isStateDirector()) return stateChurches();
+                return state.churches.filter(c => c.id === sessionChurchId());
             }
 
             // Cargar directores desde Firebase
@@ -3155,6 +3222,18 @@
                     return;
                 }
 
+                // ¿Es director estatal?
+                const stDir = stateDirectors.find(d => d.username === user && d.password === pass);
+                if (stDir) {
+                    currentSession = { role: 'statedirector', name: stDir.name, stateName: stDir.stateName };
+                    closeAdminLoginModal();
+                    stopCamera();
+                    applySessionUI();
+                    showView('view-admin');
+                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    return;
+                }
+
                 // ¿Es director de iglesia?
                 const dir = directors.find(d => d.username === user && d.password === pass);
                 if (dir) {
@@ -3173,37 +3252,62 @@
             }
 
             function applySessionUI() {
-                // Sidebar badge de sesión
-                const badgeEl = document.getElementById('cs-session-badge');
-                const nameEl  = document.getElementById('cs-session-name');
-                const churchEl= document.getElementById('cs-session-church');
+                const badgeEl  = document.getElementById('cs-session-badge');
+                const nameEl   = document.getElementById('cs-session-name');
+                const churchEl = document.getElementById('cs-session-church');
                 if (badgeEl && nameEl) {
                     if (isSuperAdmin()) {
                         badgeEl.className = 'cs-session-badge superadmin';
                         nameEl.textContent = 'Super Admin';
                         if (churchEl) churchEl.textContent = '';
+                    } else if (isStateDirector()) {
+                        badgeEl.className = 'cs-session-badge';
+                        badgeEl.style.background = 'rgba(8,91,178,0.2)';
+                        badgeEl.style.borderColor = 'rgba(8,91,178,0.4)';
+                        nameEl.textContent = currentSession.name;
+                        nameEl.style.color = '#60a5fa';
+                        if (churchEl) churchEl.textContent = '🗺 Dir. Estatal — ' + (currentSession.stateName || '');
                     } else {
                         badgeEl.className = 'cs-session-badge';
+                        badgeEl.style.background = '';
+                        badgeEl.style.borderColor = '';
                         nameEl.textContent = currentSession.name;
+                        nameEl.style.color = '';
                         if (churchEl) churchEl.textContent = '⛪ ' + (currentSession.churchName || '');
                     }
                 }
-                // Ocultar/mostrar nav items según rol
-                const navChurches  = document.getElementById('nav-churches');
-                const navDirectors = document.getElementById('nav-directors');
-                const navAdminLabel= document.getElementById('nav-admin-label');
-                const navSettings  = document.getElementById('nav-settings');
+                const navChurches   = document.getElementById('nav-churches');
+                const navDirectors  = document.getElementById('nav-directors');
+                const navAdminLabel = document.getElementById('nav-admin-label');
+                const navSettings   = document.getElementById('nav-settings');
+                const navStateDirs  = document.getElementById('nav-statedirectors');
+
                 if (isDirector()) {
+                    // Director de iglesia: solo ve su coro
                     if (navChurches)   navChurches.style.display   = 'none';
                     if (navDirectors)  navDirectors.style.display  = 'none';
                     if (navAdminLabel) navAdminLabel.style.display = 'none';
                     if (navSettings)   navSettings.style.display   = 'none';
+                    if (navStateDirs)  navStateDirs.style.display  = 'none';
+                } else if (isStateDirector()) {
+                    // Director estatal: ve su estado, uniformes, reportes — no admin
+                    if (navChurches)   navChurches.style.display   = 'none';
+                    if (navDirectors)  navDirectors.style.display  = 'none';
+                    if (navAdminLabel) navAdminLabel.style.display = 'none';
+                    if (navSettings)   navSettings.style.display   = 'none';
+                    if (navStateDirs)  navStateDirs.style.display  = 'none';
                 } else {
+                    // Super admin: ve todo
                     if (navChurches)   navChurches.style.display   = '';
                     if (navDirectors)  navDirectors.style.display  = '';
                     if (navAdminLabel) navAdminLabel.style.display = '';
                     if (navSettings)   navSettings.style.display   = '';
+                    if (navStateDirs)  navStateDirs.style.display  = '';
                 }
+
+                // Deshabilitar edición en integrantes para director estatal (solo lectura)
+                const addMemberCard = document.querySelector('#page-members .card:first-child');
+                if (addMemberCard) addMemberCard.style.display = isStateDirector() ? 'none' : '';
             }
 
 
@@ -3319,6 +3423,7 @@
                 uniforms: 'Uniformes',
                 directors: 'Directores',
                 settings: 'Configuración',
+                statedirectors: 'Directores Estatales',
             };
 
             function showPage(page) {
@@ -3351,6 +3456,7 @@
                 if (page === 'activities') renderActivities();
                 if (page === 'reports') renderReportsTab();
                 if (page === 'directors') renderDirectors();
+                if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'uniforms') renderUniformsTab();
                 if (page === 'dashboard') renderDashboard();
             }
@@ -4600,28 +4706,51 @@
             }
 
             function getChurchUniforms(churchId) {
-                return uniformCatalog[churchId] || [];
+                // Devuelve uniformes de la iglesia + uniformes estatales heredados
+                return getChurchUniformsWithState(churchId);
             }
 
             function addUniform() {
                 const name = (document.getElementById('new-uniform-name').value || '').trim();
-                const churchId = isDirector()
-                    ? sessionChurchId()
-                    : document.getElementById('new-uniform-church').value;
-
+                const typeEl = document.getElementById('new-uniform-type');
+                const uniType = typeEl ? typeEl.value : 'church';
                 if (!name) { showToast('Ingresa el nombre del uniforme.'); return; }
-                if (!churchId) { showToast('Selecciona una iglesia.'); return; }
 
-                if (!uniformCatalog[churchId]) uniformCatalog[churchId] = [];
-                if (uniformCatalog[churchId].find(u => u.name.toLowerCase() === name.toLowerCase())) {
-                    showToast('Ya existe un uniforme con ese nombre en este coro.'); return;
+                if (uniType === 'state') {
+                    // Uniforme estatal: se guarda bajo 'STATE:NombreEstado'
+                    let stateName = '';
+                    if (isStateDirector()) stateName = sessionStateName();
+                    else if (isSuperAdmin()) {
+                        const churchSel = document.getElementById('new-uniform-church');
+                        const church = state.churches.find(c=>c.id===churchSel.value);
+                        stateName = church ? church.state : '';
+                        if (!stateName) { showToast('Selecciona una iglesia con estado asignado para inferir el estado.'); return; }
+                    }
+                    if (!stateName) { showToast('No se pudo determinar el estado.'); return; }
+                    const key = 'STATE:'+stateName;
+                    if (!uniformCatalog[key]) uniformCatalog[key] = [];
+                    if (uniformCatalog[key].find(u=>u.name.toLowerCase()===name.toLowerCase())) { showToast('Ya existe ese uniforme estatal.'); return; }
+                    uniformCatalog[key].push({ id:'U'+Date.now(), name });
+                    saveUniforms();
+                    document.getElementById('new-uniform-name').value = '';
+                    renderUniformsTab();
+                    showToast('✓ Uniforme estatal agregado: '+name+' — aplica a todo el estado de '+stateName);
+                    return;
                 }
 
-                uniformCatalog[churchId].push({ id: 'U' + Date.now(), name });
+                // Uniforme de iglesia
+                const churchId = isDirector()
+                    ? sessionChurchId()
+                    : isStateDirector() ? null
+                    : document.getElementById('new-uniform-church').value;
+                if (!churchId) { showToast('Selecciona una iglesia.'); return; }
+                if (!uniformCatalog[churchId]) uniformCatalog[churchId] = [];
+                if (uniformCatalog[churchId].find(u=>u.name.toLowerCase()===name.toLowerCase())) { showToast('Ya existe un uniforme con ese nombre.'); return; }
+                uniformCatalog[churchId].push({ id:'U'+Date.now(), name });
                 saveUniforms();
                 document.getElementById('new-uniform-name').value = '';
                 renderUniformsTab();
-                showToast('✓ Uniforme agregado: ' + name);
+                showToast('✓ Uniforme agregado: '+name);
             }
 
             function deleteUniform(churchId, uniformId) {
@@ -4658,7 +4787,9 @@
                 // Selector de iglesia en catálogo (solo superadmin)
                 const churchWrap = document.getElementById('uniform-church-wrap');
                 const churchSel = document.getElementById('new-uniform-church');
-                if (churchWrap) churchWrap.style.display = isDirector() ? 'none' : '';
+                const stateWrap = document.getElementById('uniform-state-wrap');
+                if (churchWrap) churchWrap.style.display = isDirector() || isStateDirector() ? 'none' : '';
+                if (stateWrap)  stateWrap.style.display  = isDirector() ? 'none' : '';
                 if (churchSel && !isDirector()) {
                     churchSel.innerHTML = '<option value="">-- Selecciona --</option>' +
                         state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
@@ -4668,21 +4799,31 @@
                 const catalogList = document.getElementById('uniform-catalog-list');
                 const myChurches = isDirector() ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean) : state.churches;
 
-                if (!myChurches.length || myChurches.every(c => !getChurchUniforms(c.id).length)) {
-                    catalogList.innerHTML = '<div class="empty-state" style="padding:16px 0;"><p>No hay uniformes registrados. Agrega el primero arriba.</p></div>';
-                } else {
-                    catalogList.innerHTML = myChurches.map(church => {
-                        const unis = getChurchUniforms(church.id);
-                        if (!unis.length) return '';
-                        const header = !isDirector() ? `<div style="font-size:0.78rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">⛪ ${church.name}</div>` : '';
-                        const items = unis.map(u => `
-                            <div class="item-row" style="padding:8px 14px;">
-                                <div class="item-name">🎽 ${u.name}</div>
-                                <button class="btn-danger" onclick="deleteUniform('${church.id}','${u.id}')">Eliminar</button>
-                            </div>`).join('');
-                        return header + items;
-                    }).join('');
-                }
+                // Mostrar uniformes estatales primero
+                let catalogHTML = '';
+                const myStates = [...new Set(myChurches.map(c=>c.state).filter(Boolean))];
+                myStates.forEach(sn => {
+                    const unis = getStateUniforms(sn);
+                    if (!unis.length) return;
+                    catalogHTML += `<div style="font-size:0.78rem;font-weight:700;color:#0855b2;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🗺 Uniformes estatales — ${sn}</div>`;
+                    catalogHTML += unis.map(u => `
+                        <div class="item-row" style="padding:8px 14px;background:#eff6ff;border-radius:8px;margin-bottom:4px;">
+                            <div class="item-name">🎽 ${u.name} <span style="font-size:0.68rem;color:#0855b2;font-weight:700;margin-left:6px;">ESTATAL</span></div>
+                            <button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>
+                        </div>`).join('');
+                });
+                // Luego uniformes de cada iglesia (solo los propios, no los heredados)
+                myChurches.forEach(church => {
+                    const unis = uniformCatalog[church.id] || [];
+                    if (!unis.length) return;
+                    const header = !isDirector() ? `<div style="font-size:0.78rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 8px;">⛪ ${church.name}</div>` : '';
+                    catalogHTML += header + unis.map(u => `
+                        <div class="item-row" style="padding:8px 14px;">
+                            <div class="item-name">🎽 ${u.name}</div>
+                            <button class="btn-danger" onclick="deleteUniform('${church.id}','${u.id}')">Eliminar</button>
+                        </div>`).join('');
+                });
+                catalogList.innerHTML = catalogHTML || '<div class="empty-state" style="padding:16px 0;"><p>No hay uniformes registrados.</p></div>';
 
                 // Filtro de iglesia para la matriz
                 const filterSel = document.getElementById('uniform-filter-church');
@@ -4750,6 +4891,89 @@
                 });
 
                 matrix.innerHTML = html || '<div class="empty-state" style="padding:24px 0;"><p>Agrega uniformes e integrantes para ver la tabla.</p></div>';
+            }
+
+            // ======================== STATE DIRECTORS ========================
+
+            async function loadStateDirectorsFromFirebase() {
+                try {
+                    const dirs = await window._fbLoadStateDirs();
+                    if (dirs && dirs.length) {
+                        stateDirectors = dirs;
+                        localStorage.setItem('cva_statedirs', JSON.stringify(stateDirectors));
+                    } else {
+                        const cache = localStorage.getItem('cva_statedirs');
+                        if (cache) stateDirectors = JSON.parse(cache);
+                    }
+                } catch(e) {
+                    const cache = localStorage.getItem('cva_statedirs');
+                    if (cache) stateDirectors = JSON.parse(cache);
+                }
+            }
+
+            async function saveStateDirectors() {
+                localStorage.setItem('cva_statedirs', JSON.stringify(stateDirectors));
+                if (window._fbSaveStateDirs) await window._fbSaveStateDirs(stateDirectors);
+            }
+
+            function addStateDirector() {
+                const name      = (document.getElementById('new-statedir-name').value||'').trim();
+                const stateName = (document.getElementById('new-statedir-state').value||'').trim();
+                const username  = (document.getElementById('new-statedir-user').value||'').trim();
+                const password  = (document.getElementById('new-statedir-pass').value||'');
+                if (!name || !stateName || !username || !password) { showToast('Completa todos los campos.'); return; }
+                if (stateDirectors.find(d=>d.username===username)) { showToast('Ese usuario ya existe.'); return; }
+                stateDirectors.push({ id:'SD'+Date.now(), name, stateName, username, password });
+                saveStateDirectors();
+                document.getElementById('new-statedir-name').value='';
+                document.getElementById('new-statedir-state').value='';
+                document.getElementById('new-statedir-user').value='';
+                document.getElementById('new-statedir-pass').value='';
+                renderStateDirectors();
+                showToast('✓ Director estatal agregado: '+name+' ('+stateName+')');
+            }
+
+            function renderStateDirectors() {
+                const list = document.getElementById('statedirectors-list');
+                if (!list) return;
+                if (!stateDirectors.length) {
+                    list.innerHTML = '<div class="empty-state"><p>No hay directores estatales registrados.</p></div>';
+                    return;
+                }
+                list.innerHTML = stateDirectors.map(d => `
+                    <div class="item-row">
+                        <div style="flex:1;">
+                            <div class="item-name">${d.name} <span style="font-size:0.72rem;color:white;background:#0855b2;padding:2px 8px;border-radius:50px;margin-left:6px;">🗺 ${d.stateName}</span></div>
+                            <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">Usuario: <code>${d.username}</code></div>
+                        </div>
+                        <button title="Eliminar" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-statedir="${d.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                    </div>`).join('');
+                list.querySelectorAll('[data-delete-statedir]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        customConfirm('¿Eliminar este director estatal?', () => {
+                            stateDirectors = stateDirectors.filter(d=>d.id!==btn.getAttribute('data-delete-statedir'));
+                            saveStateDirectors();
+                            renderStateDirectors();
+                            showToast('Director estatal eliminado.');
+                        });
+                    });
+                });
+            }
+
+            // ── Uniformes estatales: se heredan a todas las iglesias del estado ──
+            function getStateUniforms(stateName) {
+                // Clave especial en el catálogo: 'STATE:Guerrero'
+                return uniformCatalog['STATE:'+stateName] || [];
+            }
+
+            function getChurchUniformsWithState(churchId) {
+                const church = state.churches.find(c=>c.id===churchId);
+                const churchUnis = uniformCatalog[churchId] || [];
+                const stateUnis = church && church.state ? getStateUniforms(church.state) : [];
+                // Fusionar: uniformes del estado primero, luego los de la iglesia
+                return [...stateUnis.map(u=>({...u, isState:true})), ...churchUnis.map(u=>({...u, isState:false}))];
             }
 
             // ======================== RENDER ALL ========================
@@ -4914,6 +5138,7 @@
                     loadFromCloud(),
                     loadCredentialsFromFirebase(),
                     loadDirectorsFromFirebase(),
+                    loadStateDirectorsFromFirebase(),
                     loadUniformsFromFirebase()
                 ]);
                 renderAll();
