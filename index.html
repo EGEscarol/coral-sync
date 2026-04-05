@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>CoralSync</title>
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231E396A'/%3E%3Ctext y='72' x='50' text-anchor='middle' font-size='62' font-family='Georgia,serif' fill='%23CCA553'%3EC%3C/text%3E%3C/svg%3E">
         <link
             href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap"
             rel="stylesheet"
@@ -4921,6 +4922,11 @@
             }
 
             function deleteUniform(churchId, uniformId) {
+                // Director local no puede eliminar uniformes estatales
+                if (isDirector() && churchId.startsWith('STATE:')) {
+                    showToast('Los uniformes estatales solo pueden ser eliminados por el Director Estatal o Super Admin.');
+                    return;
+                }
                 customConfirm('¿Eliminar este uniforme? Se borrará de todos los integrantes.', () => {
                     uniformCatalog[churchId] = (uniformCatalog[churchId] || []).filter(u => u.id !== uniformId);
                     // Limpiar del state de integrantes
@@ -4976,7 +4982,7 @@
                     catalogHTML += unis.map(u => `
                         <div class="item-row" style="padding:8px 14px;background:#eff6ff;border-radius:8px;margin-bottom:4px;">
                             <div class="item-name">🎽 ${u.name} <span style="font-size:0.68rem;color:#0855b2;font-weight:700;margin-left:6px;">ESTATAL</span></div>
-                            <button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>
+                            ${!isDirector() ? `<button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>` : '<span style="font-size:0.72rem;color:#9A9A92;font-style:italic;">Solo estatal</span>'}
                         </div>`).join('');
                 });
                 // Luego uniformes de cada iglesia (solo los propios, no los heredados)
