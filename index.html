@@ -2047,6 +2047,9 @@
                                 <select id="records-church-filter" onchange="renderRecords()" style="padding:7px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Lato',sans-serif;font-size:0.82rem;outline:none;background:white;display:none;">
                                     <option value="">— Todas las iglesias —</option>
                                 </select>
+                                <select id="records-month-filter" onchange="renderRecords()" style="padding:7px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Lato',sans-serif;font-size:0.82rem;outline:none;background:white;">
+                                    <option value="">— Todos los meses —</option>
+                                </select>
                                 <button class="btn-accent btn-sm" onclick="exportCSV()">⬇ Exportar CSV</button>
                             </div>
                         </div>
@@ -4089,6 +4092,37 @@
                     }
                 }
 
+                // Poblar y aplicar filtro por mes
+                const monthSel = document.getElementById('records-month-filter');
+                if (monthSel) {
+                    const monthsSet = new Set();
+                    visibleRecords().forEach(r => {
+                        if (!r.ts) return;
+                        const d = new Date(r.ts);
+                        monthsSet.add(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
+                    });
+                    const months = [...monthsSet].sort().reverse();
+                    const curMonth = monthSel.value;
+                    monthSel.innerHTML = '<option value="">— Todos los meses —</option>' +
+                        months.map(m => {
+                            const [y, mo] = m.split('-');
+                            const lbl = new Date(parseInt(y), parseInt(mo)-1, 1)
+                                .toLocaleDateString('es-MX', {month:'long', year:'numeric'})
+                                .replace(/^\w/, c => c.toUpperCase());
+                            return `<option value="${m}">${lbl}</option>`;
+                        }).join('');
+                    monthSel.value = curMonth;
+
+                    if (curMonth) {
+                        records = records.filter(r => {
+                            if (!r.ts) return false;
+                            const d = new Date(r.ts);
+                            const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                            return key === curMonth;
+                        });
+                    }
+                }
+
                 // Stats
                 stats.innerHTML = `
     <div class="stat-card"><div class="num">${records.length}</div><div class="lbl">Total Registros</div></div>
@@ -4100,7 +4134,7 @@
                 updateRecordsActionsBar();
 
                 if (!records.length) {
-                    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>No hay registros aún.</p></div></td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>No hay registros para el periodo seleccionado.</p></div></td></tr>';
                     return;
                 }
 
@@ -4253,22 +4287,44 @@
 
             // ======================== EXPORT CSV ========================
             function exportCSV() {
-                if (!state.records.length) {
-                    showToast("No hay registros para exportar.");
+                // Respetar el filtro de mes activo
+                const monthVal = document.getElementById('records-month-filter')?.value || '';
+                const churchFilterVal = isStateDirector()
+                    ? (document.getElementById('records-church-filter')?.value || '')
+                    : '';
+
+                let recsToExport = visibleRecords();
+
+                if (monthVal) {
+                    recsToExport = recsToExport.filter(r => {
+                        if (!r.ts) return false;
+                        const d = new Date(r.ts);
+                        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                        return key === monthVal;
+                    });
+                }
+                if (churchFilterVal) {
+                    recsToExport = recsToExport.filter(r => {
+                        const m = state.members.find(x=>x.id===r.memberId);
+                        return m && m.churchId === churchFilterVal;
+                    });
+                }
+
+                if (!recsToExport.length) {
+                    showToast("No hay registros para exportar con el filtro actual.");
                     return;
                 }
-                const header = [
-                    "#",
-                    "Nombre",
-                    "Iglesia",
-                    "Actividad",
-                    "Fecha",
-                    "Hora",
-                    "Latitud",
-                    "Longitud",
-                    "Google Maps",
-                ];
-                const rows = [...state.records]
+
+                // Nombre del archivo con mes si aplica
+                const [y, mo] = monthVal ? monthVal.split('-') : [];
+                const monthSuffix = monthVal
+                    ? '_' + new Date(parseInt(y), parseInt(mo)-1, 1)
+                        .toLocaleDateString('es-MX', {month:'long', year:'numeric'})
+                        .replace(/\s/g,'_').replace(/^\w/, c=>c.toUpperCase())
+                    : '';
+
+                const header = ["#","Nombre","Iglesia","Actividad","Fecha","Hora","Latitud","Longitud","Google Maps"];
+                const rows = [...recsToExport]
                     .sort((a, b) => b.ts - a.ts)
                     .map((r, i) => [
                         i + 1,
@@ -4279,9 +4335,7 @@
                         r.time,
                         r.lat || "",
                         r.lng || "",
-                        r.lat && r.lng
-                            ? `https://www.google.com/maps?q=${r.lat},${r.lng}`
-                            : "",
+                        r.lat && r.lng ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : "",
                     ]);
                 const csv = [header, ...rows]
                     .map((row) =>
@@ -4290,14 +4344,12 @@
                             .join(","),
                     )
                     .join("\n");
-                const blob = new Blob(["\uFEFF" + csv], {
-                    type: "text/csv;charset=utf-8;",
-                });
+                const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(blob);
-                a.download = `RegistrosCoro_${new Date().toLocaleDateString("es-MX").replace(/\//g, "-")}.csv`;
+                a.download = `RegistrosCoro${monthSuffix}_${new Date().toLocaleDateString("es-MX").replace(/\//g, "-")}.csv`;
                 a.click();
-                showToast("✓ CSV exportado correctamente");
+                showToast(`✓ CSV exportado — ${recsToExport.length} registros${monthSuffix ? ' de' + monthSuffix.replace(/_/g,' ') : ''}`);
             }
 
             // ======================== CAMERA SCANNER ========================
