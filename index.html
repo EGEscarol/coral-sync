@@ -2888,6 +2888,39 @@
             }
         </style>
 
+        <!-- ==================== REGISTRO EXITOSO MODAL ==================== -->
+        <div id="success-modal" style="display:none;position:fixed;inset:0;z-index:900;align-items:center;justify-content:center;background:rgba(21,40,69,0.75);backdrop-filter:blur(4px);">
+            <div style="background:white;border-radius:24px;padding:40px 32px;max-width:360px;width:92%;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,0.3);animation:successPop 0.4s cubic-bezier(0.34,1.56,0.64,1);">
+                <style>
+                    @keyframes successPop {
+                        0%   { transform:scale(0.5); opacity:0; }
+                        100% { transform:scale(1); opacity:1; }
+                    }
+                    @keyframes successPulse {
+                        0%,100% { transform:scale(1); }
+                        50%     { transform:scale(1.08); }
+                    }
+                    #success-check { animation:successPulse 1s ease-in-out 3; }
+                </style>
+                <!-- Círculo con check -->
+                <div id="success-check" style="width:80px;height:80px;background:#f0fdf4;border:4px solid #16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#16a34a;margin-bottom:6px;">¡Registro exitoso!</div>
+                <div id="success-name" style="font-family:'Cinzel',serif;font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:8px;line-height:1.2;"></div>
+                <div id="success-activity" style="font-size:0.95rem;color:var(--gray-500);margin-bottom:6px;"></div>
+                <div id="success-time" style="font-size:0.82rem;color:var(--gray-500);margin-bottom:24px;"></div>
+                <div id="success-gps" style="font-size:0.78rem;color:#16a34a;margin-bottom:20px;"></div>
+                <!-- Barra de progreso que cuenta 5 segundos -->
+                <div style="background:var(--gray-200);border-radius:50px;height:5px;overflow:hidden;margin-bottom:14px;">
+                    <div id="success-progress" style="height:5px;background:var(--primary);border-radius:50px;width:100%;transition:width 5s linear;"></div>
+                </div>
+                <div style="font-size:0.75rem;color:var(--gray-500);">Se cerrará automáticamente...</div>
+            </div>
+        </div>
+
         <!-- ==================== ARCHIVE MODAL ==================== -->
         <div id="archive-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;align-items:center;justify-content:center;">
             <div style="background:white;border-radius:20px;padding:32px 28px;max-width:420px;width:92%;box-shadow:0 32px 64px rgba(0,0,0,0.3);">
@@ -4614,21 +4647,11 @@
                 if (picker) picker.remove();
                 if (ok) {
                     const member = state.members.find((m) => m.id === memberId);
-                    const activity = state.activities.find(
-                        (a) => a.id === activityId,
-                    );
-                    const locTxt = lat ? ` 📍 GPS guardado` : ` (sin GPS)`;
-                    setScanStatus(
-                        `✅ ¡Registro exitoso! ${member.name} — ${activity.name}${locTxt}`,
-                        "success",
-                    );
-                    showToast("✓ Actividad registrada correctamente");
-                    setTimeout(() => stopCamera(), 4000);
+                    const activity = state.activities.find((a) => a.id === activityId);
+                    showSuccessModal(member.name, activity.name, lat);
+                    setTimeout(() => stopCamera(), 5500);
                 } else {
-                    setScanStatus(
-                        "Error al registrar. Inténtalo de nuevo.",
-                        "error",
-                    );
+                    setScanStatus("Error al registrar. Inténtalo de nuevo.", "error");
                 }
             }
 
@@ -4636,6 +4659,48 @@
                 const el = document.getElementById("scan-status");
                 el.textContent = msg;
                 el.className = "scan-status " + type;
+            }
+
+            function showSuccessModal(memberName, activityName, hasGps) {
+                const modal = document.getElementById('success-modal');
+                if (!modal) return;
+
+                // Rellenar datos
+                document.getElementById('success-name').textContent = memberName;
+                document.getElementById('success-activity').textContent = '📋 ' + activityName;
+                const now = new Date();
+                document.getElementById('success-time').textContent =
+                    '🕐 ' + now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}) +
+                    '  •  ' + now.toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
+                document.getElementById('success-gps').textContent = hasGps ? '📍 Ubicación GPS registrada' : '';
+
+                // Mostrar modal
+                modal.style.display = 'flex';
+
+                // Iniciar barra de progreso
+                const bar = document.getElementById('success-progress');
+                bar.style.transition = 'none';
+                bar.style.width = '100%';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        bar.style.transition = 'width 5s linear';
+                        bar.style.width = '0%';
+                    });
+                });
+
+                // Cerrar automáticamente después de 5s
+                clearTimeout(window._successTimer);
+                window._successTimer = setTimeout(() => {
+                    modal.style.display = 'none';
+                    setScanStatus('📷 Cámara lista — acerca tu código QR', 'info');
+                }, 5000);
+
+                // También cerrar al hacer clic
+                modal.onclick = () => {
+                    clearTimeout(window._successTimer);
+                    modal.style.display = 'none';
+                    setScanStatus('📷 Cámara lista — acerca tu código QR', 'info');
+                };
             }
 
             // ======================== MANUAL RECORD (solo panel admin) ========================
