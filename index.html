@@ -45,18 +45,6 @@
                     return snap.exists() ? snap.data().auxiliares || [] : [];
                 } catch(e) { return []; }
             };
-            const AUX_REF = doc(db, "coralsync", "auxiliares");
-
-            window._fbSaveAuxiliares = async function(data) {
-                try { await setDoc(AUX_REF, { auxiliares: data }, { merge: false }); return true; }
-                catch(e) { console.error(e); return false; }
-            };
-            window._fbLoadAuxiliares = async function() {
-                try {
-                    const snap = await getDoc(AUX_REF);
-                    return snap.exists() ? snap.data().auxiliares || [] : [];
-                } catch(e) { return []; }
-            };
 
             window._fbSaveStateDirs = async function(data) {
                 try { await setDoc(STATEDIR_REF, { directors: data }, { merge: false }); return true; }
