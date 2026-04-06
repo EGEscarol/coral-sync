@@ -2305,9 +2305,11 @@
                         </div>
                         <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px;">Los auxiliares pueden registrar asistencia, ver integrantes y escanear QR — solo de tu coro.</p>
                         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                            <div style="flex:1;min-width:140px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre</label>
-                                <input type="text" id="new-aux-name" placeholder="Nombre del auxiliar" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            <div style="flex:1;min-width:180px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Integrante del coro</label>
+                                <select id="new-aux-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Selecciona un integrante --</option>
+                                </select>
                             </div>
                             <div style="flex:1;min-width:120px;">
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Usuario</label>
@@ -2399,39 +2401,6 @@
 
                         <!-- Lista de directores -->
                         <div id="directors-list"></div>
-                    </div>
-                </div>
-
-                <!-- Sección de Auxiliares -->
-                <div class="card" id="auxiliares-section">
-                    <div class="card-title" style="margin-bottom:16px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        Auxiliares del Coro
-                    </div>
-                    <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px;">Los auxiliares pueden ver integrantes, escanear QR y registrar asistencia manualmente para tu coro.</p>
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
-                        <div style="flex:1;min-width:140px;">
-                            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre</label>
-                            <input type="text" id="new-aux-name" placeholder="Nombre del auxiliar" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                        </div>
-                        <div id="aux-church-wrap" style="flex:1;min-width:140px;">
-                            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Iglesia</label>
-                            <select id="new-aux-church" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
-                                <option value="">-- Selecciona --</option>
-                            </select>
-                        </div>
-                        <div style="flex:1;min-width:130px;">
-                            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Usuario</label>
-                            <input type="text" id="new-aux-user" placeholder="Usuario" autocomplete="off" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                        </div>
-                        <div style="flex:1;min-width:130px;">
-                            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contraseña</label>
-                            <input type="password" id="new-aux-pass" placeholder="Contraseña" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Lato',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                        </div>
-                        <button onclick="addAuxiliar()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">+ Agregar</button>
-                    </div>
-                    <div id="auxiliares-list" class="item-list">
-                        <div class="empty-state"><p>No hay auxiliares registrados.</p></div>
                     </div>
                 </div>
 
@@ -5434,13 +5403,19 @@
             }
 
             function addAuxiliar() {
-                const name     = (document.getElementById('new-aux-name').value||'').trim();
+                const memberId = (document.getElementById('new-aux-member')?.value||'').trim();
                 const username = (document.getElementById('new-aux-user').value||'').trim();
                 const password = (document.getElementById('new-aux-pass').value||'');
 
-                if (!name || !username || !password) { showToast('Completa todos los campos.'); return; }
+                if (!memberId) { showToast('Selecciona un integrante del coro.'); return; }
+                if (!username || !password) { showToast('Completa usuario y contraseña.'); return; }
 
-                // Verificar usuario único entre directors, stateDirectors y auxiliares
+                // Obtener nombre del integrante seleccionado
+                const member = state.members.find(m => m.id === memberId);
+                if (!member) { showToast('Integrante no encontrado.'); return; }
+                const name = member.name;
+
+                // Verificar usuario único
                 const allUsers = [
                     ...directors.map(d=>d.username),
                     ...stateDirectors.map(d=>d.username),
@@ -5448,15 +5423,17 @@
                 ];
                 if (allUsers.includes(username)) { showToast('Ese usuario ya existe.'); return; }
 
+                // Verificar que el integrante no sea ya auxiliar
+                if (auxiliares.find(a => a.memberId === memberId)) {
+                    showToast(`${name} ya es auxiliar.`); return;
+                }
+
                 const churchId   = currentSession.churchId;
                 const churchName = currentSession.churchName;
-                const directorId = currentSession.role === 'director'
-                    ? directors.find(d=>d.churchId===churchId)?.id
-                    : null;
 
-                auxiliares.push({ id:'AUX'+Date.now(), name, username, password, churchId, churchName, directorId });
+                auxiliares.push({ id:'AUX'+Date.now(), name, memberId, username, password, churchId, churchName });
                 saveAuxiliares();
-                document.getElementById('new-aux-name').value = '';
+                document.getElementById('new-aux-member').value = '';
                 document.getElementById('new-aux-user').value = '';
                 document.getElementById('new-aux-pass').value = '';
                 renderAuxiliares();
@@ -5464,11 +5441,22 @@
             }
 
             function renderAuxiliares() {
+                // Poblar selector de integrantes (solo los que no son ya auxiliares)
+                const memberSel = document.getElementById('new-aux-member');
+                if (memberSel) {
+                    const myChurchId = sessionChurchId();
+                    const auxMemberIds = new Set(auxiliares.map(a => a.memberId));
+                    const available = state.members.filter(m =>
+                        m.churchId === myChurchId && !auxMemberIds.has(m.id)
+                    );
+                    memberSel.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
+                        available.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                }
+
                 const list = document.getElementById('auxiliares-list');
                 if (!list) return;
 
-                // Filtrar auxiliares del coro actual
-                const myChurchId = currentSession.churchId || sessionChurchId();
+                const myChurchId = sessionChurchId();
                 const myAux = auxiliares.filter(a => a.churchId === myChurchId);
 
                 if (!myAux.length) {
@@ -5521,88 +5509,6 @@
             async function saveAuxiliares() {
                 localStorage.setItem('cva_auxiliares', JSON.stringify(auxiliares));
                 if (window._fbSaveAuxiliares) await window._fbSaveAuxiliares(auxiliares);
-            }
-
-            function addAuxiliar() {
-                const name = (document.getElementById('new-aux-name').value||'').trim();
-                const username = (document.getElementById('new-aux-user').value||'').trim();
-                const password = (document.getElementById('new-aux-pass').value||'');
-
-                // Iglesia: director usa la suya, superAdmin elige
-                let churchId, churchName;
-                if (isDirector()) {
-                    churchId = sessionChurchId();
-                    churchName = currentSession.churchName;
-                } else {
-                    const sel = document.getElementById('new-aux-church');
-                    churchId = sel ? sel.value : '';
-                    const church = state.churches.find(c=>c.id===churchId);
-                    churchName = church ? church.name : '';
-                }
-
-                if (!name || !username || !password) { showToast('Completa todos los campos.'); return; }
-                if (!churchId) { showToast('Selecciona una iglesia.'); return; }
-                if (auxiliares.find(a=>a.username===username) ||
-                    directors.find(d=>d.username===username)) {
-                    showToast('Ese usuario ya existe.'); return;
-                }
-
-                auxiliares.push({ id:'AUX'+Date.now(), name, churchId, churchName, username, password });
-                saveAuxiliares();
-                document.getElementById('new-aux-name').value = '';
-                document.getElementById('new-aux-user').value = '';
-                document.getElementById('new-aux-pass').value = '';
-                renderAuxiliares();
-                showToast('✓ Auxiliar agregado: ' + name);
-            }
-
-            function renderAuxiliares() {
-                const list = document.getElementById('auxiliares-list');
-                if (!list) return;
-
-                // Selector de iglesia para superAdmin
-                const auxChurchWrap = document.getElementById('aux-church-wrap');
-                const auxChurchSel = document.getElementById('new-aux-church');
-                if (auxChurchWrap) auxChurchWrap.style.display = isDirector() ? 'none' : '';
-                if (auxChurchSel && isSuperAdmin()) {
-                    auxChurchSel.innerHTML = '<option value="">-- Selecciona --</option>' +
-                        state.churches.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-                }
-
-                // Filtrar auxiliares según rol
-                const myAux = isDirector()
-                    ? auxiliares.filter(a => a.churchId === sessionChurchId())
-                    : auxiliares;
-
-                if (!myAux.length) {
-                    list.innerHTML = '<div class="empty-state"><p>No hay auxiliares registrados.</p></div>';
-                    return;
-                }
-
-                list.innerHTML = myAux.map(a => `
-                    <div class="item-row">
-                        <div style="flex:1;">
-                            <div class="item-name">${a.name}
-                                <span style="font-size:0.68rem;font-weight:700;color:white;background:#b45309;padding:2px 8px;border-radius:50px;margin-left:6px;">🤝 Auxiliar</span>
-                                ${isSuperAdmin() ? `<span style="font-size:0.72rem;color:var(--gray-500);margin-left:6px;">⛪ ${a.churchName||'—'}</span>` : ''}
-                            </div>
-                            <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">Usuario: <code>${a.username}</code></div>
-                        </div>
-                        <button title="Eliminar auxiliar" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-aux="${a.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                        </button>
-                    </div>`).join('');
-
-                list.querySelectorAll('[data-delete-aux]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        customConfirm('¿Eliminar este auxiliar?', () => {
-                            auxiliares = auxiliares.filter(a=>a.id!==btn.getAttribute('data-delete-aux'));
-                            saveAuxiliares();
-                            renderAuxiliares();
-                            showToast('Auxiliar eliminado.');
-                        });
-                    });
-                });
             }
 
             // ======================== RENDER ALL ========================
