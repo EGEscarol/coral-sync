@@ -1577,27 +1577,26 @@
                                 <div class="cs-quick-name">Códigos QR</div>
                                 <div class="cs-quick-desc">Ver e imprimir códigos</div>
                             </div>
-                            ${!isAuxiliar() ? \`
-                            <div class="cs-quick-card" onclick="showPage('reports')">
+                            <div id="qcard-reports" class="cs-quick-card" onclick="showPage('reports')">
                                 <div class="cs-quick-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
                                 <div class="cs-quick-name">Reportes PDF</div>
                                 <div class="cs-quick-desc">Generar reportes de asistencia</div>
                             </div>
-                            <div class="cs-quick-card" onclick="showPage('uniforms')">
+                            <div id="qcard-uniforms" class="cs-quick-card" onclick="showPage('uniforms')">
                                 <div class="cs-quick-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg></div>
                                 <div class="cs-quick-name">Uniformes</div>
                                 <div class="cs-quick-desc">Estado del uniforme del coro</div>
                             </div>
-                            <div class="cs-quick-card" onclick="showPage('records')">
+                            <div id="qcard-records" class="cs-quick-card" onclick="showPage('records')">
                                 <div class="cs-quick-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
                                 <div class="cs-quick-name">Registros</div>
                                 <div class="cs-quick-desc">Historial de asistencia</div>
                             </div>
-                            <div class="cs-quick-card" onclick="showPage('activities')">
+                            <div id="qcard-activities" class="cs-quick-card" onclick="showPage('activities')">
                                 <div class="cs-quick-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
                                 <div class="cs-quick-name">Actividades</div>
                                 <div class="cs-quick-desc">Gestionar actividades del coro</div>
-                            </div>\` : ''}
+                            </div>
                             <div class="cs-quick-card" onclick="focusManualRecord()">
                                 <div class="cs-quick-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
                                 <div class="cs-quick-name">Reg. Manual</div>
@@ -5707,6 +5706,13 @@
                 } else if (dbOldest) {
                     dbOldest.textContent = '';
                 }
+
+                // Ocultar cards que el auxiliar no puede usar
+                const auxCards = ['qcard-reports','qcard-uniforms','qcard-records','qcard-activities'];
+                auxCards.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = isAuxiliar() ? 'none' : '';
+                });
 
                 // Actualizar selectores del registro manual del dashboard
                 updateDashManualSelects();
