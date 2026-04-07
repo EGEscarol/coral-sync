@@ -1736,12 +1736,15 @@
                             </svg>
                             Integrantes del Coro (<span id="members-count">0</span>)
                         </div>
-                        <!-- Buscador + filtro iglesia + exportar QR -->
+                        <!-- Buscador + filtros + exportar QR -->
                         <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
                             <div style="flex:1;min-width:160px;position:relative;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-500);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                 <input type="text" id="members-search" placeholder="Buscar integrante..." oninput="renderMembers()" style="width:100%;padding:9px 12px 9px 34px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--gray-300)'">
                             </div>
+                            <select id="members-state-filter" onchange="renderMembers()" style="padding:9px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.85rem;outline:none;background:white;display:none;">
+                                <option value="">— Todos los estados —</option>
+                            </select>
                             <select id="members-church-filter" onchange="renderMembers()" style="padding:9px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.85rem;outline:none;background:white;display:none;">
                                 <option value="">— Todas las iglesias —</option>
                             </select>
@@ -3672,34 +3675,67 @@
                 const list = document.getElementById("members-list");
                 const members = visibleMembers();
 
-                // Filtro por iglesia (solo para director estatal)
+                // ── Filtros para Super Admin: estado + iglesia ─────────
+                const stateFilterSel  = document.getElementById('members-state-filter');
                 const churchFilterSel = document.getElementById('members-church-filter');
-                if (churchFilterSel) {
-                    if (isStateDirector()) {
+
+                if (isSuperAdmin()) {
+                    // Poblar selector de estados
+                    if (stateFilterSel) {
+                        stateFilterSel.style.display = '';
+                        const states = [...new Set(state.churches.map(c=>c.state).filter(Boolean))].sort();
+                        const curState = stateFilterSel.value;
+                        stateFilterSel.innerHTML = '<option value="">— Todos los estados —</option>' +
+                            states.map(s => `<option value="${s}">${s}</option>`).join('');
+                        stateFilterSel.value = curState;
+                    }
+                    // Poblar selector de iglesias (filtrado por estado si hay uno seleccionado)
+                    if (churchFilterSel) {
+                        churchFilterSel.style.display = '';
+                        const stateVal = stateFilterSel?.value || '';
+                        const iglesias = stateVal
+                            ? state.churches.filter(c => c.state === stateVal)
+                            : state.churches;
+                        const curChurch = churchFilterSel.value;
+                        churchFilterSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
+                            iglesias.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                        // Si la iglesia seleccionada ya no está en el filtro, limpiar
+                        if (!iglesias.find(c => c.id === curChurch)) churchFilterSel.value = '';
+                        else churchFilterSel.value = curChurch;
+                    }
+                } else if (isStateDirector()) {
+                    if (stateFilterSel) stateFilterSel.style.display = 'none';
+                    if (churchFilterSel) {
                         churchFilterSel.style.display = '';
                         const churches = stateChurches();
                         const curVal = churchFilterSel.value;
                         churchFilterSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
                             churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                         churchFilterSel.value = curVal;
-                    } else {
-                        churchFilterSel.style.display = 'none';
                     }
+                } else {
+                    if (stateFilterSel)  stateFilterSel.style.display  = 'none';
+                    if (churchFilterSel) churchFilterSel.style.display = 'none';
                 }
-                const churchFilterVal = isStateDirector() ? (churchFilterSel?.value || '') : '';
 
-                // Filtrar por búsqueda y por iglesia
+                const stateFilterVal  = isSuperAdmin()    ? (stateFilterSel?.value  || '') : '';
+                const churchFilterVal = (isSuperAdmin() || isStateDirector()) ? (churchFilterSel?.value || '') : '';
+
+                // ── Filtrar por búsqueda, estado e iglesia ─────────────
                 const searchVal = (document.getElementById('members-search')?.value || '').toLowerCase().trim();
                 let filtered = members;
-                if (searchVal) filtered = filtered.filter(m => m.name.toLowerCase().includes(searchVal));
+                if (searchVal)       filtered = filtered.filter(m => m.name.toLowerCase().includes(searchVal));
+                if (stateFilterVal)  filtered = filtered.filter(m => {
+                    const church = state.churches.find(c => c.id === m.churchId);
+                    return church && church.state === stateFilterVal;
+                });
                 if (churchFilterVal) filtered = filtered.filter(m => m.churchId === churchFilterVal);
 
                 document.getElementById("members-count").textContent = members.length;
-                // Ocultar botón QR en lote para director estatal
                 const qrLoteBtn = document.querySelector('button[onclick="exportAllQR()"]');
                 if (qrLoteBtn) qrLoteBtn.style.display = (isStateDirector() || isAuxiliar()) ? 'none' : '';
 
-                // Update church selector in member form — director solo ve su iglesia
+                // Update church selector in member form
                 const churchSel = document.getElementById("new-member-church");
                 if (churchSel) {
                     const current = churchSel.value;
@@ -3713,11 +3749,9 @@
                     else churchSel.value = current;
                 }
 
-                // Ocultar campo de iglesia si es director o auxiliar
                 const churchRow = document.getElementById("member-church-row");
                 if (churchRow) churchRow.style.display = isDirectorOrAux() ? 'none' : '';
 
-                // Ocultar formulario de agregar si es auxiliar (solo lectura de lista)
                 const addMemberForm = document.querySelector('#page-members .card:first-child');
                 if (addMemberForm) addMemberForm.style.display = isAuxiliar() ? 'none' : '';
 
@@ -3774,21 +3808,83 @@
     </div>`;
                 };
 
-                // Director estatal: agrupar por iglesia
-                if (isStateDirector()) {
-                    const churches = stateChurches().filter(c => !churchFilterVal || c.id === churchFilterVal);
+                // ── Super Admin: agrupar Estado → Iglesia → Integrantes ─
+                if (isSuperAdmin() && !churchFilterVal) {
+                    const stateVal = stateFilterSel?.value || '';
+                    // Obtener estados a mostrar
+                    const allStates = [...new Set(state.churches.map(c=>c.state).filter(Boolean))].sort();
+                    const statesToShow = stateVal ? [stateVal] : allStates;
+                    // Iglesias sin estado
+                    const noStateChurches = state.churches.filter(c => !c.state);
+
+                    let html = '';
+                    statesToShow.forEach(stateName => {
+                        const stateChurchList = state.churches.filter(c => c.state === stateName);
+                        const stateMembers = filtered.filter(m => stateChurchList.find(c=>c.id===m.churchId));
+                        if (!stateMembers.length) return;
+
+                        // Header de estado
+                        html += `
+                        <div style="margin-bottom:24px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;background:#0855b2;padding:12px 18px;border-radius:12px 12px 0 0;">
+                                <div style="font-size:1rem;color:white;font-weight:700;">🗺 ${stateName}</div>
+                                <span style="font-size:0.78rem;color:rgba(255,255,255,0.8);">${stateChurchList.length} iglesia${stateChurchList.length!==1?'s':''} · ${stateMembers.length} integrantes</span>
+                            </div>
+                            <div style="border:1px solid #0855b2;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">`;
+
+                        stateChurchList.forEach(church => {
+                            const churchMembers = filtered.filter(m => m.churchId === church.id);
+                            if (!churchMembers.length) return;
+                            const totalRecs = visibleRecords().filter(r => churchMembers.find(m=>m.id===r.memberId)).length;
+                            const avgPct = churchMembers.length > 0 ? Math.round(totalRecs / churchMembers.length) : 0;
+                            html += `
+                                <div style="background:var(--primary);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.1);">
+                                    <span style="font-size:0.85rem;color:var(--accent);font-weight:700;">⛪ ${church.name}</span>
+                                    <div style="display:flex;gap:8px;align-items:center;">
+                                        <span style="font-size:0.72rem;color:rgba(255,255,255,0.7);">${churchMembers.length} integrantes</span>
+                                        <span style="font-size:0.72rem;font-weight:700;color:white;background:${avgPct>=5?'#16a34a':avgPct>=2?'#ca8a04':'#dc2626'};padding:1px 8px;border-radius:50px;">${avgPct} reg/persona</span>
+                                    </div>
+                                </div>
+                                <div style="border-top:none;">${churchMembers.map(renderRow).join('')}</div>`;
+                        });
+
+                        html += `</div></div>`;
+                    });
+
+                    // Iglesias sin estado asignado
+                    if (!stateVal && noStateChurches.length) {
+                        const noStateMembers = filtered.filter(m => noStateChurches.find(c=>c.id===m.churchId));
+                        if (noStateMembers.length) {
+                            html += `
+                            <div style="margin-bottom:24px;">
+                                <div style="background:#9A9A92;padding:12px 18px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;">
+                                    <span style="font-size:1rem;color:white;font-weight:700;">⚠ Sin estado asignado</span>
+                                    <span style="font-size:0.78rem;color:rgba(255,255,255,0.8);">${noStateMembers.length} integrantes</span>
+                                </div>
+                                <div style="border:1px solid #9A9A92;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">
+                                    ${noStateMembers.map(renderRow).join('')}
+                                </div>
+                            </div>`;
+                        }
+                    }
+
+                    list.innerHTML = html || '<div class="empty-state"><p>No hay integrantes con ese filtro.</p></div>';
+
+                // ── Director estatal: agrupar por iglesia ─────────────
+                } else if (isStateDirector() || (isSuperAdmin() && churchFilterVal)) {
+                    const churches = isSuperAdmin()
+                        ? state.churches.filter(c => c.id === churchFilterVal)
+                        : stateChurches().filter(c => !churchFilterVal || c.id === churchFilterVal);
                     let html = '';
                     churches.forEach(church => {
                         const churchMembers = filtered.filter(m => m.churchId === church.id);
                         if (!churchMembers.length) return;
                         const totalRecs = visibleRecords().filter(r => churchMembers.find(m=>m.id===r.memberId)).length;
-                        const avgPct = churchMembers.length > 0
-                            ? Math.round(totalRecs / churchMembers.length)
-                            : 0;
+                        const avgPct = churchMembers.length > 0 ? Math.round(totalRecs / churchMembers.length) : 0;
                         html += `
                         <div style="margin-bottom:20px;">
-                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--primary);padding:10px 16px;border-radius:10px 10px 0 0;margin-bottom:0;">
-                                <div style="font-family:'Poppins',serif;font-size:0.9rem;color:var(--accent);font-weight:700;">⛪ ${church.name}</div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--primary);padding:10px 16px;border-radius:10px 10px 0 0;">
+                                <div style="font-size:0.9rem;color:var(--accent);font-weight:700;">⛪ ${church.name}</div>
                                 <div style="display:flex;gap:10px;align-items:center;">
                                     <span style="font-size:0.75rem;color:rgba(255,255,255,0.7);">${churchMembers.length} integrantes</span>
                                     <span style="font-size:0.75rem;font-weight:700;color:white;background:${avgPct>=80?'#16a34a':avgPct>=50?'#ca8a04':'#dc2626'};padding:2px 10px;border-radius:50px;">${avgPct} reg/persona</span>
@@ -3800,6 +3896,7 @@
                         </div>`;
                     });
                     list.innerHTML = html || '<div class="empty-state"><p>No hay integrantes en esta iglesia.</p></div>';
+
                 } else {
                     list.innerHTML = filtered.map(renderRow).join('');
                 }
