@@ -2967,9 +2967,9 @@
                 <div id="success-gps" style="font-size:0.78rem;color:#16a34a;margin-bottom:20px;"></div>
                 <!-- Barra de progreso que cuenta 5 segundos -->
                 <div style="background:var(--gray-200);border-radius:50px;height:5px;overflow:hidden;margin-bottom:14px;">
-                    <div id="success-progress" style="height:5px;background:var(--primary);border-radius:50px;width:100%;transition:width 5s linear;"></div>
+                    <div id="success-progress" style="height:5px;background:var(--primary);border-radius:50px;width:100%;transition:width 3s linear;"></div>
                 </div>
-                <div style="font-size:0.75rem;color:var(--gray-500);">Se cerrará automáticamente...</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);">Se cerrará en 3 segundos...</div>
             </div>
         </div>
 
@@ -4747,7 +4747,7 @@
                     const member = state.members.find((m) => m.id === memberId);
                     const activity = state.activities.find((a) => a.id === activityId);
                     showSuccessModal(member.name, activity.name, lat);
-                    setTimeout(() => stopCamera(), 5500);
+                    setTimeout(() => stopCamera(), 3500);
                 } else {
                     setScanStatus("Error al registrar. Inténtalo de nuevo.", "error");
                 }
@@ -4781,7 +4781,7 @@
                 bar.style.width = '100%';
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        bar.style.transition = 'width 5s linear';
+                        bar.style.transition = 'width 3s linear';
                         bar.style.width = '0%';
                     });
                 });
