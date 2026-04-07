@@ -3697,7 +3697,7 @@
                 document.getElementById("members-count").textContent = members.length;
                 // Ocultar botón QR en lote para director estatal
                 const qrLoteBtn = document.querySelector('button[onclick="exportAllQR()"]');
-                if (qrLoteBtn) qrLoteBtn.style.display = isStateDirector() ? 'none' : '';
+                if (qrLoteBtn) qrLoteBtn.style.display = (isStateDirector() || isAuxiliar()) ? 'none' : '';
 
                 // Update church selector in member form — director solo ve su iglesia
                 const churchSel = document.getElementById("new-member-church");
@@ -3753,7 +3753,7 @@
                     const voiceBadge = m.voice ? `<span style="font-size:0.68rem;font-weight:700;color:white;background:${voiceColors[m.voice]||'#888'};padding:2px 8px;border-radius:50px;margin-left:6px;">${m.voice}</span>` : '';
                     const notePreview = m.note ? `<span style="font-size:0.72rem;color:var(--accent-dark);margin-left:8px;font-style:italic;">📝 ${m.note.length>40?m.note.substring(0,40)+'…':m.note}</span>` : '';
                     const churchBadge = m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : '';
-                    const canEdit = !isStateDirector();
+                    const canEdit = !isStateDirector() && !isAuxiliar();
                     return `
     <div class="item-row" style="flex-wrap:wrap;gap:8px;">
       <div style="flex:1;min-width:140px;">
