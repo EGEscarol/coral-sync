@@ -4274,7 +4274,7 @@
                         <div class="qr-code-container" id="qr-${m.id}"></div>
                         <h3>${m.name}</h3>
                         <p>ID: ${m.id}</p>
-                        <button class="btn-download-qr" onclick="downloadQR('${m.id}','${m.name}')">⬇ Descargar</button>
+                        <button class="btn-download-qr" onclick="downloadQR('${m.id}')">⬇ Descargar</button>
                     </div>`;
 
                 // ── Generar HTML según rol ─────────────────────────────
@@ -4347,18 +4347,148 @@
                 });
             }
 
-            function downloadQR(id, name) {
+            function downloadQR(id) {
+                const member = state.members.find(m => m.id === id);
+                if (!member) { showToast("Integrante no encontrado."); return; }
+
                 const el = document.getElementById("qr-" + id);
-                const canvas = el ? el.querySelector("canvas") : null;
-                if (!canvas) {
-                    showToast("Error al generar QR.");
-                    return;
+                const qrCanvas = el ? el.querySelector("canvas") : null;
+                if (!qrCanvas) { showToast("Error al generar QR."); return; }
+
+                // ── Configuración de la tarjeta ────────────────────────
+                const W = 420, H = 560;
+                const NAVY  = "#1E396A";
+                const GOLD  = "#CCA553";
+                const GRAY  = "#5A5A52";
+
+                const canvas = document.createElement("canvas");
+                canvas.width  = W;
+                canvas.height = H;
+                const ctx = canvas.getContext("2d");
+
+                // Fondo blanco
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0, 0, W, H);
+
+                // Borde dorado redondeado
+                const r = 22;
+                ctx.strokeStyle = GOLD;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(r, 4); ctx.lineTo(W-r, 4);
+                ctx.quadraticCurveTo(W-4, 4, W-4, r);
+                ctx.lineTo(W-4, H-r);
+                ctx.quadraticCurveTo(W-4, H-4, W-r, H-4);
+                ctx.lineTo(r, H-4);
+                ctx.quadraticCurveTo(4, H-4, 4, H-r);
+                ctx.lineTo(4, r);
+                ctx.quadraticCurveTo(4, 4, r, 4);
+                ctx.closePath();
+                ctx.stroke();
+
+                // Franja superior azul marino
+                ctx.fillStyle = NAVY;
+                ctx.beginPath();
+                ctx.moveTo(r, 4); ctx.lineTo(W-r, 4);
+                ctx.quadraticCurveTo(W-4, 4, W-4, r);
+                ctx.lineTo(W-4, 90);
+                ctx.lineTo(4, 90);
+                ctx.lineTo(4, r);
+                ctx.quadraticCurveTo(4, 4, r, 4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Logo "CoralSync" en la franja
+                ctx.fillStyle = "#FFFFFF";
+                ctx.font = "bold 22px Poppins, Arial, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Coral", W/2 - 28, 48);
+                ctx.fillStyle = GOLD;
+                ctx.fillText("Sync", W/2 + 28, 48);
+
+                // Subtítulo en franja
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.font = "12px Poppins, Arial, sans-serif";
+                ctx.fillText("Credencial de Asistencia", W/2, 72);
+
+                // QR centrado
+                const qrSize = 220;
+                const qrX = (W - qrSize) / 2;
+                const qrY = 110;
+                // Sombra suave del QR
+                ctx.shadowColor = "rgba(0,0,0,0.12)";
+                ctx.shadowBlur = 16;
+                ctx.shadowOffsetY = 4;
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+                ctx.shadowColor = "transparent";
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+                // Línea divisoria dorada
+                ctx.strokeStyle = GOLD;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(40, 358); ctx.lineTo(W-40, 358);
+                ctx.stroke();
+
+                // Badge de voz (color según voz)
+                const voiceColors = { 'Soprano':'#7C3AED', 'Contralto':'#0891B2', 'Tenor':'#16A34A', 'Bajo':'#B45309' };
+                if (member.voice) {
+                    const vc = voiceColors[member.voice] || GRAY;
+                    const badgeW = 100, badgeH = 26, badgeX = (W - badgeW)/2, badgeY = 370;
+                    ctx.fillStyle = vc;
+                    ctx.beginPath();
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 13);
+                    ctx.fill();
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.font = "bold 13px Poppins, Arial, sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(member.voice, W/2, badgeY + 17);
                 }
+
+                // Nombre del integrante
+                ctx.fillStyle = NAVY;
+                ctx.font = "bold 20px Poppins, Arial, sans-serif";
+                ctx.textAlign = "center";
+                const nameY = member.voice ? 426 : 400;
+                // Truncar nombre si es muy largo
+                const maxW = W - 60;
+                let nombre = member.name;
+                ctx.font = "bold 20px Poppins, Arial, sans-serif";
+                while (ctx.measureText(nombre).width > maxW && nombre.length > 10) {
+                    nombre = nombre.slice(0, -1);
+                }
+                if (nombre !== member.name) nombre += '…';
+                ctx.fillText(nombre, W/2, nameY);
+
+                // Iglesia
+                if (member.churchName) {
+                    ctx.fillStyle = GRAY;
+                    ctx.font = "13px Poppins, Arial, sans-serif";
+                    ctx.fillText("⛪ " + member.churchName, W/2, nameY + 28);
+                }
+
+                // Línea inferior dorada decorativa
+                ctx.strokeStyle = GOLD;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(W/2 - 40, H - 38); ctx.lineTo(W/2 + 40, H - 38);
+                ctx.stroke();
+
+                // ID pequeño al fondo
+                ctx.fillStyle = "rgba(0,0,0,0.2)";
+                ctx.font = "9px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText(id, W/2, H - 18);
+
+                // ── Descargar ──────────────────────────────────────────
                 const link = document.createElement("a");
-                link.download = `QR_${name.replace(/\s+/g, "_")}.png`;
+                link.download = `QR_${member.name.replace(/\s+/g, "_")}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-                showToast("✓ QR descargado para " + name);
+                showToast("✓ QR descargado para " + member.name);
             }
 
             // ======================== RECORDS ========================
