@@ -3956,10 +3956,10 @@
                         const { jsPDF } = window.jspdf;
                         const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 
-                        // Configuración de cuadrícula: 2 columnas x 3 filas = 6 tarjetas por página
-                        const perRow = 2, perCol = 3, perPage = perRow * perCol;
-                        const marginX = 14, marginY = 18;
-                        const cellW = 88, cellH = 86, gapX = 6, gapY = 6;
+                        // Configuración de cuadrícula: 3 columnas x 3 filas = 9 tarjetas por página
+                        const perRow = 3, perCol = 3, perPage = perRow * perCol;
+                        const marginX = 10, marginY = 16;
+                        const cellW = 58, cellH = 90, gapX = 6, gapY = 6;
 
                         // Colores
                         const NAVY  = [21, 40, 69];
@@ -3990,21 +3990,21 @@
 
                             // ── Franja azul marino superior ─────────────
                             doc.setFillColor(...NAVY);
-                            doc.roundedRect(x, y, cellW, 14, 4, 4, 'F');
+                            doc.roundedRect(x, y, cellW, 13, 3, 3, 'F');
                             doc.setFillColor(...NAVY);
-                            doc.rect(x, y+8, cellW, 6, 'F'); // tapar redondeo inferior
+                            doc.rect(x, y+7, cellW, 6, 'F');
 
                             // ── Logo CoralSync en franja ─────────────────
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(8.5);
+                            doc.setFontSize(7);
                             const coralTxt = 'Coral', syncTxt = 'Sync';
                             const coralW = doc.getTextWidth(coralTxt);
                             const syncW  = doc.getTextWidth(syncTxt);
                             const logoX  = x + (cellW - coralW - syncW - 1) / 2;
                             doc.setTextColor(...WHITE);
-                            doc.text(coralTxt, logoX, y + 9);
+                            doc.text(coralTxt, logoX, y + 8.5);
                             doc.setTextColor(...GOLD);
-                            doc.text(syncTxt, logoX + coralW + 1, y + 9);
+                            doc.text(syncTxt, logoX + coralW + 1, y + 8.5);
 
                             // ── QR centrado ──────────────────────────────
                             const container = document.createElement('div');
@@ -4016,9 +4016,9 @@
                             });
                             const qrCanvas = container.querySelector('canvas');
                             if (qrCanvas) {
-                                const qrW = 44, qrH = 44;
+                                const qrW = 38, qrH = 38;
                                 const qrX = x + (cellW - qrW) / 2;
-                                const qrY = y + 17;
+                                const qrY = y + 15;
                                 doc.addImage(qrCanvas.toDataURL('image/png'), 'PNG', qrX, qrY, qrW, qrH);
                             }
                             document.body.removeChild(container);
@@ -4026,33 +4026,33 @@
                             // ── Línea divisoria dorada ───────────────────
                             doc.setDrawColor(...GOLD);
                             doc.setLineWidth(0.4);
-                            doc.line(x + 8, y + 63, x + cellW - 8, y + 63);
+                            doc.line(x + 5, y + 55, x + cellW - 5, y + 55);
 
                             // ── Badge de voz ─────────────────────────────
                             if (m.voice) {
                                 const vc = voiceColors[m.voice] || GRAY;
                                 doc.setFillColor(...vc);
-                                doc.roundedRect(x + cellW/2 - 14, y + 65, 28, 6, 3, 3, 'F');
+                                doc.roundedRect(x + cellW/2 - 12, y + 57, 24, 5.5, 2.5, 2.5, 'F');
                                 doc.setFont('helvetica', 'bold');
-                                doc.setFontSize(5.5);
+                                doc.setFontSize(4.5);
                                 doc.setTextColor(...WHITE);
-                                doc.text(m.voice, x + cellW/2, y + 69.5, { align:'center' });
+                                doc.text(m.voice, x + cellW/2, y + 61, { align:'center' });
                             }
 
                             // ── Nombre ───────────────────────────────────
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(7);
+                            doc.setFontSize(6);
                             doc.setTextColor(...NAVY);
-                            const nameY = m.voice ? y + 76 : y + 72;
-                            const nameLines = doc.splitTextToSize(m.name, cellW - 10);
+                            const nameY = m.voice ? y + 68 : y + 64;
+                            const nameLines = doc.splitTextToSize(m.name, cellW - 8);
                             doc.text(nameLines.slice(0,2), x + cellW/2, nameY, { align:'center' });
 
                             // ── Iglesia ───────────────────────────────────
                             if (m.churchName) {
                                 doc.setFont('helvetica', 'normal');
-                                doc.setFontSize(5.5);
+                                doc.setFontSize(4.5);
                                 doc.setTextColor(...GRAY);
-                                const church = doc.splitTextToSize('⛪ ' + m.churchName, cellW - 12);
+                                const church = doc.splitTextToSize(m.churchName, cellW - 8);
                                 doc.text(church[0], x + cellW/2, nameY + 7, { align:'center' });
                             }
                         });
@@ -4411,7 +4411,7 @@
                 if (!qrCanvas) { showToast("Error al generar QR."); return; }
 
                 // ── Configuración de la tarjeta ────────────────────────
-                const W = 420, H = 560;
+                const W = 300, H = 480;
                 const NAVY  = "#1E396A";
                 const GOLD  = "#CCA553";
                 const GRAY  = "#5A5A52";
@@ -4466,9 +4466,9 @@
                 ctx.fillText("Sync", startX + coralW + 4 + syncW/2, 55);
 
                 // QR centrado
-                const qrSize = 220;
+                const qrSize = 180;
                 const qrX = (W - qrSize) / 2;
-                const qrY = 110;
+                const qrY = 100;
                 // Sombra suave del QR
                 ctx.shadowColor = "rgba(0,0,0,0.12)";
                 ctx.shadowBlur = 16;
@@ -4484,58 +4484,56 @@
                 ctx.strokeStyle = GOLD;
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.moveTo(40, 358); ctx.lineTo(W-40, 358);
+                ctx.moveTo(30, 306); ctx.lineTo(W-30, 306);
                 ctx.stroke();
 
                 // Badge de voz (color según voz)
                 const voiceColors = { 'Soprano':'#7C3AED', 'Contralto':'#0891B2', 'Tenor':'#16A34A', 'Bajo':'#B45309' };
                 if (member.voice) {
                     const vc = voiceColors[member.voice] || GRAY;
-                    const badgeW = 100, badgeH = 26, badgeX = (W - badgeW)/2, badgeY = 370;
+                    const badgeW = 90, badgeH = 24, badgeX = (W - badgeW)/2, badgeY = 316;
                     ctx.fillStyle = vc;
                     ctx.beginPath();
-                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 13);
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 12);
                     ctx.fill();
                     ctx.fillStyle = "#FFFFFF";
-                    ctx.font = "bold 13px Poppins, Arial, sans-serif";
+                    ctx.font = "bold 12px Poppins, Arial, sans-serif";
                     ctx.textAlign = "center";
-                    ctx.fillText(member.voice, W/2, badgeY + 17);
+                    ctx.fillText(member.voice, W/2, badgeY + 16);
                 }
 
                 // Nombre del integrante
                 ctx.fillStyle = NAVY;
-                ctx.font = "bold 20px Poppins, Arial, sans-serif";
-                ctx.textAlign = "center";
-                const nameY = member.voice ? 426 : 400;
-                // Truncar nombre si es muy largo
-                const maxW = W - 60;
+                const nameY = member.voice ? 368 : 344;
                 let nombre = member.name;
-                ctx.font = "bold 20px Poppins, Arial, sans-serif";
+                ctx.font = "bold 17px Poppins, Arial, sans-serif";
+                const maxW = W - 40;
                 while (ctx.measureText(nombre).width > maxW && nombre.length > 10) {
                     nombre = nombre.slice(0, -1);
                 }
                 if (nombre !== member.name) nombre += '…';
+                ctx.textAlign = "center";
                 ctx.fillText(nombre, W/2, nameY);
 
                 // Iglesia
                 if (member.churchName) {
                     ctx.fillStyle = GRAY;
-                    ctx.font = "13px Poppins, Arial, sans-serif";
-                    ctx.fillText("⛪ " + member.churchName, W/2, nameY + 28);
+                    ctx.font = "12px Poppins, Arial, sans-serif";
+                    ctx.fillText("⛪ " + member.churchName, W/2, nameY + 24);
                 }
 
                 // Línea inferior dorada decorativa
                 ctx.strokeStyle = GOLD;
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.moveTo(W/2 - 40, H - 38); ctx.lineTo(W/2 + 40, H - 38);
+                ctx.moveTo(W/2 - 30, H - 32); ctx.lineTo(W/2 + 30, H - 32);
                 ctx.stroke();
 
                 // ID pequeño al fondo
                 ctx.fillStyle = "rgba(0,0,0,0.2)";
-                ctx.font = "9px monospace";
+                ctx.font = "8px monospace";
                 ctx.textAlign = "center";
-                ctx.fillText(id, W/2, H - 18);
+                ctx.fillText(id, W/2, H - 16);
 
                 // ── Descargar ──────────────────────────────────────────
                 const link = document.createElement("a");
