@@ -1537,6 +1537,9 @@
                     <div class="cs-nav-item" data-page="statedirectors" id="nav-statedirectors" onclick="showPage('statedirectors')">
                         <span class="cs-nav-icon">🗺</span> Dir. Estatales
                     </div>
+                    <div class="cs-nav-item" data-page="pagos" id="nav-pagos" onclick="showPage('pagos')">
+                        <span class="cs-nav-icon">💳</span> Pagos
+                    </div>
                     <div class="cs-nav-item" data-page="settings" id="nav-settings" onclick="showPage('settings')">
                         <span class="cs-nav-icon">⚙</span> Configuración
                     </div>
@@ -2328,6 +2331,17 @@
                             <div class="empty-state"><p>No hay auxiliares registrados.</p></div>
                         </div>
                     </div>
+                </div>
+
+            <!-- PAGE: PAGOS -->
+                <div id="page-pagos" class="admin-page" style="display:none;">
+
+                    <!-- Resumen general -->
+                    <div class="stats-row" id="pagos-stats-row"></div>
+
+                    <!-- Tarjetas de iglesias -->
+                    <div id="pagos-list"></div>
+
                 </div>
 
             <!-- PAGE: SETTINGS -->
@@ -3405,11 +3419,12 @@
                 const navStateDirs  = document.getElementById('nav-statedirectors');
 
                 // Nav items a controlar
-                const navAux = document.getElementById('nav-auxiliares');
+                const navAux   = document.getElementById('nav-auxiliares');
+                const navPagos = document.getElementById('nav-pagos');
 
                 if (isAuxiliar()) {
                     // Auxiliar: solo dashboard, integrantes, QR, registro manual
-                    const hideAll = [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navAux];
+                    const hideAll = [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navAux, navPagos];
                     hideAll.forEach(n => { if (n) n.style.display = 'none'; });
                     const navActivities = document.getElementById('nav-activities');
                     const navRecords    = document.getElementById('nav-records');
@@ -3427,6 +3442,7 @@
                     if (navSettings)   navSettings.style.display   = 'none';
                     if (navStateDirs)  navStateDirs.style.display  = 'none';
                     if (navAux)        navAux.style.display        = '';
+                    if (navPagos)      navPagos.style.display      = 'none';
                 } else if (isStateDirector()) {
                     // Director estatal: ve su estado, uniformes, reportes — no admin
                     if (navChurches)   navChurches.style.display   = 'none';
@@ -3441,6 +3457,7 @@
                     if (navAdminLabel) navAdminLabel.style.display = '';
                     if (navSettings)   navSettings.style.display   = '';
                     if (navStateDirs)  navStateDirs.style.display  = '';
+                    if (navPagos)      navPagos.style.display      = '';
                 }
 
                 // Deshabilitar edición en integrantes para director estatal (solo lectura)
@@ -3562,6 +3579,7 @@
                 directors: 'Directores',
                 settings: 'Configuración',
                 statedirectors: 'Directores Estatales',
+                pagos: 'Control de Pagos',
                 auxiliares: 'Auxiliares',
             };
 
@@ -3596,6 +3614,7 @@
                 if (page === 'reports') renderReportsTab();
                 if (page === 'directors') { renderDirectors(); renderAuxiliares(); }
                 if (page === 'statedirectors') renderStateDirectors();
+                if (page === 'pagos') renderPagos();
                 if (page === 'auxiliares') renderAuxiliares();
                 if (page === 'uniforms') renderUniformsTab();
                 if (page === 'dashboard') renderDashboard();
@@ -5889,6 +5908,147 @@
                 if (window._fbSaveAuxiliares) await window._fbSaveAuxiliares(auxiliares);
             }
 
+            // ======================== PAGOS ========================
+
+            
+            let pagosData = {}; // { churchId: { "2026-04": true, "2026-03": false, ... } }
+
+            async function loadPagosFromFirebase() {
+                try {
+                    const snap = await getDoc(doc(db, "coralsync", "pagos"));
+                    pagosData = snap.exists() ? (snap.data().pagos || {}) : {};
+                    localStorage.setItem('cva_pagos', JSON.stringify(pagosData));
+                } catch(e) {
+                    const cache = localStorage.getItem('cva_pagos');
+                    if (cache) pagosData = JSON.parse(cache);
+                }
+            }
+
+            async function savePagos() {
+                localStorage.setItem('cva_pagos', JSON.stringify(pagosData));
+                try { await setDoc(doc(db, "coralsync", "pagos"), { pagos: pagosData }, { merge: false }); }
+                catch(e) { console.error("Error guardando pagos:", e); }
+            }
+
+            function togglePago(churchId, mesKey) {
+                if (!pagosData[churchId]) pagosData[churchId] = {};
+                pagosData[churchId][mesKey] = !pagosData[churchId][mesKey];
+                savePagos();
+                renderPagos();
+            }
+
+            function renderPagos() {
+                const statsEl  = document.getElementById('pagos-stats-row');
+                const listEl   = document.getElementById('pagos-list');
+                if (!statsEl || !listEl) return;
+
+                const PRECIO_POR_INTEGRANTE = 20;
+                const churches = state.churches;
+
+                // Generar los últimos 6 meses
+                const meses = [];
+                const ahora = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+                    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                    const lbl = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+                        .replace(/^\w/, c => c.toUpperCase());
+                    meses.push({ key, lbl });
+                }
+
+                // Stats generales
+                let totalEsperado = 0, totalPagado = 0, iglesiasPagadas = 0;
+                const mesActual = meses[meses.length - 1].key;
+                churches.forEach(church => {
+                    const integrantes = state.members.filter(m => m.churchId === church.id).length;
+                    const monto = integrantes * PRECIO_POR_INTEGRANTE;
+                    totalEsperado += monto;
+                    const pagado = pagosData[church.id]?.[mesActual];
+                    if (pagado) { totalPagado += monto; iglesiasPagadas++; }
+                });
+
+                statsEl.innerHTML = `
+                    <div class="stat-card"><div class="num">${churches.length}</div><div class="lbl">Iglesias registradas</div></div>
+                    <div class="stat-card"><div class="num" style="color:#16a34a;">$${totalPagado.toLocaleString()}</div><div class="lbl">Recaudado este mes</div></div>
+                    <div class="stat-card"><div class="num" style="color:#dc2626;">$${(totalEsperado - totalPagado).toLocaleString()}</div><div class="lbl">Pendiente este mes</div></div>
+                    <div class="stat-card"><div class="num">${iglesiasPagadas}/${churches.length}</div><div class="lbl">Iglesias al corriente</div></div>
+                `;
+
+                if (!churches.length) {
+                    listEl.innerHTML = '<div class="empty-state"><p>No hay iglesias registradas.</p></div>';
+                    return;
+                }
+
+                // Agrupar por estado
+                const estados = [...new Set(churches.map(c => c.state || '(Sin estado)'))].sort();
+                let html = '';
+
+                estados.forEach(estado => {
+                    const estadoChurches = churches.filter(c => (c.state || '(Sin estado)') === estado);
+                    html += `<div style="margin-bottom:28px;">
+                        <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#0855b2;margin-bottom:10px;">🗺 ${estado}</div>`;
+
+                    estadoChurches.forEach(church => {
+                        const integrantes = state.members.filter(m => m.churchId === church.id).length;
+                        const montoMensual = integrantes * PRECIO_POR_INTEGRANTE;
+
+                        // Calcular estado general de pagos
+                        const pagadosMes = meses.filter(m => pagosData[church.id]?.[m.key]).length;
+                        const pctPagado = Math.round((pagadosMes / meses.length) * 100);
+                        const barColor = pctPagado === 100 ? '#16a34a' : pctPagado >= 50 ? '#ca8a04' : '#dc2626';
+                        const estadoBadge = pagosData[church.id]?.[mesActual]
+                            ? '<span style="font-size:0.7rem;font-weight:700;color:white;background:#16a34a;padding:2px 10px;border-radius:50px;">✓ Al corriente</span>'
+                            : '<span style="font-size:0.7rem;font-weight:700;color:white;background:#dc2626;padding:2px 10px;border-radius:50px;">⚠ Pendiente</span>';
+
+                        // Checks de meses
+                        const checksHtml = meses.map(m => {
+                            const pagado = pagosData[church.id]?.[m.key];
+                            return `
+                            <div onclick="togglePago('${church.id}','${m.key}')"
+                                style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:52px;">
+                                <div style="width:32px;height:32px;border-radius:50%;border:2px solid ${pagado?'#16a34a':'#d1d5db'};
+                                    background:${pagado?'#f0fdf4':'white'};display:flex;align-items:center;justify-content:center;
+                                    transition:all 0.2s;font-size:0.9rem;">
+                                    ${pagado ? '✅' : '○'}
+                                </div>
+                                <span style="font-size:0.65rem;color:${pagado?'#16a34a':'#9ca3af'};font-weight:${pagado?'700':'400'};">${m.lbl}</span>
+                            </div>`;
+                        }).join('');
+
+                        html += `
+                        <div style="background:white;border-radius:14px;border:1px solid #e5e7eb;padding:18px 20px;margin-bottom:10px;
+                            box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+                                <div>
+                                    <div style="font-weight:700;font-size:1rem;color:var(--primary);">⛪ ${church.name}</div>
+                                    <div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;">
+                                        ${integrantes} integrante${integrantes!==1?'s':''} · 
+                                        <span style="font-weight:700;color:var(--primary);">$${montoMensual.toLocaleString()} / mes</span>
+                                        <span style="font-size:0.7rem;color:#9ca3af;"> (${integrantes} × $${PRECIO_POR_INTEGRANTE})</span>
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    ${estadoBadge}
+                                </div>
+                            </div>
+                            <!-- Barra de cumplimiento -->
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                                <div style="flex:1;background:#e5e7eb;border-radius:4px;height:5px;">
+                                    <div style="width:${pctPagado}%;background:${barColor};height:5px;border-radius:4px;transition:width 0.3s;"></div>
+                                </div>
+                                <span style="font-size:0.72rem;color:${barColor};font-weight:700;white-space:nowrap;">${pagadosMes}/${meses.length} meses</span>
+                            </div>
+                            <!-- Checks de meses -->
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">${checksHtml}</div>
+                        </div>`;
+                    });
+
+                    html += '</div>';
+                });
+
+                listEl.innerHTML = html;
+            }
+
             // ======================== RENDER ALL ========================
             function renderAll() {
                 if (!document.getElementById("view-admin") ||
@@ -6060,7 +6220,8 @@
                     loadDirectorsFromFirebase(),
                     loadStateDirectorsFromFirebase(),
                     loadAuxiliaresFromFirebase(),
-                    loadUniformsFromFirebase()
+                    loadUniformsFromFirebase(),
+                    loadPagosFromFirebase()
                 ]);
                 renderAll();
                 updateManualSelects();
