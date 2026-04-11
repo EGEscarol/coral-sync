@@ -113,20 +113,21 @@
             window._fbSave = async function(state) {
                 try {
                     // Protección: no guardar si members o activities están vacíos
-                    // (indica que Firebase aún no terminó de cargar)
                     if (!state.members || state.members.length === 0) {
-                        console.warn("_fbSave abortado: members vacío");
+                        console.warn("[CoralSync] _fbSave abortado: members vacío");
                         return;
                     }
+                    console.log('[CoralSync] _fbSave ejecutando con', state.records.length, 'registros');
                     await setDoc(DOC_REF, {
                         members: state.members,
                         activities: state.activities,
                         records: state.records,
                         churches: state.churches || []
                     });
+                    console.log('[CoralSync] _fbSave exitoso ✅');
                     window._setSyncBadge && window._setSyncBadge("✓ Sincronizado", "ok");
                 } catch(e) {
-                    console.error("Firebase save error:", e);
+                    console.error("[CoralSync] Firebase save error:", e);
                     window._setSyncBadge && window._setSyncBadge("Error al guardar", "warn");
                 }
             };
@@ -5145,7 +5146,14 @@
             }
 
             function saveRecord(memberId, activityId, lat, lng) {
+                console.log('[CoralSync] saveRecord llamado', { memberId, activityId, lat, lng });
+                console.log('[CoralSync] state antes de guardar:', {
+                    members: state.members.length,
+                    activities: state.activities.length,
+                    records: state.records.length
+                });
                 const ok = addRecord(memberId, activityId, lat, lng);
+                console.log('[CoralSync] addRecord resultado:', ok, '| records ahora:', state.records.length);
                 const picker = document.getElementById("activity-picker");
                 if (picker) picker.remove();
                 if (ok) {
