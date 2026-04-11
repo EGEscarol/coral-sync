@@ -2395,13 +2395,15 @@
                         <!-- Formulario agregar director -->
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px;padding:16px;background:var(--gray-100);border-radius:12px;">
                             <div>
-                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre del Director</label>
-                                <input type="text" id="new-dir-name" placeholder="Ej: Pastor Juan" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Iglesia</label>
+                                <select id="new-dir-church" onchange="updateDirMemberSelector()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Selecciona --</option>
+                                </select>
                             </div>
                             <div>
-                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Iglesia</label>
-                                <select id="new-dir-church" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
-                                    <option value="">-- Selecciona --</option>
+                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Integrante (Director)</label>
+                                <select id="new-dir-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Primero elige iglesia --</option>
                                 </select>
                             </div>
                             <div>
@@ -5396,6 +5398,9 @@
                     churchSel.innerHTML = '<option value="">-- Selecciona --</option>' +
                         state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                 }
+                // Resetear selector de integrantes
+                const memberSel = document.getElementById('new-dir-member');
+                if (memberSel) memberSel.innerHTML = '<option value="">-- Primero elige iglesia --</option>';
 
                 const list = document.getElementById('directors-list');
                 if (!list) return;
@@ -5406,7 +5411,6 @@
                 }
 
                 list.innerHTML = directors.map(d => {
-                    const church = state.churches.find(c => c.id === d.churchId);
                     return `
                     <div class="item-row" style="align-items:center;gap:12px;flex-wrap:wrap;">
                         <div style="flex:1;min-width:140px;">
@@ -5424,15 +5428,34 @@
                 }).join('');
             }
 
+            function updateDirMemberSelector() {
+                const churchId  = document.getElementById('new-dir-church').value;
+                const memberSel = document.getElementById('new-dir-member');
+                if (!memberSel) return;
+                if (!churchId) {
+                    memberSel.innerHTML = '<option value="">-- Primero elige iglesia --</option>';
+                    return;
+                }
+                // Obtener IDs de miembros que ya son directores de esta iglesia
+                const dirMemberIds = new Set(directors.filter(d => d.churchId === churchId).map(d => d.memberId).filter(Boolean));
+                const available = state.members.filter(m => m.churchId === churchId && !dirMemberIds.has(m.id));
+                if (!available.length) {
+                    memberSel.innerHTML = '<option value="">-- No hay integrantes disponibles --</option>';
+                    return;
+                }
+                memberSel.innerHTML = '<option value="">-- Selecciona el director --</option>' +
+                    available.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            }
+
             function addDirector() {
-                const name    = (document.getElementById('new-dir-name').value || '').trim();
+                const memberId = (document.getElementById('new-dir-member')?.value || '').trim();
                 const churchId = document.getElementById('new-dir-church').value;
                 const username = (document.getElementById('new-dir-user').value || '').trim();
                 const password = (document.getElementById('new-dir-pass').value || '');
 
-                if (!name)     { showToast('Ingresa el nombre del director.'); return; }
-                if (!churchId) { showToast('Selecciona una iglesia.'); return; }
-                if (!username) { showToast('Ingresa un usuario.'); return; }
+                if (!churchId)  { showToast('Selecciona una iglesia.'); return; }
+                if (!memberId)  { showToast('Selecciona un integrante como director.'); return; }
+                if (!username)  { showToast('Ingresa un usuario.'); return; }
                 if (password.length < 4) { showToast('La contraseña debe tener al menos 4 caracteres.'); return; }
                 if (directors.find(d => d.username === username)) {
                     showToast('Ya existe un director con ese usuario.'); return;
@@ -5441,17 +5464,20 @@
                     showToast('Ese usuario ya está en uso por el Super Admin.'); return;
                 }
 
+                const member = state.members.find(m => m.id === memberId);
                 const church = state.churches.find(c => c.id === churchId);
+                const name   = member ? member.name : '';
+
                 directors.push({
                     id: 'D' + Date.now(),
-                    name, churchId,
+                    name, memberId, churchId,
                     churchName: church ? church.name : '',
                     username, password
                 });
 
                 saveDirectors();
-                document.getElementById('new-dir-name').value = '';
                 document.getElementById('new-dir-church').value = '';
+                document.getElementById('new-dir-member').innerHTML = '<option value="">-- Primero elige iglesia --</option>';
                 document.getElementById('new-dir-user').value = '';
                 document.getElementById('new-dir-pass').value = '';
                 renderDirectors();
