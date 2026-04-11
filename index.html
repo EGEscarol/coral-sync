@@ -112,6 +112,12 @@
 
             window._fbSave = async function(state) {
                 try {
+                    // Protección: no guardar si members o activities están vacíos
+                    // (indica que Firebase aún no terminó de cargar)
+                    if (!state.members || state.members.length === 0) {
+                        console.warn("_fbSave abortado: members vacío");
+                        return;
+                    }
                     await setDoc(DOC_REF, {
                         members: state.members,
                         activities: state.activities,
@@ -5118,16 +5124,18 @@
             }
 
             function getLocationAndSave(memberId, activityId) {
+                // Si los datos aún no cargaron desde Firebase, esperar
+                if (!state.members || state.members.length === 0) {
+                    setScanStatus("Cargando datos, por favor espera...", "info");
+                    loadFromCloud().then(() => {
+                        getLocationAndSave(memberId, activityId);
+                    });
+                    return;
+                }
                 setScanStatus("Obteniendo ubicación GPS...", "info");
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
-                        (pos) =>
-                            saveRecord(
-                                memberId,
-                                activityId,
-                                pos.coords.latitude,
-                                pos.coords.longitude,
-                            ),
+                        (pos) => saveRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude),
                         () => saveRecord(memberId, activityId, null, null),
                         { timeout: 8000 },
                     );
