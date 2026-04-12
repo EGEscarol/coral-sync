@@ -3380,7 +3380,12 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    loadFromCloud().then(() => {
+                        renderAll();
+                        updateManualSelects();
+                        updateDashManualSelects();
+                        showPage('dashboard');
+                    });
                     return;
                 }
 
@@ -3630,7 +3635,11 @@
                 if (page === 'auxiliares') renderAuxiliares();
                 if (page === 'uniforms') renderUniformsTab();
                 if (page === 'dashboard') {
-                    loadFromCloud().then(() => renderDashboard());
+                    loadFromCloud().then(() => {
+                        renderDashboard();
+                        updateDashManualSelects();
+                        updateManualSelects();
+                    });
                 }
             }
 
