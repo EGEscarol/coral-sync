@@ -192,10 +192,10 @@
                 --white:         #FFFFFF;
 
                 /* ── Voces corales ── */
-                --vocal-soprano: #A2D2FF;
-                --vocal-alto:    #FFD60A;
-                --vocal-tenor:   #B7E4C7;
-                --vocal-bass:    #E5989B;
+                --vocal-soprano: #4A90C4;
+                --vocal-alto:    #C9960A;
+                --vocal-tenor:   #2D8B55;
+                --vocal-bass:    #B84049;
 
                 /* ── Radios ── */
                 --radius-sm:   4px;
@@ -887,9 +887,9 @@
                 transition: background 0.15s;
             }
             .btn-accent:hover {
-                background: var(--accent-light);
+                background: var(--primary-light);
                 transform: translateY(-2px);
-                box-shadow: 0 5px 14px rgba(204,165,83,0.4);
+                box-shadow: 0 5px 14px rgba(27,38,59,0.35);
             }
             .btn-accent:active {
                 transform: translateY(0);
@@ -3911,8 +3911,8 @@
                     else if (pct >= 50) { badge = pct+'%'; badgeColor = '#ca8a04'; }
                     else { badge = pct+'%'; badgeColor = '#dc2626'; }
 
-                    const voiceColors = { 'Soprano':'#A2D2FF', 'Contralto':'#FFD60A', 'Tenor':'#B7E4C7', 'Bajo':'#E5989B' };
-                    const voiceBadge = m.voice ? `<span style="font-size:0.68rem;font-weight:600;color:#1B263B;background:${voiceColors[m.voice]||'#888'};padding:2px 8px;border-radius:50px;margin-left:6px;">${m.voice}</span>` : '';
+                    const voiceColors = { 'Soprano':'#4A90C4', 'Contralto':'#C9960A', 'Tenor':'#2D8B55', 'Bajo':'#B84049' };
+                    const voiceBadge = m.voice ? `<span style="font-size:0.68rem;font-weight:600;color:#ffffff;background:${voiceColors[m.voice]||'#888'};padding:2px 8px;border-radius:50px;margin-left:6px;">${m.voice}</span>` : '';
                     const notePreview = m.note ? `<span style="font-size:0.72rem;color:var(--accent-dark);margin-left:8px;font-style:italic;">📝 ${m.note.length>40?m.note.substring(0,40)+'…':m.note}</span>` : '';
                     const churchBadge = m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : '';
                     const canEdit = !isStateDirector() && !isAuxiliar();
@@ -4169,7 +4169,7 @@
                                 doc.roundedRect(x + cellW/2 - 12, y + 57, 24, 5.5, 2.5, 2.5, 'F');
                                 doc.setFont('helvetica', 'bold');
                                 doc.setFontSize(4.5);
-                                doc.setTextColor(27,38,59);
+                                doc.setTextColor(255,255,255);
                                 doc.text(m.voice, x + cellW/2, y + 61, { align:'center' });
                             }
 
@@ -4615,7 +4615,7 @@
                 ctx.stroke();
 
                 // Badge de voz (color según voz)
-                const voiceColors = { 'Soprano':'#A2D2FF', 'Contralto':'#FFD60A', 'Tenor':'#B7E4C7', 'Bajo':'#E5989B' };
+                const voiceColors = { 'Soprano':'#4A90C4', 'Contralto':'#C9960A', 'Tenor':'#2D8B55', 'Bajo':'#B84049' };
                 if (member.voice) {
                     const vc = voiceColors[member.voice] || GRAY;
                     const badgeW = 90, badgeH = 24, badgeX = (W - badgeW)/2, badgeY = 316;
@@ -6683,7 +6683,7 @@
 
                 // Composición de voces del grupo
                 const voiceCount = { Soprano:0, Contralto:0, Tenor:0, Bajo:0, 'Sin asignar':0 };
-                const voiceColors = { Soprano:[162,210,255], Contralto:[255,214,10], Tenor:[183,228,199], Bajo:[229,152,155], 'Sin asignar':[150,150,150] };
+                const voiceColors = { Soprano:[74,144,196], Contralto:[201,150,10], Tenor:[45,139,85], Bajo:[184,64,73], 'Sin asignar':[150,150,150] };
                 selectedMembers.forEach(m => {
                     const v = m.voice || 'Sin asignar';
                     if (voiceCount[v] !== undefined) voiceCount[v]++;
