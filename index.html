@@ -918,6 +918,19 @@
                 box-shadow: 0 4px 12px rgba(208,0,0,0.25);
             }
 
+            /* ── Botones sólidos inline ── */
+            .btn-solid {
+                transition: background 0.15s, transform 0.15s, box-shadow 0.15s !important;
+            }
+            .btn-solid:hover {
+                background: var(--primary-light) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 16px rgba(27,38,59,0.35) !important;
+            }
+            .btn-solid:active {
+                transform: translateY(0) !important;
+            }
+
             /* ── Hover global para botones outline/icono ── */
             button {
                 transition: background 0.15s, transform 0.15s, box-shadow 0.15s, color 0.15s, border-color 0.15s;
@@ -1754,7 +1767,7 @@
                                     <option value="">-- Selecciona --</option>
                                 </select>
                             </div>
-                            <button onclick="submitDashManual()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">
+                            <button onclick="submitDashManual()" class="btn-solid" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">
                                 ✓ Registrar
                             </button>
                         </div>
@@ -2145,7 +2158,7 @@
                                     <option value="">-- Selecciona la actividad --</option>
                                 </select>
                             </div>
-                            <button onclick="submitManualRecord()" style="padding:9px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;">
+                            <button onclick="submitManualRecord()" class="btn-solid" style="padding:9px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;">
                                 ✓ Registrar
                             </button>
                         </div>
@@ -2414,7 +2427,7 @@
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contraseña</label>
                                 <input type="password" id="new-statedir-pass" placeholder="Contraseña" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
                             </div>
-                            <button onclick="addStateDirector()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">+ Agregar</button>
+                            <button onclick="addStateDirector()" class="btn-solid" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">+ Agregar</button>
                         </div>
                     </div>
                     <div class="card">
@@ -2451,7 +2464,7 @@
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contraseña</label>
                                 <input type="password" id="new-aux-pass" placeholder="Contraseña" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
                             </div>
-                            <button onclick="addAuxiliar()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">+ Agregar</button>
+                            <button onclick="addAuxiliar()" class="btn-solid" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">+ Agregar</button>
                         </div>
                     </div>
                     <div class="card">
@@ -2500,7 +2513,7 @@
                                 <input type="password" id="confirm-admin-pass" placeholder="Confirmar contraseña" autocomplete="new-password"
                                     style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
                             </div>
-                            <button onclick="saveAdminCredentials()"
+                            <button onclick="saveAdminCredentials()" class="btn-solid"
                                 style="padding:10px 24px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">
                                 🔒 Guardar
                             </button>
