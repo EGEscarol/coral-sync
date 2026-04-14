@@ -3100,7 +3100,7 @@
 
         <!-- ==================== REGISTRO EXITOSO MODAL ==================== -->
         <div id="success-modal" style="display:none;position:fixed;inset:0;z-index:900;align-items:center;justify-content:center;background:rgba(27,38,59,0.75);backdrop-filter:blur(4px);">
-            <div style="background:white;border-radius:24px;padding:40px 32px;max-width:360px;width:92%;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,0.3);animation:successPop 0.4s cubic-bezier(0.34,1.56,0.64,1);">
+            <div style="background:#FFFFFF;border-radius:24px;padding:40px 32px;max-width:360px;width:92%;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,0.4);animation:successPop 0.4s cubic-bezier(0.34,1.56,0.64,1);border-top:5px solid #2D6A4F;">
                 <style>
                     @keyframes successPop {
                         0%   { transform:scale(0.5); opacity:0; }
@@ -3119,9 +3119,9 @@
                     </svg>
                 </div>
                 <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#16a34a;margin-bottom:6px;">¡Registro exitoso!</div>
-                <div id="success-name" style="font-family:'Inter',sans-serif;font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:8px;line-height:1.2;"></div>
-                <div id="success-activity" style="font-size:0.95rem;color:var(--gray-500);margin-bottom:6px;"></div>
-                <div id="success-time" style="font-size:0.82rem;color:var(--gray-500);margin-bottom:24px;"></div>
+                <div id="success-name" style="font-family:'Montserrat',sans-serif;font-size:1.4rem;font-weight:700;color:#212529;margin-bottom:8px;line-height:1.2;"></div>
+                <div id="success-activity" style="font-size:0.95rem;color:#495057;margin-bottom:6px;"></div>
+                <div id="success-time" style="font-size:0.82rem;color:#6C757D;margin-bottom:24px;"></div>
                 <div id="success-gps" style="font-size:0.78rem;color:#16a34a;margin-bottom:20px;"></div>
                 <!-- Barra de progreso que cuenta 5 segundos -->
                 <div style="background:var(--gray-200);border-radius:50px;height:5px;overflow:hidden;margin-bottom:14px;">
@@ -5222,9 +5222,9 @@
         #picker-header { animation: cva-pulse 1.2s ease-out 3; }
         #picker-arrow  { animation: cva-arrow 0.7s ease-in-out infinite; }
     </style>
-    <div id="picker-header" style="text-align:center;margin-bottom:6px;padding:14px;background:var(--primary);border-radius:14px;border:2px solid var(--accent);">
-        <p id="picker-arrow" style="font-size:1.4rem;margin-bottom:4px;color:var(--accent);">▼</p>
-        <p style="font-size:1.05rem;font-weight:700;color:var(--accent);font-family:'Inter',sans-serif;margin-bottom:4px;">¡Hola, ${member.name}!</p>
+    <div id="picker-header" style="text-align:center;margin-bottom:6px;padding:14px;background:var(--primary);border-radius:14px;border:2px solid var(--brand-steel);">
+        <p id="picker-arrow" style="font-size:1.4rem;margin-bottom:4px;color:#E0E1DD;">▼</p>
+        <p style="font-size:1.05rem;font-weight:700;color:#ffffff;font-family:'Montserrat',sans-serif;margin-bottom:4px;">¡Hola, ${member.name}!</p>
         <p style="font-size:0.88rem;color:rgba(255,255,255,0.9);font-weight:700;">👆 Selecciona tu actividad de hoy</p>
     </div>
     <div id="activity-btns" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">${btnsHtml}</div>
