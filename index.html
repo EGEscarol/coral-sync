@@ -909,11 +909,45 @@
                 font-family: 'Inter', sans-serif;
                 font-size: 0.85rem;
                 font-weight: 600;
-                transition: background 0.15s;
+                transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
             }
             .btn-danger:hover {
-                background: #fca5a5;
-                transform: translateY(-1px);
+                background: #f87171;
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(208,0,0,0.25);
+            }
+
+            /* ── Hover global para botones outline/icono ── */
+            button {
+                transition: background 0.15s, transform 0.15s, box-shadow 0.15s, color 0.15s, border-color 0.15s;
+            }
+            /* Botones outline (borde primary, fondo blanco) */
+            button[style*="border:2px solid var(--primary)"],
+            button[style*="border: 2px solid var(--primary)"] {
+                transition: all 0.15s;
+            }
+            button[style*="border:2px solid var(--primary)"]:hover,
+            button[style*="border: 2px solid var(--primary)"]:hover {
+                background: var(--primary) !important;
+                color: white !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(27,38,59,0.25);
+            }
+            /* Botones icono circular (editar, eliminar) */
+            button[style*="border-radius:50%"]:hover,
+            button[style*="border-radius: 50%"]:hover {
+                transform: translateY(-2px) scale(1.08);
+                box-shadow: 0 4px 10px rgba(27,38,59,0.2);
+            }
+            /* btn-accent hover ya definido, también aplicar al btn-primary */
+            .btn-primary {
+                transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+            }
+            .btn-download-qr:hover {
+                background: var(--primary-light);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(27,38,59,0.25);
             }
 
             /* ========== LISTS ========== */
