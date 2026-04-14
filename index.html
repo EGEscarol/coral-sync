@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>CoralSync</title>
-        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231E396A'/%3E%3Ctext y='72' x='50' text-anchor='middle' font-size='62' font-family='Georgia,serif' fill='%23CCA553'%3EC%3C/text%3E%3C/svg%3E">
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23341028'/%3E%3Ctext y='72' x='50' text-anchor='middle' font-size='62' font-family='Georgia,serif' fill='%23E8693A'%3EC%3C/text%3E%3C/svg%3E">
         <link
             href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
@@ -154,21 +154,56 @@
         </script>
         <style>
             :root {
-                --primary: #1e396a;
-                --primary-light: #2a4f8a;
-                --primary-dark: #152845;
-                --accent: #cca553;
-                --accent-light: #e0b96a;
-                --accent-dark: #a8863d;
-                --white: #ffffff;
-                --gray-100: #f8f8f6;
-                --gray-200: #efefeb;
-                --gray-300: #ddddd8;
-                --gray-500: #9a9a92;
-                --gray-700: #5a5a52;
-                --gray-900: #1a1a14;
-                --success: #2e7d52;
-                --error: #b33a3a;
+                /* ── Brand palette #200918 ── */
+                --brand-950: #0d0309;
+                --brand-900: #200918;
+                --brand-800: #3a1030;
+                --brand-700: #541848;
+                --brand-600: #6e2060;
+                --brand-500: #979797;
+                --brand-400: #b0b0b0;
+                --brand-300: #c8c8c8;
+                --brand-200: #e0e0e0;
+                --brand-100: #f0f0f0;
+                --brand-50:  #f9f9f9;
+
+                /* ── Aliases funcionales ── */
+                --primary:       #200918;
+                --primary-light: #3a1030;
+                --primary-dark:  #0d0309;
+                --accent:        #000000;
+                --accent-light:  #e8e8e8;
+                --accent-dark:   #333333;
+
+                /* ── Neutrals (purple-tinted) ── */
+                --gray-50:  #faf9fc;
+                --gray-100: #f0edf4;
+                --gray-200: #e0dae7;
+                --gray-300: #c2bcca;
+                --gray-500: #7d7489;
+                --gray-700: #46404f;
+                --gray-900: #1a1520;
+
+                /* ── Semánticos ── */
+                --success:       #2e7d57;
+                --success-light: #e3f4ed;
+                --warning:       #b86a0a;
+                --warning-light: #fef3e2;
+                --error:         #c0392b;
+                --error-light:   #fdecea;
+
+                /* ── Superficie ── */
+                --white:         #ffffff;
+                --bg:            #faf9fc;
+                --border:        #e0dae7;
+                --border-focus:  #a94088;
+
+                /* ── Radios ── */
+                --radius-sm:   6px;
+                --radius-md:   10px;
+                --radius-lg:   16px;
+                --radius-xl:   24px;
+                --radius-full: 9999px;
             }
 
             * {
@@ -179,7 +214,7 @@
 
             body {
                 font-family: "Poppins", sans-serif;
-                background: var(--gray-100);
+                background: var(--bg);
                 color: var(--gray-900);
                 min-height: 100vh;
             }
@@ -202,7 +237,7 @@
                 position: sticky;
                 top: 0;
                 z-index: 100;
-                box-shadow: 0 2px 20px rgba(30, 57, 106, 0.4);
+                box-shadow: 0 2px 20px rgba(52, 16, 40, 0.4);
             }
             .header-inner {
                 max-width: 1100px;
@@ -369,6 +404,7 @@
                 background: var(--primary);
                 color: white;
                 border: none;
+                border-radius: var(--radius-md) !important;
                 border-radius: 50px;
                 font-family: "Poppins", sans-serif;
                 font-size: 0.95rem;
@@ -376,16 +412,16 @@
                 letter-spacing: 0.06em;
                 cursor: pointer;
                 transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-                box-shadow: 0 4px 14px rgba(21,40,69,0.25);
+                box-shadow: 0 4px 14px rgba(52,16,40,0.25);
             }
             .btn-primary:hover {
                 background: var(--primary-light);
                 transform: translateY(-2px);
-                box-shadow: 0 6px 18px rgba(21,40,69,0.32);
+                box-shadow: 0 6px 18px rgba(52,16,40,0.32);
             }
             .btn-primary:active {
                 transform: translateY(0);
-                box-shadow: 0 2px 8px rgba(21,40,69,0.2);
+                box-shadow: 0 2px 8px rgba(52,16,40,0.2);
             }
             .login-error {
                 color: var(--error);
@@ -408,7 +444,7 @@
             }
             .cs-sidebar {
                 width: 220px;
-                background: var(--primary);
+                background: var(--brand-900);
                 display: flex;
                 flex-direction: column;
                 position: fixed;
@@ -482,9 +518,10 @@
                 color: rgba(255,255,255,0.85);
             }
             .cs-nav-item.active {
-                background: rgba(255,255,255,0.1);
+                background: #3a1030;
                 color: white;
-                border-left-color: var(--accent);
+                border-left: 3px solid #979797;
+                padding-left: 17px;
             }
             .cs-nav-icon {
                 font-size: 1rem;
@@ -539,7 +576,7 @@
                 border-radius: 50%;
                 font-size: 1.1rem;
                 cursor: pointer;
-                box-shadow: 0 2px 12px rgba(21,40,69,0.35);
+                box-shadow: 0 2px 12px rgba(52,16,40,0.35);
                 align-items: center;
                 justify-content: center;
             }
@@ -559,7 +596,7 @@
             }
             .cs-topbar {
                 background: white;
-                border-bottom: 1px solid var(--gray-200);
+                border-bottom: 1px solid var(--border);
                 padding: 14px 28px;
                 display: flex;
                 align-items: center;
@@ -595,7 +632,7 @@
                 padding: 16px 18px;
                 border: 0.5px solid var(--gray-200);
                 border-top: 4px solid var(--primary);
-                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+                box-shadow: 0 2px 8px rgba(52,16,40,0.05);
                 position: relative;
                 overflow: hidden;
             }
@@ -604,7 +641,7 @@
                 position: absolute;
                 top: 0; left: 0; right: 0;
                 height: 100%;
-                background: linear-gradient(135deg, rgba(21,40,69,0.03) 0%, transparent 60%);
+                background: linear-gradient(135deg, rgba(52,16,40,0.03) 0%, transparent 60%);
                 pointer-events: none;
             }
             .cs-stat-icon {
@@ -640,20 +677,20 @@
                 margin-bottom: 28px;
             }
             .cs-quick-card {
-                background: var(--primary);
-                border-radius: 14px;
+                background: white;
+                border-radius: var(--radius-lg);
                 padding: 18px;
-                border: none;
+                border: 1px solid var(--border);
                 cursor: pointer;
                 transition: all 0.2s;
-                box-shadow: 0 4px 12px rgba(21,40,69,0.18);
+                box-shadow: 0 4px 12px rgba(52,16,40,0.18);
                 display: flex;
                 flex-direction: column;
                 gap: 5px;
             }
             .cs-quick-card:hover {
                 transform: translateY(-3px);
-                box-shadow: 0 8px 20px rgba(21,40,69,0.28);
+                box-shadow: 0 8px 20px rgba(52,16,40,0.28);
                 background: var(--primary-light);
             }
             .cs-quick-card:active {
@@ -686,7 +723,7 @@
                 border-radius: 14px;
                 padding: 20px;
                 border: 0.5px solid var(--gray-200);
-                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+                box-shadow: 0 2px 8px rgba(52,16,40,0.05);
             }
             .cs-recent-title {
                 font-family: "Poppins", sans-serif;
@@ -727,16 +764,17 @@
                 border-radius: 14px;
                 padding: 20px;
                 border: 0.5px solid var(--gray-200);
-                box-shadow: 0 2px 8px rgba(21,40,69,0.05);
+                box-shadow: 0 2px 8px rgba(52,16,40,0.05);
                 border-left: 4px solid var(--accent);
             }
 
             /* ========== CARDS ========== */
             .card {
                 background: white;
-                border-radius: 16px;
+                border-radius: var(--radius-lg);
                 padding: 28px;
-                box-shadow: 0 2px 12px rgba(30, 57, 106, 0.08);
+                border: 1px solid var(--border);
+                box-shadow: 0 1px 3px rgba(52,16,40,0.08);
                 margin-bottom: 20px;
             }
             .card-title {
@@ -800,19 +838,16 @@
             }
 
             .btn-accent {
-                padding: 10px 24px;
                 background: var(--accent);
-                color: var(--primary-dark);
+                color: white;
                 border: none;
-                border-radius: 50px;
-                font-family: "Poppins", sans-serif;
-                font-size: 0.88rem;
-                font-weight: 700;
-                letter-spacing: 0.04em;
+                border-radius: var(--radius-full);
+                padding: 9px 20px;
                 cursor: pointer;
-                transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-                white-space: nowrap;
-                box-shadow: 0 3px 10px rgba(204,165,83,0.3);
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.85rem;
+                font-weight: 600;
+                transition: background 0.15s;
             }
             .btn-accent:hover {
                 background: var(--accent-light);
@@ -828,16 +863,16 @@
                 border-radius: 50px;
             }
             .btn-danger {
-                background: #fee2e2;
+                background: var(--error-light);
                 color: var(--error);
                 border: none;
-                border-radius: 50px;
-                padding: 6px 16px;
+                border-radius: var(--radius-full);
+                padding: 9px 20px;
                 cursor: pointer;
-                font-size: 0.78rem;
-                font-family: "Poppins", sans-serif;
-                font-weight: 700;
-                transition: background 0.2s, transform 0.1s;
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.85rem;
+                font-weight: 600;
+                transition: background 0.15s;
             }
             .btn-danger:hover {
                 background: #fca5a5;
@@ -855,7 +890,7 @@
                 align-items: center;
                 gap: 12px;
                 padding: 12px 16px;
-                background: var(--gray-100);
+                background: var(--bg);
                 border-radius: 10px;
                 border-left: 4px solid var(--primary);
             }
@@ -892,7 +927,7 @@
                 transition: box-shadow 0.2s;
             }
             .qr-card:hover {
-                box-shadow: 0 8px 24px rgba(30, 57, 106, 0.15);
+                box-shadow: 0 8px 24px rgba(52, 16, 40, 0.15);
                 border-color: var(--accent);
             }
             .qr-card h3 {
@@ -1092,13 +1127,14 @@
                 bottom: 24px;
                 left: 50%;
                 transform: translateX(-50%) translateY(100px);
-                background: var(--primary);
+                background: var(--brand-900);
                 color: white;
-                padding: 14px 28px;
-                border-radius: 12px;
-                font-weight: 700;
-                font-size: 0.9rem;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+                padding: 12px 24px;
+                border-radius: var(--radius-md);
+                font-weight: 600;
+                font-size: 0.88rem;
+                border-left: 4px solid var(--accent);
+                box-shadow: 0 8px 32px rgba(52,16,40,0.25);
                 transition: transform 0.35s cubic-bezier(0.22, 0.68, 0, 1.4);
                 z-index: 1000;
                 white-space: nowrap;
@@ -1135,9 +1171,10 @@
             .stat-card {
                 flex: 1;
                 min-width: 120px;
-                background: var(--primary);
-                color: white;
-                border-radius: 14px;
+                background: white;
+                color: var(--gray-900);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
                 padding: 18px;
                 text-align: center;
             }
@@ -1617,7 +1654,7 @@
 
                     <!-- Registro manual integrado en dashboard -->
                     <div class="cs-manual-card" id="dashboard-manual" style="margin-bottom:24px;">
-                        <div style="font-family:'Poppins',serif;font-size:0.9rem;color:var(--primary);font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--accent);">
+                        <div style="font-family:'Poppins',sans-serif;font-size:0.9rem;color:var(--primary);font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--accent);">
                             ✏ Registro Manual de Asistencia
                         </div>
                         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
@@ -1633,7 +1670,7 @@
                                     <option value="">-- Selecciona --</option>
                                 </select>
                             </div>
-                            <button onclick="submitDashManual()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">
+                            <button onclick="submitDashManual()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(52,16,40,0.25);">
                                 ✓ Registrar
                             </button>
                         </div>
@@ -1650,11 +1687,11 @@
                         <div class="cs-recent-title">Base de datos</div>
                         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
                             <div>
-                                <div style="font-size:1.6rem;font-weight:700;color:var(--primary);font-family:'Poppins',serif;" id="db-record-count">—</div>
+                                <div style="font-size:1.6rem;font-weight:700;color:var(--primary);font-family:'Poppins',sans-serif;" id="db-record-count">—</div>
                                 <div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;">registros de asistencia acumulados</div>
                                 <div style="font-size:0.72rem;color:var(--accent-dark);margin-top:4px;font-weight:700;" id="db-oldest-record"></div>
                             </div>
-                            <button onclick="showArchiveModal()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 3px 10px rgba(21,40,69,0.25);">
+                            <button onclick="showArchiveModal()" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 3px 10px rgba(52,16,40,0.25);">
                                 ⬇ Exportar y archivar
                             </button>
                         </div>
@@ -1750,7 +1787,7 @@
                         <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
                             <div style="flex:1;min-width:160px;position:relative;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-500);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                <input type="text" id="members-search" placeholder="Buscar integrante..." oninput="renderMembers()" style="width:100%;padding:9px 12px 9px 34px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--gray-300)'">
+                                <input type="text" id="members-search" placeholder="Buscar integrante..." oninput="renderMembers()" style="width:100%;padding:9px 12px 9px 34px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--border-focus)'" onblur="this.style.borderColor='var(--border)'">
                             </div>
                             <select id="members-state-filter" onchange="renderMembers()" style="padding:9px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.85rem;outline:none;background:white;display:none;">
                                 <option value="">— Todos los estados —</option>
@@ -1758,7 +1795,7 @@
                             <select id="members-church-filter" onchange="renderMembers()" style="padding:9px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Poppins',sans-serif;font-size:0.85rem;outline:none;background:white;display:none;">
                                 <option value="">— Todas las iglesias —</option>
                             </select>
-                            <button onclick="exportAllQR()" title="Exportar todos los QR en PDF" style="flex-shrink:0;padding:9px 16px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.82rem;font-weight:700;white-space:nowrap;box-shadow:0 3px 10px rgba(21,40,69,0.2);display:flex;align-items:center;gap:6px;">
+                            <button onclick="exportAllQR()" title="Exportar todos los QR en PDF" style="flex-shrink:0;padding:9px 16px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.82rem;font-weight:700;white-space:nowrap;box-shadow:0 3px 10px rgba(52,16,40,0.2);display:flex;align-items:center;gap:6px;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg>
                                 QR en lote
                             </button>
@@ -2274,12 +2311,16 @@
                         </div>
                         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
                             <div style="flex:1;min-width:150px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre</label>
-                                <input type="text" id="new-statedir-name" placeholder="Nombre del director" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div style="flex:1;min-width:130px;">
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Estado</label>
-                                <input type="text" id="new-statedir-state" placeholder="Ej: Guerrero" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                                <select id="new-statedir-state" onchange="updateStateDirMemberSelector()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Selecciona un estado --</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:180px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Integrante (Director Estatal)</label>
+                                <select id="new-statedir-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Primero elige el estado --</option>
+                                </select>
                             </div>
                             <div style="flex:1;min-width:130px;">
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Usuario</label>
@@ -2289,7 +2330,7 @@
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contraseña</label>
                                 <input type="password" id="new-statedir-pass" placeholder="Contraseña" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
                             </div>
-                            <button onclick="addStateDirector()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">+ Agregar</button>
+                            <button onclick="addStateDirector()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(52,16,40,0.25);">+ Agregar</button>
                         </div>
                     </div>
                     <div class="card">
@@ -2326,7 +2367,7 @@
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contraseña</label>
                                 <input type="password" id="new-aux-pass" placeholder="Contraseña" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
                             </div>
-                            <button onclick="addAuxiliar()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">+ Agregar</button>
+                            <button onclick="addAuxiliar()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(52,16,40,0.25);">+ Agregar</button>
                         </div>
                     </div>
                     <div class="card">
@@ -2376,7 +2417,7 @@
                                     style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
                             </div>
                             <button onclick="saveAdminCredentials()"
-                                style="padding:10px 24px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(21,40,69,0.25);">
+                                style="padding:10px 24px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(52,16,40,0.25);">
                                 🔒 Guardar
                             </button>
                         </div>
@@ -2613,9 +2654,9 @@
         </div>
 
         <!-- ==================== ADMIN LOGIN MODAL ==================== -->
-        <div id="admin-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(21,40,69,0.88);z-index:800;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+        <div id="admin-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(52,16,40,0.88);z-index:800;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
             <div style="background:white;border-radius:20px;padding:36px 32px;max-width:340px;width:92%;box-shadow:0 32px 64px rgba(0,0,0,0.4);">
-                <p style="font-family:'Poppins',serif;color:#1e396a;font-size:1.1rem;font-weight:700;margin-bottom:4px;text-align:center;">Acceso Administrador</p>
+                <p style="font-family:'Poppins',sans-serif;color:#1e396a;font-size:1.1rem;font-weight:700;margin-bottom:4px;text-align:center;">Acceso Administrador</p>
                 <p style="color:#9a9a92;font-size:0.8rem;margin-bottom:24px;text-align:center;">Ingresa tus credenciales</p>
                 <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#5a5a52;margin-bottom:5px;">Usuario</label>
                 <input type="text" id="admin-username" autocomplete="username" placeholder="Usuario"
@@ -2651,7 +2692,7 @@
                 display: none;
                 position: fixed;
                 inset: 0;
-                background: rgba(21, 40, 69, 0.96);
+                background: rgba(52, 16, 40, 0.96);
                 z-index: 900;
                 align-items: center;
                 justify-content: center;
@@ -2829,7 +2870,7 @@
                 display: none;
                 position: fixed;
                 inset: 0;
-                background: rgba(21, 40, 69, 0.96);
+                background: rgba(52, 16, 40, 0.96);
                 z-index: 900;
                 align-items: center;
                 justify-content: center;
@@ -2923,7 +2964,7 @@
                 display: none;
                 position: fixed;
                 inset: 0;
-                background: rgba(30, 57, 106, 0.92);
+                background: rgba(52, 16, 40, 0.92);
                 z-index: 999;
                 align-items: center;
                 justify-content: center;
@@ -2961,7 +3002,7 @@
         </style>
 
         <!-- ==================== REGISTRO EXITOSO MODAL ==================== -->
-        <div id="success-modal" style="display:none;position:fixed;inset:0;z-index:900;align-items:center;justify-content:center;background:rgba(21,40,69,0.75);backdrop-filter:blur(4px);">
+        <div id="success-modal" style="display:none;position:fixed;inset:0;z-index:900;align-items:center;justify-content:center;background:rgba(52,16,40,0.75);backdrop-filter:blur(4px);">
             <div style="background:white;border-radius:24px;padding:40px 32px;max-width:360px;width:92%;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,0.3);animation:successPop 0.4s cubic-bezier(0.34,1.56,0.64,1);">
                 <style>
                     @keyframes successPop {
@@ -2981,7 +3022,7 @@
                     </svg>
                 </div>
                 <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#16a34a;margin-bottom:6px;">¡Registro exitoso!</div>
-                <div id="success-name" style="font-family:'Poppins',serif;font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:8px;line-height:1.2;"></div>
+                <div id="success-name" style="font-family:'Poppins',sans-serif;font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:8px;line-height:1.2;"></div>
                 <div id="success-activity" style="font-size:0.95rem;color:var(--gray-500);margin-bottom:6px;"></div>
                 <div id="success-time" style="font-size:0.82rem;color:var(--gray-500);margin-bottom:24px;"></div>
                 <div id="success-gps" style="font-size:0.78rem;color:#16a34a;margin-bottom:20px;"></div>
@@ -2996,7 +3037,7 @@
         <!-- ==================== ARCHIVE MODAL ==================== -->
         <div id="archive-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;align-items:center;justify-content:center;">
             <div style="background:white;border-radius:20px;padding:32px 28px;max-width:420px;width:92%;box-shadow:0 32px 64px rgba(0,0,0,0.3);">
-                <div style="font-family:'Poppins',serif;font-size:1.1rem;color:var(--primary);font-weight:700;margin-bottom:6px;">⬇ Exportar y archivar</div>
+                <div style="font-family:'Poppins',sans-serif;font-size:1.1rem;color:var(--primary);font-weight:700;margin-bottom:6px;">⬇ Exportar y archivar</div>
                 <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:20px;line-height:1.5;">Descarga los registros anteriores a la fecha elegida y luego elimínalos de la base de datos para mantenerla limpia.</p>
 
                 <div style="margin-bottom:18px;">
@@ -3106,7 +3147,7 @@
         <!-- ==================== MODAL PDF INTEGRANTE ==================== -->
         <div id="pdf-member-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
             <div style="background:white;border-radius:20px;padding:32px;width:360px;max-width:95vw;box-shadow:0 24px 48px rgba(0,0,0,0.3);">
-                <h3 style="font-family:'Poppins',serif;color:var(--primary);margin-bottom:16px;font-size:1.1rem;">📄 PDF por Integrante</h3>
+                <h3 style="font-family:'Poppins',sans-serif;color:var(--primary);margin-bottom:16px;font-size:1.1rem;">📄 PDF por Integrante</h3>
                 <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:16px;">Selecciona el integrante para generar su reporte:</p>
                 <select id="pdf-member-select" style="width:100%;padding:10px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Poppins',sans-serif;font-size:0.9rem;color:var(--gray-900);margin-bottom:20px;outline:none;">
                     <option value="">-- Selecciona un integrante --</option>
@@ -3472,6 +3513,7 @@
                     if (navSettings)   navSettings.style.display   = '';
                     if (navStateDirs)  navStateDirs.style.display  = '';
                     if (navPagos)      navPagos.style.display      = '';
+                    if (navAux)        navAux.style.display        = '';
                 }
 
                 // Deshabilitar edición en integrantes para director estatal (solo lectura)
@@ -3862,7 +3904,7 @@
                         // Header de estado
                         html += `
                         <div style="margin-bottom:24px;">
-                            <div style="display:flex;align-items:center;justify-content:space-between;background:#0855b2;padding:12px 18px;border-radius:12px 12px 0 0;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--brand-900);padding:12px 18px;border-radius:12px 12px 0 0;">
                                 <div style="font-size:1rem;color:white;font-weight:700;">🗺 ${stateName}</div>
                                 <span style="font-size:0.78rem;color:rgba(255,255,255,0.8);">${stateChurchList.length} iglesia${stateChurchList.length!==1?'s':''} · ${stateMembers.length} integrantes</span>
                             </div>
@@ -4125,26 +4167,18 @@
 
             // ======================== CHURCHES ========================
             function addChurch() {
-                const name = document
-                    .getElementById("new-church-name")
-                    .value.trim();
-                if (!name) {
-                    showToast("Ingresa el nombre de la iglesia.");
-                    return;
+                const name  = (document.getElementById("new-church-name")?.value || '').trim();
+                const state_ = (document.getElementById("new-church-state")?.value || '').trim();
+                if (!name) { showToast("Ingresa el nombre de la iglesia."); return; }
+                if (state.churches.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+                    showToast("Ya existe una iglesia con ese nombre."); return;
                 }
-                if (
-                    state.churches.find(
-                        (c) => c.name.toLowerCase() === name.toLowerCase(),
-                    )
-                ) {
-                    showToast("Ya existe una iglesia con ese nombre.");
-                    return;
-                }
-                state.churches.push({ id: "C" + Date.now(), name });
+                state.churches.push({ id: "C" + Date.now(), name, state: state_ });
                 save();
                 document.getElementById("new-church-name").value = "";
+                document.getElementById("new-church-state").value = "";
                 renderChurches();
-                renderMembers(); // refresh church selector in member form
+                renderMembers();
                 showToast("✓ Iglesia agregada: " + name);
             }
 
@@ -4178,7 +4212,7 @@
                 list.innerHTML = churches.map(c => {
                     const cnt = state.members.filter(m => m.churchId === c.id).length;
                     const stateBadge = c.state
-                        ? `<span style="font-size:0.68rem;font-weight:700;color:white;background:#0855b2;padding:2px 8px;border-radius:50px;margin-left:6px;">🗺 ${c.state}</span>`
+                        ? `<span style="font-size:0.68rem;font-weight:700;color:white;background:var(--brand-900);padding:2px 8px;border-radius:50px;margin-left:6px;">🗺 ${c.state}</span>`
                         : `<span style="font-size:0.68rem;color:#dc2626;font-style:italic;margin-left:8px;">sin estado asignado</span>`;
                     return `
     <div class="item-row">
@@ -4189,7 +4223,7 @@
       <button title="Editar nombre" style="width:32px;height:32px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-edit-church-name="${c.id}">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
       </button>
-      <button title="Editar estado" style="width:32px;height:32px;border:2px solid #0855b2;background:white;color:#0855b2;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-edit-church="${c.id}">
+      <button title="Editar estado" style="width:32px;height:32px;border:2px solid #0855b2;background:white;color:var(--brand-900);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-edit-church="${c.id}">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </button>
       <button title="Eliminar iglesia" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-church="${c.id}">
@@ -4346,14 +4380,15 @@
                         churchFilterSel.value = curVal;
                     }
                 } else {
+                    // Director local / Auxiliar: ocultar filtros, ya visibleMembers() filtra por iglesia
                     if (stateFilterSel)  stateFilterSel.style.display  = 'none';
                     if (churchFilterSel) churchFilterSel.style.display = 'none';
                 }
 
-                const stateVal  = stateFilterSel?.value  || '';
-                const churchVal = churchFilterSel?.value || '';
+                const stateVal  = isSuperAdmin() ? (stateFilterSel?.value  || '') : '';
+                const churchVal = (isSuperAdmin() || isStateDirector()) ? (churchFilterSel?.value || '') : '';
 
-                // Aplicar filtros
+                // Aplicar filtros adicionales (solo para roles con filtros visibles)
                 if (stateVal)  members = members.filter(m => {
                     const c = state.churches.find(x=>x.id===m.churchId);
                     return c && c.state === stateVal;
@@ -4384,7 +4419,7 @@
                         const stateChurchList = state.churches.filter(c=>c.state===sn);
                         const stateMembers = members.filter(m=>stateChurchList.find(c=>c.id===m.churchId));
                         if (!stateMembers.length) return;
-                        html += `<div style="grid-column:1/-1;background:#0855b2;padding:10px 18px;border-radius:10px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
+                        html += `<div style="grid-column:1/-1;background:var(--brand-900);padding:10px 18px;border-radius:10px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
                             <span style="color:white;font-weight:700;font-size:0.95rem;">🗺 ${sn}</span>
                             <span style="color:rgba(255,255,255,0.75);font-size:0.8rem;">${stateMembers.length} integrantes</span>
                         </div>`;
@@ -4708,7 +4743,7 @@
                         html += `<tr style="background:var(--primary);">
                             <td colspan="8" style="padding:10px 14px;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                                    <span style="font-family:'Poppins',serif;font-size:0.88rem;color:var(--accent);font-weight:700;">⛪ ${church.name}</span>
+                                    <span style="font-family:'Poppins',sans-serif;font-size:0.88rem;color:var(--accent);font-weight:700;">⛪ ${church.name}</span>
                                     <div style="display:flex;gap:10px;align-items:center;">
                                         <span style="font-size:0.75rem;color:rgba(255,255,255,0.7);">${churchRecs.length} registros · ${churchMembers.length} integrantes</span>
                                         <span style="font-size:0.75rem;font-weight:700;color:white;background:${color};padding:2px 10px;border-radius:50px;">${avg} reg/persona</span>
@@ -5092,7 +5127,7 @@
     </style>
     <div id="picker-header" style="text-align:center;margin-bottom:6px;padding:14px;background:var(--primary);border-radius:14px;border:2px solid var(--accent);">
         <p id="picker-arrow" style="font-size:1.4rem;margin-bottom:4px;color:var(--accent);">▼</p>
-        <p style="font-size:1.05rem;font-weight:700;color:var(--accent);font-family:'Poppins',serif;margin-bottom:4px;">¡Hola, ${member.name}!</p>
+        <p style="font-size:1.05rem;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;margin-bottom:4px;">¡Hola, ${member.name}!</p>
         <p style="font-size:0.88rem;color:rgba(255,255,255,0.9);font-weight:700;">👆 Selecciona tu actividad de hoy</p>
     </div>
     <div id="activity-btns" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">${btnsHtml}</div>
@@ -5420,11 +5455,15 @@
                 }
 
                 list.innerHTML = directors.map(d => {
+                    const church = state.churches.find(c => c.id === d.churchId);
+                    const estadoBadge = church && church.state
+                        ? `<span style="font-size:0.68rem;color:white;background:var(--brand-800);padding:1px 8px;border-radius:50px;margin-left:6px;">🗺 ${church.state}</span>`
+                        : '';
                     return `
                     <div class="item-row" style="align-items:center;gap:12px;flex-wrap:wrap;">
                         <div style="flex:1;min-width:140px;">
                             <div style="font-weight:700;color:var(--primary);">${d.name}</div>
-                            <div style="font-size:0.78rem;color:var(--gray-500);">⛪ ${d.churchName || '—'} &nbsp;·&nbsp; 👤 ${d.username}</div>
+                            <div style="font-size:0.78rem;color:var(--gray-500);">⛪ ${d.churchName || '—'}${estadoBadge} &nbsp;·&nbsp; 👤 ${d.username}</div>
                         </div>
                         <div style="display:flex;gap:8px;flex-shrink:0;">
                             <button onclick="editDirectorPassword('${d.id}')"
@@ -5654,10 +5693,10 @@
                 myStates.forEach(sn => {
                     const unis = getStateUniforms(sn);
                     if (!unis.length) return;
-                    catalogHTML += `<div style="font-size:0.78rem;font-weight:700;color:#0855b2;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🗺 Uniformes estatales — ${sn}</div>`;
+                    catalogHTML += `<div style="font-size:0.78rem;font-weight:700;color:var(--brand-900);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🗺 Uniformes estatales — ${sn}</div>`;
                     catalogHTML += unis.map(u => `
                         <div class="item-row" style="padding:8px 14px;background:#eff6ff;border-radius:8px;margin-bottom:4px;">
-                            <div class="item-name">🎽 ${u.name} <span style="font-size:0.68rem;color:#0855b2;font-weight:700;margin-left:6px;">ESTATAL</span></div>
+                            <div class="item-name">🎽 ${u.name} <span style="font-size:0.68rem;color:var(--brand-900);font-weight:700;margin-left:6px;">ESTATAL</span></div>
                             ${!isDirector() ? `<button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>` : '<span style="font-size:0.72rem;color:#9A9A92;font-style:italic;">Solo estatal</span>'}
                         </div>`).join('');
                 });
@@ -5727,11 +5766,11 @@
                                 onclick="toggleMemberUniform('${m.id}','${u.id}')"
                                 style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-radius:6px;cursor:pointer;transition:background 0.15s;background:${has?'#f0fdf4':'#fff5f5'};"
                                 title="${has?'Tiene':'No tiene'} — clic para cambiar">
-                                <span class="uni-label" style="font-size:0.78rem;color:#1a1a1a;flex:1;">${u.isState?'<span style="font-size:0.65rem;color:#0855b2;font-weight:700;margin-right:4px;background:#dbeafe;padding:1px 4px;border-radius:3px;">EST</span>':''}${u.name}</span>
+                                <span class="uni-label" style="font-size:0.78rem;color:#1a1a1a;flex:1;">${u.isState?'<span style="font-size:0.65rem;color:var(--brand-900);font-weight:700;margin-right:4px;background:#dbeafe;padding:1px 4px;border-radius:3px;">EST</span>':''}${u.name}</span>
                                 <span class="uni-icon" style="font-size:0.9rem;flex-shrink:0;margin-left:8px;">${has ? '✅' : '❌'}</span>
                             </div>`).join('');
 
-                        return `<div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:14px;box-shadow:0 1px 4px rgba(21,40,69,0.06);">
+                        return `<div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:14px;box-shadow:0 1px 4px rgba(52,16,40,0.06);">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                                 <span style="font-size:0.88rem;font-weight:700;color:var(--primary);">${m.name}</span>
                                 <span style="font-size:0.75rem;font-weight:700;color:${barColor};background:${complete?'#f0fdf4':'#fff5f5'};padding:2px 8px;border-radius:50px;">${complete?'Completo':total+'/'+unis.length}</span>
@@ -5772,17 +5811,49 @@
                 if (window._fbSaveStateDirs) await window._fbSaveStateDirs(stateDirectors);
             }
 
+            function updateStateDirMemberSelector() {
+                const stateName = document.getElementById('new-statedir-state')?.value || '';
+                const memberSel = document.getElementById('new-statedir-member');
+                if (!memberSel) return;
+                if (!stateName) {
+                    memberSel.innerHTML = '<option value="">-- Primero elige el estado --</option>';
+                    return;
+                }
+                // Iglesias del estado seleccionado
+                const stateChurchIds = new Set(
+                    state.churches.filter(c => c.state === stateName).map(c => c.id)
+                );
+                // IDs de miembros que ya son directores estatales de este estado
+                const sdMemberIds = new Set(
+                    stateDirectors.filter(d => d.stateName === stateName).map(d => d.memberId).filter(Boolean)
+                );
+                const available = state.members.filter(m =>
+                    stateChurchIds.has(m.churchId) && !sdMemberIds.has(m.id)
+                );
+                if (!available.length) {
+                    memberSel.innerHTML = '<option value="">-- No hay integrantes disponibles --</option>';
+                    return;
+                }
+                memberSel.innerHTML = '<option value="">-- Selecciona el director --</option>' +
+                    available.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            }
+
             function addStateDirector() {
-                const name      = (document.getElementById('new-statedir-name').value||'').trim();
-                const stateName = (document.getElementById('new-statedir-state').value||'').trim();
+                const stateName = (document.getElementById('new-statedir-state')?.value || '').trim();
+                const memberId  = (document.getElementById('new-statedir-member')?.value || '').trim();
                 const username  = (document.getElementById('new-statedir-user').value||'').trim();
                 const password  = (document.getElementById('new-statedir-pass').value||'');
-                if (!name || !stateName || !username || !password) { showToast('Completa todos los campos.'); return; }
+                if (!stateName) { showToast('Selecciona el estado.'); return; }
+                if (!memberId)  { showToast('Selecciona un integrante como director estatal.'); return; }
+                if (!username)  { showToast('Ingresa un usuario.'); return; }
+                if (!password)  { showToast('Ingresa una contraseña.'); return; }
                 if (stateDirectors.find(d=>d.username===username)) { showToast('Ese usuario ya existe.'); return; }
-                stateDirectors.push({ id:'SD'+Date.now(), name, stateName, username, password });
+                const member = state.members.find(m => m.id === memberId);
+                const name = member ? member.name : '';
+                stateDirectors.push({ id:'SD'+Date.now(), name, memberId, stateName, username, password });
                 saveStateDirectors();
-                document.getElementById('new-statedir-name').value='';
                 document.getElementById('new-statedir-state').value='';
+                document.getElementById('new-statedir-member').innerHTML='<option value="">-- Primero elige el estado --</option>';
                 document.getElementById('new-statedir-user').value='';
                 document.getElementById('new-statedir-pass').value='';
                 renderStateDirectors();
@@ -5790,6 +5861,15 @@
             }
 
             function renderStateDirectors() {
+                // Poblar selector de estados con los que tienen iglesias
+                const stateSel = document.getElementById('new-statedir-state');
+                if (stateSel) {
+                    const states = [...new Set(state.churches.map(c=>c.state).filter(Boolean))].sort();
+                    const curVal = stateSel.value;
+                    stateSel.innerHTML = '<option value="">-- Selecciona un estado --</option>' +
+                        states.map(s=>`<option value="${s}">${s}</option>`).join('');
+                    if (states.includes(curVal)) stateSel.value = curVal;
+                }
                 const list = document.getElementById('statedirectors-list');
                 if (!list) return;
                 if (!stateDirectors.length) {
@@ -5799,7 +5879,7 @@
                 list.innerHTML = stateDirectors.map(d => `
                     <div class="item-row">
                         <div style="flex:1;">
-                            <div class="item-name">${d.name} <span style="font-size:0.72rem;color:white;background:#0855b2;padding:2px 8px;border-radius:50px;margin-left:6px;">🗺 ${d.stateName}</span></div>
+                            <div class="item-name">${d.name} <span style="font-size:0.72rem;color:white;background:var(--brand-900);padding:2px 8px;border-radius:50px;margin-left:6px;">🗺 ${d.stateName}</span></div>
                             <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">Usuario: <code>${d.username}</code></div>
                         </div>
                         <button title="Eliminar" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-statedir="${d.id}">
@@ -5894,40 +5974,53 @@
             }
 
             function renderAuxiliares() {
-                // Poblar selector de integrantes (solo los que no son ya auxiliares)
+                // Poblar selector de integrantes
                 const memberSel = document.getElementById('new-aux-member');
                 if (memberSel) {
-                    const myChurchId = sessionChurchId();
                     const auxMemberIds = new Set(auxiliares.map(a => a.memberId));
+                    // SuperAdmin ve todos los integrantes; director solo los de su iglesia
                     const available = state.members.filter(m =>
-                        m.churchId === myChurchId && !auxMemberIds.has(m.id)
+                        (isSuperAdmin() || m.churchId === sessionChurchId()) && !auxMemberIds.has(m.id)
                     );
                     memberSel.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                        available.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                        available.map(m => {
+                            const church = state.churches.find(c => c.id === m.churchId);
+                            const label = isSuperAdmin() && church ? `${m.name} — ${church.name}` : m.name;
+                            return `<option value="${m.id}">${label}</option>`;
+                        }).join('');
                 }
 
                 const list = document.getElementById('auxiliares-list');
                 if (!list) return;
 
-                const myChurchId = sessionChurchId();
-                const myAux = auxiliares.filter(a => a.churchId === myChurchId);
+                // SuperAdmin ve todos; director solo los de su iglesia
+                const myAux = isSuperAdmin()
+                    ? auxiliares
+                    : auxiliares.filter(a => a.churchId === sessionChurchId());
 
                 if (!myAux.length) {
-                    list.innerHTML = '<div class="empty-state"><p>No hay auxiliares registrados para tu coro.</p></div>';
+                    list.innerHTML = '<div class="empty-state"><p>No hay auxiliares registrados.</p></div>';
                     return;
                 }
-                list.innerHTML = myAux.map(a => `
+                list.innerHTML = myAux.map(a => {
+                    const church = state.churches.find(c => c.id === a.churchId);
+                    const churchBadge = isSuperAdmin() && church
+                        ? `<span style="font-size:0.68rem;color:var(--gray-500);margin-left:6px;">⛪ ${church.name}</span>`
+                        : '';
+                    return `
                     <div class="item-row">
                         <div style="flex:1;">
                             <div class="item-name">${a.name}
                                 <span style="font-size:0.68rem;font-weight:700;color:white;background:#b45309;padding:2px 8px;border-radius:50px;margin-left:6px;">🤝 Auxiliar</span>
+                                ${churchBadge}
                             </div>
                             <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">Usuario: <code>${a.username}</code></div>
                         </div>
                         <button title="Eliminar auxiliar" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-aux="${a.id}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                         </button>
-                    </div>`).join('');
+                    </div>`;
+                }).join('');
 
                 list.querySelectorAll('[data-delete-aux]').forEach(btn => {
                     btn.addEventListener('click', () => {
@@ -6042,7 +6135,7 @@
                 estados.forEach(estado => {
                     const estadoChurches = churches.filter(c => (c.state || '(Sin estado)') === estado);
                     html += `<div style="margin-bottom:28px;">
-                        <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#0855b2;margin-bottom:10px;">🗺 ${estado}</div>`;
+                        <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-900);margin-bottom:10px;">🗺 ${estado}</div>`;
 
                     estadoChurches.forEach(church => {
                         const integrantes = state.members.filter(m => m.churchId === church.id).length;
