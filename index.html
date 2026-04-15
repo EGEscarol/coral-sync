@@ -2390,6 +2390,10 @@
                             <select id="uniform-filter-church" onchange="renderUniformsTab()" style="padding:8px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;background:white;">
                                 <option value="">-- Todas las iglesias --</option>
                             </select>
+                            <button onclick="exportUniformsPDF()" class="btn-solid" style="padding:8px 18px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(27,38,59,0.2);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                Informe PDF
+                            </button>
                         </div>
                         <div id="uniform-matrix" style="overflow-x:auto;"></div>
                     </div>
@@ -4412,6 +4416,7 @@
 
             // ======================== ACTIVITIES ========================
             function addActivity() {
+                if (isStateDirector()) { showToast('No tienes permiso para agregar actividades.'); return; }
                 const name = document
                     .getElementById("new-activity-name")
                     .value.trim();
@@ -4429,6 +4434,7 @@
             }
 
             function deleteActivity(id) {
+                if (isStateDirector()) { showToast('No tienes permiso para eliminar actividades.'); return; }
                 customConfirm("¿Eliminar esta actividad?", () => {
                     state.activities = state.activities.filter(
                         (a) => a.id !== id,
@@ -4444,7 +4450,7 @@
                 document.getElementById("activities-count").textContent = state.activities.length;
                 // Ocultar form de agregar actividad si es director
                 const addForm = document.getElementById("activity-add-form");
-                if (addForm) addForm.style.display = isDirector() ? 'none' : '';
+                if (addForm) addForm.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
                 if (!state.activities.length) {
                     list.innerHTML =
                         '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle></svg><p>Aún no hay actividades.</p></div>';
@@ -4456,7 +4462,7 @@
     <div class="item-row" style="border-left-color:${a.color};">
       <div class="activity-dot" style="background:${a.color};"></div>
       <div class="activity-label">${a.name}</div>
-      <button class="btn-danger" data-delete-activity="${a.id}" ${isDirector() ? 'style="display:none"' : ''}>Eliminar</button>
+      <button class="btn-danger" data-delete-activity="${a.id}" ${(isDirector() || isStateDirector()) ? 'style="display:none"' : ''}>Eliminar</button>
     </div>`,
                     )
                     .join("");
@@ -5799,6 +5805,153 @@
                 }
             }
 
+            function exportUniformsPDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+                // Determinar iglesias a mostrar según rol
+                const filterChurchId = document.getElementById('uniform-filter-church')?.value || '';
+                let churches = isDirector()
+                    ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
+                    : isStateDirector()
+                        ? stateChurches()
+                        : state.churches;
+                if (filterChurchId) churches = churches.filter(c => c.id === filterChurchId);
+
+                if (!churches.length) { showToast('No hay iglesias para generar el informe.'); return; }
+
+                const NAVY  = [27, 38, 59];
+                const ACENT = [75, 9, 14];
+                const WHITE = [255, 255, 255];
+                const GRAY  = [73, 80, 87];
+                const LGRAY = [232, 237, 244];
+                const GREEN = [45, 106, 79];
+                const RED   = [208, 0, 0];
+
+                let firstPage = true;
+
+                churches.forEach(church => {
+                    const members = state.members.filter(m => m.churchId === church.id);
+                    const unis = getChurchUniformsWithState(church.id);
+                    if (!members.length || !unis.length) return;
+
+                    if (!firstPage) doc.addPage();
+                    firstPage = false;
+
+                    // ── Header ──────────────────────────────────────
+                    doc.setFillColor(...NAVY);
+                    doc.rect(0, 0, 297, 22, 'F');
+                    doc.setFillColor(...ACENT);
+                    doc.rect(0, 22, 297, 1.5, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(13);
+                    doc.setTextColor(224, 225, 221);
+                    doc.text('CoralSync', 14, 10);
+                    doc.setFontSize(10);
+                    doc.setTextColor(...WHITE);
+                    doc.text('Informe de Uniformes — ' + church.name, 14, 18);
+                    const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
+                    doc.setFontSize(7);
+                    doc.setTextColor(180, 180, 180);
+                    doc.text('Generado: ' + now, 283, 18, { align: 'right' });
+
+                    let y = 30;
+
+                    // ── Resumen ──────────────────────────────────────
+                    const completeCount = members.filter(m => {
+                        const pureUnis = unis.filter(u => !u.isState);
+                        return pureUnis.length === 0 || pureUnis.every(u => m.uniforms && m.uniforms[u.id]);
+                    }).length;
+
+                    doc.setFillColor(...LGRAY);
+                    doc.roundedRect(14, y, 269, 10, 2, 2, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(...NAVY);
+                    doc.text(`${members.length} integrantes  •  ${unis.length} uniformes  •  ${completeCount} con uniforme completo`, 18, y + 6.5);
+                    y += 16;
+
+                    // ── Tabla ─────────────────────────────────────────
+                    // Construir cabeceras: Integrante + Voz + cada uniforme
+                    const uniCols = unis.map(u => (u.isState ? '★ ' : '') + u.name);
+                    const head = [['Integrante', 'Voz', ...uniCols, 'Completo']];
+
+                    const body = members.map(m => {
+                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? '✓' : '✗');
+                        const allDone = unis.every(u => m.uniforms && m.uniforms[u.id]);
+                        return [m.name, m.voice || '—', ...uniVals, allDone ? '✓' : '✗'];
+                    });
+
+                    // Anchos de columna dinámicos
+                    const totalW = 269;
+                    const nameW  = 55;
+                    const voiceW = 22;
+                    const complW = 18;
+                    const uniW   = Math.max(14, Math.floor((totalW - nameW - voiceW - complW) / Math.max(unis.length, 1)));
+
+                    doc.autoTable({
+                        startY: y,
+                        head,
+                        body,
+                        margin: { left: 14, right: 14 },
+                        styles: { font: 'helvetica', fontSize: 8, cellPadding: 3, valign: 'middle' },
+                        headStyles: { fillColor: NAVY, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5 },
+                        columnStyles: {
+                            0: { cellWidth: nameW, fontStyle: 'bold', textColor: NAVY },
+                            1: { cellWidth: voiceW, halign: 'center', textColor: GRAY },
+                            [unis.length + 2]: { cellWidth: complW, halign: 'center', fontStyle: 'bold' }
+                        },
+                        didParseCell: (data) => {
+                            if (data.section === 'body') {
+                                const colIdx = data.column.index;
+                                // Columnas de uniformes (2 a N+1)
+                                if (colIdx >= 2 && colIdx <= unis.length + 1) {
+                                    data.cell.styles.halign = 'center';
+                                    if (data.cell.raw === '✓') {
+                                        data.cell.styles.textColor = GREEN;
+                                        data.cell.styles.fontStyle = 'bold';
+                                    } else {
+                                        data.cell.styles.textColor = RED;
+                                    }
+                                }
+                                // Columna "Completo"
+                                if (colIdx === unis.length + 2) {
+                                    if (data.cell.raw === '✓') {
+                                        data.cell.styles.fillColor = [216, 243, 220];
+                                        data.cell.styles.textColor = GREEN;
+                                        data.cell.styles.fontStyle = 'bold';
+                                    } else {
+                                        data.cell.styles.fillColor = [255, 224, 224];
+                                        data.cell.styles.textColor = RED;
+                                    }
+                                }
+                            }
+                        },
+                        alternateRowStyles: { fillColor: [248, 249, 250] },
+                    });
+                });
+
+                if (firstPage) { showToast('No hay datos para generar el informe.'); return; }
+
+                // Pie de página en cada hoja
+                const totalPages = doc.getNumberOfPages();
+                for (let p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+                    doc.setFillColor(...NAVY);
+                    doc.rect(0, 202, 297, 8, 'F');
+                    doc.setFontSize(7);
+                    doc.setTextColor(180, 180, 180);
+                    doc.text('CoralSync — Informe de Uniformes', 14, 207);
+                    doc.text(`Página ${p}/${totalPages}`, 283, 207, { align: 'right' });
+                    doc.setTextColor(...ACENT);
+                    doc.text('★ = Uniforme estatal', 148, 207, { align: 'center' });
+                }
+
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
+                doc.save(`CoralSync_Uniformes_${fecha}.pdf`);
+                showToast('✓ Informe de uniformes generado');
+            }
+
             function renderUniformsTab() {
                 // Selector de iglesia en catálogo
                 const churchWrap = document.getElementById('uniform-church-wrap');
@@ -6532,6 +6685,13 @@
                     churchSel.innerHTML = `<option value="${sessionChurchId()}">${currentSession.churchName}</option>`;
                     churchSel.value = sessionChurchId();
                     churchSel.disabled = true;
+                } else if (isStateDirector()) {
+                    // Dir. Estatal solo ve iglesias de su estado
+                    const myChurches = stateChurches();
+                    churchSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
+                        myChurches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                    churchSel.value = '';
+                    churchSel.disabled = false;
                 } else {
                     churchSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
                         state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
