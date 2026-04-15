@@ -2,6 +2,8 @@
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
+        <meta http-equiv="X-Content-Type-Options" content="nosniff">
+        <meta name="referrer" content="strict-origin-when-cross-origin">
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>CoralSync</title>
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231B263B'/%3E%3Ctext y='72' x='50' text-anchor='middle' font-size='62' font-family='Georgia,serif' fill='%23E0E1DD'%3EC%3C/text%3E%3C/svg%3E">
@@ -111,17 +113,14 @@
                 try {
                     // Protección: no guardar si members o activities están vacíos
                     if (!state.members || state.members.length === 0) {
-                        console.warn("[CoralSync] _fbSave abortado: members vacío");
-                        return;
+                                                return;
                     }
-                    console.log('[CoralSync] _fbSave ejecutando con', state.records.length, 'registros');
                     await setDoc(DOC_REF, {
                         members: state.members,
                         activities: state.activities,
                         records: state.records,
                         churches: state.churches || []
                     });
-                    console.log('[CoralSync] _fbSave exitoso ✅');
                     window._setSyncBadge && window._setSyncBadge("✓ Sincronizado", "ok");
                 } catch(e) {
                     console.error("[CoralSync] Firebase save error:", e);
@@ -224,7 +223,6 @@
                 font-family: 'Roboto Mono', monospace;
                 font-size: 0.82em;
             }
-
 
             /* ========== SECRET ADMIN DOTS ========== */
             .sdot {
@@ -440,10 +438,8 @@
                 background: var(--accent);
                 color: white;
                 border: none;
-                border-radius: var(--radius-md) !important;
-                font-family: 'Montserrat', sans-serif;
                 border-radius: 50px;
-                font-family: "Inter", sans-serif;
+                font-family: 'Montserrat', sans-serif;
                 font-size: 0.95rem;
                 font-weight: 700;
                 letter-spacing: 0.06em;
@@ -1587,7 +1583,7 @@
                                     border-radius: 12px;
                                     text-align: center;
                                     font-size: 2rem;
-                                    font-family: &quot;Poppins&quot;, sans-serif;
+                                    font-family: &quot;Inter&quot;, sans-serif;
                                     color: var(--primary);
                                     outline: none;
                                     letter-spacing: 0.4em;
@@ -2242,7 +2238,7 @@
                                     border-radius: 8px;
                                     padding: 8px 16px;
                                     cursor: pointer;
-                                    font-family: &quot;Poppins&quot;, sans-serif;
+                                    font-family: &quot;Inter&quot;, sans-serif;
                                     font-size: 0.82rem;
                                     font-weight: 700;
                                 "
@@ -2257,7 +2253,7 @@
                                     border-radius: 8px;
                                     padding: 8px 14px;
                                     cursor: pointer;
-                                    font-family: &quot;Poppins&quot;, sans-serif;
+                                    font-family: &quot;Inter&quot;, sans-serif;
                                     font-size: 0.82rem;
                                     font-weight: 700;
                                     color: var(--gray-700);
@@ -2746,7 +2742,6 @@
                     </p>
                 </div>
 
-
             </div>
         </div>
 
@@ -2810,7 +2805,7 @@
                     <div style="font-size: 2.5rem; margin-bottom: 8px">☁️</div>
                     <h2
                         style="
-                            font-family: &quot;Poppins&quot;, sans-serif;
+                            font-family: &quot;Inter&quot;, sans-serif;
                             color: #1B263B;
                             font-size: 1.2rem;
                             margin-bottom: 8px;
@@ -2939,7 +2934,7 @@
                         color: white;
                         border: none;
                         border-radius: 12px;
-                        font-family: &quot;Poppins&quot;, sans-serif;
+                        font-family: &quot;Inter&quot;, sans-serif;
                         font-size: 0.95rem;
                         font-weight: 700;
                         cursor: pointer;
@@ -2987,7 +2982,7 @@
                 <div style="font-size: 3rem; margin-bottom: 12px">✅</div>
                 <h2
                     style="
-                        font-family: &quot;Poppins&quot;, sans-serif;
+                        font-family: &quot;Inter&quot;, sans-serif;
                         color: #1B263B;
                         margin-bottom: 12px;
                     "
@@ -3043,7 +3038,7 @@
                         color: #1B263B;
                         border: none;
                         border-radius: 12px;
-                        font-family: &quot;Poppins&quot;, sans-serif;
+                        font-family: &quot;Inter&quot;, sans-serif;
                         font-size: 0.95rem;
                         font-weight: 700;
                         cursor: pointer;
@@ -3082,7 +3077,7 @@
             <p
                 style="
                     color: #4B090E;
-                    font-family: &quot;Poppins&quot;, sans-serif;
+                    font-family: &quot;Inter&quot;, sans-serif;
                     font-size: 1rem;
                     letter-spacing: 0.1em;
                 "
@@ -3240,7 +3235,6 @@
             </div>
         </div>
 
-
         <!-- ==================== MODAL PDF INTEGRANTE ==================== -->
         <div id="pdf-member-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
             <div style="background:white;border-radius:20px;padding:32px;width:360px;max-width:95vw;box-shadow:0 24px 48px rgba(0,0,0,0.3);">
@@ -3277,6 +3271,23 @@
 
             // Sesión activa: { role: 'superadmin'|'director'|'statedirector', churchId, churchName, name, stateName }
             let currentSession = null;
+            let sessionTimer = null;
+            const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 horas
+
+            function resetSessionTimer() {
+                if (!currentSession) return;
+                clearTimeout(sessionTimer);
+                sessionTimer = setTimeout(() => {
+                    if (currentSession) {
+                        currentSession = null;
+                        showView('view-member');
+                        showToast('Sesión cerrada por inactividad.');
+                    }
+                }, SESSION_TIMEOUT);
+            }
+            // Reiniciar timer en cada interacción
+            document.addEventListener('click', resetSessionTimer);
+            document.addEventListener('keydown', resetSessionTimer);
 
             // Helpers de sesión
             function isSuperAdmin()     { return currentSession && currentSession.role === 'superadmin'; }
@@ -3357,6 +3368,23 @@
                     console.error('Error cargando credenciales:', e);
                 }
             }
+            // ── Utilidad de sanitización XSS ──────────────────────────────
+            function sanitize(str) {
+                if (typeof str !== 'string') return '';
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;');
+            }
+
+            // ── Validación de longitud de campos ──────────────────────────
+            function validateField(value, maxLen = 100) {
+                if (!value || typeof value !== 'string') return '';
+                return value.trim().slice(0, maxLen);
+            }
+
             let state = {
                 members: [],
                 activities: [],
@@ -3421,7 +3449,6 @@
                 setSyncBadge("Cache local", "warn");
             }
 
-            // Funciones de setup ya no son necesarias con Firebase
             async function runSetupWizard() { /* Firebase ya configurado */ }
             async function finishSetup() { /* Firebase ya configurado */ }
 
@@ -3478,11 +3505,12 @@
                 // ¿Es super admin?
                 if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
                     currentSession = { role: 'superadmin', name: 'Super Admin' };
+                    loginAttempts = 0; loginBlockedUntil = 0;
                     closeAdminLoginModal();
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -3494,7 +3522,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -3506,7 +3534,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -3527,6 +3555,14 @@
                     return;
                 }
 
+                loginAttempts++;
+                if (loginAttempts >= 5) {
+                    loginBlockedUntil = Date.now() + 30000; // 30 segundos
+                    loginAttempts = 0;
+                    document.getElementById('pin-error').textContent = 'Demasiados intentos. Espera 30 segundos.';
+                } else {
+                    document.getElementById('pin-error').textContent = `Credenciales incorrectas (intento ${loginAttempts}/5)`;
+                }
                 document.getElementById('pin-error').style.display = 'block';
                 document.getElementById('admin-password').value = '';
                 document.getElementById('admin-password').focus();
@@ -3619,7 +3655,6 @@
                 const addMemberCard = document.querySelector('#page-members .card:first-child');
                 if (addMemberCard) addMemberCard.style.display = isStateDirector() ? 'none' : '';
             }
-
 
             function saveAdminCredentials() {
                 const newUser = (document.getElementById('new-admin-user').value || '').trim();
@@ -3718,8 +3753,6 @@
                 document.getElementById('pin-error').style.display = 'none';
                 setTimeout(() => document.getElementById('admin-username').focus(), 100);
             }
-
-
 
             // ======================== ADMIN TABS ========================
             const PAGE_TITLES = {
@@ -4503,7 +4536,7 @@
                 const qrCard = (m) => `
                     <div class="qr-card">
                         <div class="qr-code-container" id="qr-${m.id}"></div>
-                        <h3>${m.name}</h3>
+                        <h3>${sanitize(m.name)}</h3>
                         <p>ID: ${m.id}</p>
                         <button class="btn-download-qr" onclick="downloadQR('${m.id}')">⬇ Descargar</button>
                     </div>`;
@@ -4630,7 +4663,7 @@
                 ctx.fill();
 
                 // Logo "CoralSync" en la franja
-                ctx.font = "bold 22px Poppins, Arial, sans-serif";
+                ctx.font = "bold 22px Montserrat, Arial, sans-serif";
                 ctx.textAlign = "center";
                 const coralW = ctx.measureText("Coral").width;
                 const syncW  = ctx.measureText("Sync").width;
@@ -4673,7 +4706,7 @@
                     ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 12);
                     ctx.fill();
                     ctx.fillStyle = "#FFFFFF";
-                    ctx.font = "bold 12px Poppins, Arial, sans-serif";
+                    ctx.font = "bold 12px Inter, Arial, sans-serif";
                     ctx.textAlign = "center";
                     ctx.fillText(member.voice, W/2, badgeY + 16);
                 }
@@ -4682,7 +4715,7 @@
                 ctx.fillStyle = NAVY;
                 const nameY = member.voice ? 368 : 344;
                 let nombre = member.name;
-                ctx.font = "bold 17px Poppins, Arial, sans-serif";
+                ctx.font = "bold 17px Montserrat, Arial, sans-serif";
                 const maxW = W - 40;
                 while (ctx.measureText(nombre).width > maxW && nombre.length > 10) {
                     nombre = nombre.slice(0, -1);
@@ -4694,7 +4727,7 @@
                 // Iglesia
                 if (member.churchName) {
                     ctx.fillStyle = GRAY;
-                    ctx.font = "12px Poppins, Arial, sans-serif";
+                    ctx.font = "12px Inter, Arial, sans-serif";
                     ctx.fillText("⛪ " + member.churchName, W/2, nameY + 24);
                 }
 
@@ -4857,8 +4890,8 @@
                             return `<tr id="row-${r.id}">
                                 <td style="width:36px;"></td>
                                 <td style="color:var(--gray-500);font-size:0.78rem;">${i+1}</td>
-                                <td style="font-weight:700;">${r.memberName}</td>
-                                <td><span class="activity-badge" style="background:${r.activityColor};">${r.activityName}</span></td>
+                                <td style="font-weight:700;">${sanitize(r.memberName)}</td>
+                                <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
                                 <td>${r.date}</td>
                                 <td>${r.time}</td>
                                 <td>${mapsLink}</td>
@@ -4880,7 +4913,7 @@
         <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
         <td style="color:var(--gray-500);font-size:0.78rem;">${i + 1}</td>
         <td style="font-weight:700;">${r.memberName}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
-        <td><span class="activity-badge" style="background:${r.activityColor};">${r.activityName}</span></td>
+        <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
         <td>${r.date}</td>
         <td>${r.time}</td>
         <td>${mapsLink}</td>
@@ -5202,11 +5235,11 @@
                             }
                         }
                         if (blocked) {
-                            return `<button disabled style="background:#CCCCCC;color:#888;border:none;border-radius:50px;padding:14px 20px;cursor:not-allowed;font-family:Poppins,sans-serif;font-size:0.95rem;font-weight:700;width:100%;opacity:0.65;position:relative;">
+                            return `<button disabled style="background:#CCCCCC;color:#888;border:none;border-radius:50px;padding:14px 20px;cursor:not-allowed;font-family:Inter,sans-serif;font-size:0.95rem;font-weight:700;width:100%;opacity:0.65;position:relative;">
                                 ✓ ${a.name} — Ya registrado${remainLabel}
                             </button>`;
                         }
-                        return `<button data-mid="${member.id}" data-aid="${a.id}" style="background:${a.color};color:white;border:none;border-radius:50px;padding:14px 20px;cursor:pointer;font-family:Poppins,sans-serif;font-size:0.95rem;font-weight:700;width:100%;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">${a.name}</button>`;
+                        return `<button data-mid="${member.id}" data-aid="${a.id}" style="background:${a.color};color:white;border:none;border-radius:50px;padding:14px 20px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.95rem;font-weight:700;width:100%;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">${a.name}</button>`;
                     })
                     .join("");
 
@@ -5230,7 +5263,7 @@
         <p style="font-size:0.88rem;color:rgba(255,255,255,0.9);font-weight:700;">👆 Selecciona tu actividad de hoy</p>
     </div>
     <div id="activity-btns" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">${btnsHtml}</div>
-    <button id="cancel-scan-btn" style="display:block;margin:0 auto;background:none;border:1px solid #DDDDD8;padding:8px 20px;border-radius:50px;cursor:pointer;font-family:Poppins,sans-serif;font-size:0.8rem;color:#9A9A92;">Cancelar</button>
+    <button id="cancel-scan-btn" style="display:block;margin:0 auto;background:none;border:1px solid #DDDDD8;padding:8px 20px;border-radius:50px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.8rem;color:#9A9A92;">Cancelar</button>
   `;
 
                 document
@@ -5296,14 +5329,8 @@
             }
 
             function saveRecord(memberId, activityId, lat, lng) {
-                console.log('[CoralSync] saveRecord llamado', { memberId, activityId, lat, lng });
-                console.log('[CoralSync] state antes de guardar:', {
-                    members: state.members.length,
-                    activities: state.activities.length,
-                    records: state.records.length
-                });
+
                 const ok = addRecord(memberId, activityId, lat, lng);
-                console.log('[CoralSync] addRecord resultado:', ok, '| records ahora:', state.records.length);
                 const picker = document.getElementById("activity-picker");
                 if (picker) picker.remove();
                 if (ok) {
@@ -5372,7 +5399,7 @@
                 // Filtrar integrantes según sesión activa
                 const members = visibleMembers();
                 ms.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                    members.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+                    members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join("");
                 as.innerHTML = '<option value="">-- Selecciona la actividad --</option>' +
                     state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
             }
@@ -5531,7 +5558,6 @@
                 toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
             }
 
-
             // ======================== DIRECTORS ========================
 
             function renderDirectors() {
@@ -5591,7 +5617,7 @@
                     return;
                 }
                 memberSel.innerHTML = '<option value="">-- Selecciona el director --</option>' +
-                    available.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                    available.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
             }
 
             function addDirector() {
@@ -5657,7 +5683,6 @@
                     await window._fbSaveDirectors(directors);
                 }
             }
-
 
             // ======================== UNIFORMS ========================
 
@@ -5871,7 +5896,7 @@
 
                         return `<div style="background:white;border-radius:12px;border:1px solid var(--gray-200);padding:14px;box-shadow:0 1px 4px rgba(27,38,59,0.06);">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                                <span style="font-size:0.88rem;font-weight:700;color:var(--primary);">${m.name}</span>
+                                <span style="font-size:0.88rem;font-weight:700;color:var(--primary);">${sanitize(m.name)}</span>
                                 <span style="font-size:0.75rem;font-weight:700;color:${barColor};background:${complete?'#f0fdf4':'#fff5f5'};padding:2px 8px;border-radius:50px;">${complete?'Completo':total+'/'+unis.length}</span>
                             </div>
                             <div style="height:4px;background:var(--gray-200);border-radius:4px;margin-bottom:10px;">
@@ -5934,7 +5959,7 @@
                     return;
                 }
                 memberSel.innerHTML = '<option value="">-- Selecciona el director --</option>' +
-                    available.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                    available.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
             }
 
             function addStateDirector() {
@@ -6131,29 +6156,6 @@
                         });
                     });
                 });
-            }
-
-            // ======================== AUXILIARES ========================
-
-            async function loadAuxiliaresFromFirebase() {
-                try {
-                    const data = await window._fbLoadAuxiliares();
-                    if (data && data.length) {
-                        auxiliares = data;
-                        localStorage.setItem('cva_auxiliares', JSON.stringify(auxiliares));
-                    } else {
-                        const cache = localStorage.getItem('cva_auxiliares');
-                        if (cache) auxiliares = JSON.parse(cache);
-                    }
-                } catch(e) {
-                    const cache = localStorage.getItem('cva_auxiliares');
-                    if (cache) auxiliares = JSON.parse(cache);
-                }
-            }
-
-            async function saveAuxiliares() {
-                localStorage.setItem('cva_auxiliares', JSON.stringify(auxiliares));
-                if (window._fbSaveAuxiliares) await window._fbSaveAuxiliares(auxiliares);
             }
 
             // ======================== PAGOS ========================
@@ -6416,7 +6418,7 @@
                 if (!ms || !as) return;
                 const members = visibleMembers();
                 ms.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                    members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                    members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
                 as.innerHTML = '<option value="">-- Selecciona la actividad --</option>' +
                     state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
             }
@@ -6569,7 +6571,7 @@
                            onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--accent)':'var(--gray-200)'">
                         <input type="checkbox" class="report-member-cb" value="${m.id}" onchange="updateReportCount();this.closest('label').style.borderColor=this.checked?'var(--accent)':'var(--gray-200)'" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;">
                         <div style="flex:1;min-width:0;">
-                            <div style="font-weight:700;font-size:0.85rem;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
+                            <div style="font-weight:700;font-size:0.85rem;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(m.name)}</div>
                             <div style="font-size:0.75rem;color:var(--gray-500);">${m.churchName || '—'} · ${subLabel}</div>
                         </div>
                         ${monthVal && recs === 0 ? '<span style="font-size:0.68rem;color:#dc2626;font-weight:700;">Sin asistencia</span>' : ''}
@@ -7072,11 +7074,10 @@
 
             // ======================== PDF GENERATION ========================
 
-
             function showPDFMemberPicker() {
                 const sel = document.getElementById('pdf-member-select');
                 sel.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                    state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                    state.members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
                 document.getElementById('pdf-member-modal').style.display = 'flex';
             }
 
@@ -7107,7 +7108,6 @@
                 const now = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
                 doc.text('Generado: ' + now, 196, 29, {align:'right'});
             }
-
 
             function pdfInterpretacionIndividual(doc, y, data) {
                 // data: { nombre, pct, total, racha, rachaMax, horaPromedio, actFav, mesRowsM, coroAvg, actRowsM }
