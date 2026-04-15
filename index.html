@@ -5800,20 +5800,29 @@
             }
 
             function renderUniformsTab() {
-                // Selector de iglesia en catálogo (solo superadmin)
+                // Selector de iglesia en catálogo
                 const churchWrap = document.getElementById('uniform-church-wrap');
-                const churchSel = document.getElementById('new-uniform-church');
-                const stateWrap = document.getElementById('uniform-state-wrap');
-                if (churchWrap) churchWrap.style.display = isDirector() || isStateDirector() ? 'none' : '';
+                const churchSel  = document.getElementById('new-uniform-church');
+                const stateWrap  = document.getElementById('uniform-state-wrap');
+
+                // Director local no ve selector de iglesia (usa la suya automáticamente)
+                // Director estatal no ve selector de iglesia pero sí el de estado
+                if (churchWrap) churchWrap.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
                 if (stateWrap)  stateWrap.style.display  = isDirector() ? 'none' : '';
-                if (churchSel && !isDirector()) {
+
+                if (churchSel && !isDirector() && !isStateDirector()) {
+                    // Super Admin ve todas las iglesias
                     churchSel.innerHTML = '<option value="">-- Selecciona --</option>' +
                         state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                 }
 
                 // Renderizar catálogo de uniformes
                 const catalogList = document.getElementById('uniform-catalog-list');
-                const myChurches = isDirector() ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean) : state.churches;
+                const myChurches = isDirector()
+                    ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
+                    : isStateDirector()
+                        ? stateChurches()
+                        : state.churches;
 
                 // Mostrar uniformes estatales primero
                 let catalogHTML = '';
@@ -5848,8 +5857,9 @@
                     filterBar.style.display = 'none';
                 } else {
                     filterBar.style.display = '';
+                    const filterChurches = isStateDirector() ? stateChurches() : state.churches;
                     filterSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
-                        state.churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                        filterChurches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                 }
 
                 // Renderizar matriz integrante × uniforme
