@@ -3848,6 +3848,8 @@
 
             // ======================== MEMBERS ========================
             function addMember() {
+                // Solo Super Admin y Director local pueden agregar integrantes
+                if (isStateDirector() || isAuxiliar()) { showToast('No tienes permiso para agregar integrantes.'); return; }
                 const name = document.getElementById("new-member-name").value.trim();
                 const voice = document.getElementById("new-member-voice").value;
                 // Si es director, usa su iglesia automáticamente
@@ -3873,6 +3875,8 @@
             }
 
             function deleteMember(id) {
+                // Solo Super Admin y Director local pueden eliminar integrantes
+                if (isStateDirector() || isAuxiliar()) { showToast('No tienes permiso para eliminar integrantes.'); return; }
                 customConfirm("¿Eliminar este integrante?", () => {
                     state.members = state.members.filter((m) => m.id !== id);
                     save();
@@ -3963,7 +3967,7 @@
                 if (churchRow) churchRow.style.display = isDirectorOrAux() ? 'none' : '';
 
                 const addMemberForm = document.querySelector('#page-members .card:first-child');
-                if (addMemberForm) addMemberForm.style.display = isAuxiliar() ? 'none' : '';
+                if (addMemberForm) addMemberForm.style.display = (isAuxiliar() || isStateDirector()) ? 'none' : '';
 
                 if (!members.length) {
                     list.innerHTML = '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><p>Aún no hay integrantes registrados.</p></div>';
