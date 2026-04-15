@@ -5849,7 +5849,7 @@
                     doc.text('CoralSync', 14, 10);
                     doc.setFontSize(10);
                     doc.setTextColor(...WHITE);
-                    doc.text('Informe de Uniformes — ' + church.name, 14, 18);
+                    doc.text('Informe de Uniformes - ' + church.name, 14, 18);
                     const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
@@ -5868,18 +5868,18 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(9);
                     doc.setTextColor(...NAVY);
-                    doc.text(`${members.length} integrantes  •  ${unis.length} uniformes  •  ${completeCount} con uniforme completo`, 18, y + 6.5);
+                    doc.text(`${members.length} integrantes  |  ${unis.length} uniformes  |  ${completeCount} con uniforme completo`, 18, y + 6.5);
                     y += 16;
 
                     // ── Tabla ─────────────────────────────────────────
                     // Construir cabeceras: Integrante + Voz + cada uniforme
-                    const uniCols = unis.map(u => (u.isState ? '★ ' : '') + u.name);
+                    const uniCols = unis.map(u => (u.isState ? '[E] ' : '') + u.name);
                     const head = [['Integrante', 'Voz', ...uniCols, 'Completo']];
 
                     const body = members.map(m => {
-                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? '✓' : '✗');
+                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? 'SI' : 'NO');
                         const allDone = unis.every(u => m.uniforms && m.uniforms[u.id]);
-                        return [m.name, m.voice || '—', ...uniVals, allDone ? '✓' : '✗'];
+                        return [m.name, m.voice || '-', ...uniVals, allDone ? 'SI' : 'NO'];
                     });
 
                     // Anchos de columna dinámicos
@@ -5907,7 +5907,7 @@
                                 // Columnas de uniformes (2 a N+1)
                                 if (colIdx >= 2 && colIdx <= unis.length + 1) {
                                     data.cell.styles.halign = 'center';
-                                    if (data.cell.raw === '✓') {
+                                    if (data.cell.raw === 'SI') {
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
                                     } else {
@@ -5916,7 +5916,7 @@
                                 }
                                 // Columna "Completo"
                                 if (colIdx === unis.length + 2) {
-                                    if (data.cell.raw === '✓') {
+                                    if (data.cell.raw === 'SI') {
                                         data.cell.styles.fillColor = [216, 243, 220];
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
@@ -5941,10 +5941,10 @@
                     doc.rect(0, 202, 297, 8, 'F');
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
-                    doc.text('CoralSync — Informe de Uniformes', 14, 207);
+                    doc.text('CoralSync - Informe de Uniformes', 14, 207);
                     doc.text(`Página ${p}/${totalPages}`, 283, 207, { align: 'right' });
                     doc.setTextColor(...ACENT);
-                    doc.text('★ = Uniforme estatal', 148, 207, { align: 'center' });
+                    doc.text('[E] = Uniforme estatal', 148, 207, { align: 'center' });
                 }
 
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
