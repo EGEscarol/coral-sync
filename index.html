@@ -2397,6 +2397,42 @@
                         </div>
                         <div id="uniform-matrix" style="overflow-x:auto;"></div>
                     </div>
+
+                    <!-- MEDIDAS -->
+                    <div class="card" id="measures-card" style="margin-top:20px;">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="8" y1="9" x2="8" y2="3"/><line x1="16" y1="21" x2="16" y2="15"/></svg>
+                            Medidas de los Integrantes
+                        </div>
+                        <div id="measures-filter-bar" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <select id="measures-filter-church" onchange="renderMeasuresTab()" style="padding:8px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;background:white;">
+                                <option value="">-- Todas las iglesias --</option>
+                            </select>
+                            <button onclick="exportMeasuresPDF()" class="btn-solid" style="padding:8px 18px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(27,38,59,0.2);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                Informe PDF
+                            </button>
+                        </div>
+                        <div id="measures-grid"></div>
+                    </div>
+
+                    <!-- MODAL MEDIDAS -->
+                    <div id="measures-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+                        <div style="background:white;border-radius:16px;padding:28px;max-width:460px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                                <div>
+                                    <div style="font-size:1rem;font-weight:700;color:var(--primary);" id="measures-modal-name"></div>
+                                    <div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;" id="measures-modal-voice"></div>
+                                </div>
+                                <button onclick="closeMeasuresModal()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--gray-400);line-height:1;">&#x2715;</button>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="measures-modal-fields"></div>
+                            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+                                <button onclick="closeMeasuresModal()" style="padding:9px 20px;border:2px solid var(--gray-300);border-radius:50px;background:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:600;color:var(--gray-600);">Cancelar</button>
+                                <button onclick="saveMeasuresModal()" style="padding:9px 24px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 3px 10px rgba(27,38,59,0.2);">Guardar medidas</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             <!-- PAGE: STATE DIRECTORS -->
@@ -3811,7 +3847,7 @@
                 if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'pagos') renderPagos();
                 if (page === 'auxiliares') renderAuxiliares();
-                if (page === 'uniforms') renderUniformsTab();
+                if (page === 'uniforms') { renderUniformsTab(); renderMeasuresTab(); }
                 if (page === 'dashboard') {
                     loadFromCloud().then(() => {
                         renderDashboard();
@@ -5849,7 +5885,7 @@
                     doc.text('CoralSync', 14, 10);
                     doc.setFontSize(10);
                     doc.setTextColor(...WHITE);
-                    doc.text('Informe de Uniformes - ' + church.name, 14, 18);
+                    doc.text('Informe de Uniformes — ' + church.name, 14, 18);
                     const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
@@ -5868,18 +5904,18 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(9);
                     doc.setTextColor(...NAVY);
-                    doc.text(`${members.length} integrantes  |  ${unis.length} uniformes  |  ${completeCount} con uniforme completo`, 18, y + 6.5);
+                    doc.text(`${members.length} integrantes  •  ${unis.length} uniformes  •  ${completeCount} con uniforme completo`, 18, y + 6.5);
                     y += 16;
 
                     // ── Tabla ─────────────────────────────────────────
                     // Construir cabeceras: Integrante + Voz + cada uniforme
-                    const uniCols = unis.map(u => (u.isState ? '[E] ' : '') + u.name);
+                    const uniCols = unis.map(u => (u.isState ? '★ ' : '') + u.name);
                     const head = [['Integrante', 'Voz', ...uniCols, 'Completo']];
 
                     const body = members.map(m => {
-                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? 'SI' : 'NO');
+                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? '✓' : '✗');
                         const allDone = unis.every(u => m.uniforms && m.uniforms[u.id]);
-                        return [m.name, m.voice || '-', ...uniVals, allDone ? 'SI' : 'NO'];
+                        return [m.name, m.voice || '—', ...uniVals, allDone ? '✓' : '✗'];
                     });
 
                     // Anchos de columna dinámicos
@@ -5907,7 +5943,7 @@
                                 // Columnas de uniformes (2 a N+1)
                                 if (colIdx >= 2 && colIdx <= unis.length + 1) {
                                     data.cell.styles.halign = 'center';
-                                    if (data.cell.raw === 'SI') {
+                                    if (data.cell.raw === '✓') {
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
                                     } else {
@@ -5916,7 +5952,7 @@
                                 }
                                 // Columna "Completo"
                                 if (colIdx === unis.length + 2) {
-                                    if (data.cell.raw === 'SI') {
+                                    if (data.cell.raw === '✓') {
                                         data.cell.styles.fillColor = [216, 243, 220];
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
@@ -5941,10 +5977,10 @@
                     doc.rect(0, 202, 297, 8, 'F');
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
-                    doc.text('CoralSync - Informe de Uniformes', 14, 207);
+                    doc.text('CoralSync — Informe de Uniformes', 14, 207);
                     doc.text(`Página ${p}/${totalPages}`, 283, 207, { align: 'right' });
                     doc.setTextColor(...ACENT);
-                    doc.text('[E] = Uniforme estatal', 148, 207, { align: 'center' });
+                    doc.text('★ = Uniforme estatal', 148, 207, { align: 'center' });
                 }
 
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
@@ -7819,6 +7855,273 @@
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
                 doc.save('ReporteGeneral_CoralSync_' + fecha + '.pdf');
                 showToast('✓ PDF general generado');
+            }
+
+
+            // ======================== MEDIDAS ========================
+
+            const MEASURE_FIELDS = [
+                { key: 'estatura',    label: 'Estatura',      unit: 'cm' },
+                { key: 'peso',        label: 'Peso',          unit: 'kg' },
+                { key: 'talla',       label: 'Talla ropa',    unit: '' },
+                { key: 'busto',       label: 'Busto / Pecho', unit: 'cm' },
+                { key: 'cintura',     label: 'Cintura',       unit: 'cm' },
+                { key: 'cadera',      label: 'Cadera',        unit: 'cm' },
+                { key: 'hombros',     label: 'Hombros',       unit: 'cm' },
+                { key: 'manga',       label: 'Largo manga',   unit: 'cm' },
+                { key: 'entrepierna', label: 'Entrepierna',   unit: 'cm' },
+                { key: 'pie',         label: 'Talla zapato',  unit: '' },
+                { key: 'notas',       label: 'Notas',         unit: '' }
+            ];
+
+            let _measuresModalMemberId = null;
+
+            function renderMeasuresTab() {
+                const filterBar  = document.getElementById('measures-filter-bar');
+                const filterSel  = document.getElementById('measures-filter-church');
+                const grid       = document.getElementById('measures-grid');
+                const card       = document.getElementById('measures-card');
+
+                // Visibilidad del card: directores locales y estatales lo ven; admin tambien
+                if (card) card.style.display = '';
+
+                // Filtro de iglesia: solo para estado/admin
+                if (isDirector()) {
+                    if (filterBar) filterBar.style.display = 'none';
+                } else {
+                    if (filterBar) filterBar.style.display = '';
+                    const filterChurches = isStateDirector() ? stateChurches() : state.churches;
+                    if (filterSel) {
+                        filterSel.innerHTML = '<option value="">-- Todas las iglesias --</option>' +
+                            filterChurches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                    }
+                }
+
+                const filterChurchId = isDirector()
+                    ? sessionChurchId()
+                    : (filterSel ? filterSel.value : '');
+
+                const myChurches = isDirector()
+                    ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
+                    : isStateDirector() ? stateChurches() : state.churches;
+
+                const churches = filterChurchId
+                    ? state.churches.filter(c => c.id === filterChurchId)
+                    : myChurches;
+
+                const canEdit = isDirector() || isSuperAdmin();
+
+                let html = '';
+                churches.forEach(church => {
+                    const members = state.members.filter(m => m.churchId === church.id);
+                    if (!members.length) return;
+
+                    const churchHeader = !isDirector()
+                        ? `<div style="font-weight:700;color:var(--primary);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;margin:16px 0 10px;">&#x26EA; ${sanitize(church.name)}</div>`
+                        : '';
+
+                    const filled = members.filter(m => m.measures && Object.values(m.measures).some(v => v && String(v).trim() !== '')).length;
+                    const pct = members.length > 0 ? Math.round((filled / members.length) * 100) : 0;
+                    const barColor = pct === 100 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626';
+
+                    const summary = `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--gray-100);border-radius:10px;padding:10px 16px;margin-bottom:14px;">
+                        <span style="font-size:0.82rem;color:var(--gray-500);">Integrantes con medidas registradas</span>
+                        <span style="font-size:0.85rem;font-weight:700;color:${barColor};">${filled}/${members.length}</span>
+                    </div>`;
+
+                    const cards = members.map(m => {
+                        const mes = m.measures || {};
+                        const hasMeasures = Object.values(mes).some(v => v && String(v).trim() !== '');
+                        const preview = hasMeasures
+                            ? MEASURE_FIELDS.filter(f => f.key !== 'notas' && mes[f.key]).slice(0, 4)
+                                .map(f => `<span style="font-size:0.72rem;background:#f1f5f9;padding:2px 7px;border-radius:50px;color:var(--gray-600);">${f.label}: <b>${mes[f.key]}${f.unit}</b></span>`).join(' ')
+                            : '<span style="font-size:0.75rem;color:var(--gray-400);font-style:italic;">Sin medidas registradas</span>';
+
+                        const editBtn = canEdit
+                            ? `<button onclick="openMeasuresModal('${m.id}')" style="padding:5px 14px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:700;flex-shrink:0;">${hasMeasures ? 'Editar' : '+ Medidas'}</button>`
+                            : '';
+
+                        return `<div style="background:white;border-radius:12px;border:1px solid ${hasMeasures ? '#e2f0d9' : 'var(--gray-200)'};padding:14px;box-shadow:0 1px 4px rgba(27,38,59,0.06);">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
+                                <div>
+                                    <div style="font-size:0.88rem;font-weight:700;color:var(--primary);">${sanitize(m.name)}</div>
+                                    ${m.voice ? `<div style="font-size:0.72rem;color:var(--gray-400);margin-top:1px;">${m.voice}</div>` : ''}
+                                </div>
+                                ${editBtn}
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:4px;">${preview}</div>
+                        </div>`;
+                    }).join('');
+
+                    html += churchHeader + summary + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:20px;">${cards}</div>`;
+                });
+
+                if (grid) grid.innerHTML = html || '<div class="empty-state" style="padding:24px 0;"><p>No hay integrantes para mostrar.</p></div>';
+            }
+
+            function openMeasuresModal(memberId) {
+                const member = state.members.find(m => m.id === memberId);
+                if (!member) return;
+                _measuresModalMemberId = memberId;
+
+                document.getElementById('measures-modal-name').textContent = member.name;
+                document.getElementById('measures-modal-voice').textContent = member.voice ? 'Voz: ' + member.voice : '';
+
+                const mes = member.measures || {};
+                const fieldsEl = document.getElementById('measures-modal-fields');
+                fieldsEl.innerHTML = MEASURE_FIELDS.map(f => {
+                    const isWide = f.key === 'notas';
+                    const inputType = f.key === 'notas' ? 'textarea' : 'input';
+                    const inputStyle = "width:100%;padding:8px 10px;border:2px solid var(--gray-300);border-radius:8px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;box-sizing:border-box;";
+                    const input = f.key === 'notas'
+                        ? `<textarea id="mf-${f.key}" rows="2" style="${inputStyle}resize:vertical;" placeholder="Observaciones adicionales...">${mes[f.key] || ''}</textarea>`
+                        : `<input type="text" id="mf-${f.key}" value="${mes[f.key] || ''}" placeholder="${f.unit ? 'ej: 165' : f.key === 'talla' ? 'ej: M, L, XL, 38...' : 'ej: 26'}" style="${inputStyle}">`;
+                    return `<div style="${isWide ? 'grid-column:1/-1;' : ''}">
+                        <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);margin-bottom:5px;">${f.label}${f.unit ? ' (' + f.unit + ')' : ''}</label>
+                        ${input}
+                    </div>`;
+                }).join('');
+
+                const modal = document.getElementById('measures-modal');
+                modal.style.display = 'flex';
+            }
+
+            function closeMeasuresModal() {
+                document.getElementById('measures-modal').style.display = 'none';
+                _measuresModalMemberId = null;
+            }
+
+            function saveMeasuresModal() {
+                const member = state.members.find(m => m.id === _measuresModalMemberId);
+                if (!member) return;
+                if (!member.measures) member.measures = {};
+                MEASURE_FIELDS.forEach(f => {
+                    const el = document.getElementById('mf-' + f.key);
+                    if (el) member.measures[f.key] = el.value.trim();
+                });
+                save();
+                closeMeasuresModal();
+                renderMeasuresTab();
+                showToast('Medidas guardadas correctamente');
+            }
+
+            // Cerrar modal al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('measures-modal');
+                if (modal && e.target === modal) closeMeasuresModal();
+            });
+
+            function exportMeasuresPDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+                const NAVY  = [27, 38, 59];
+                const ACENT = [75, 9, 14];
+                const WHITE = [255, 255, 255];
+                const LGRAY = [232, 237, 244];
+
+                const filterSel = document.getElementById('measures-filter-church');
+                const filterChurchId = isDirector() ? sessionChurchId() : (filterSel ? filterSel.value : '');
+
+                const myChurches = isDirector()
+                    ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
+                    : isStateDirector() ? stateChurches() : state.churches;
+
+                let churches = filterChurchId
+                    ? state.churches.filter(c => c.id === filterChurchId)
+                    : myChurches;
+
+                if (!churches.length) { showToast('No hay iglesias para generar el informe.'); return; }
+
+                const FIELDS_PDF = MEASURE_FIELDS.filter(f => f.key !== 'notas');
+                let firstPage = true;
+
+                churches.forEach(church => {
+                    const members = state.members.filter(m => m.churchId === church.id);
+                    if (!members.length) return;
+
+                    if (!firstPage) doc.addPage();
+                    firstPage = false;
+
+                    // Header
+                    doc.setFillColor(...NAVY);
+                    doc.rect(0, 0, 297, 22, 'F');
+                    doc.setFillColor(...ACENT);
+                    doc.rect(0, 22, 297, 1.5, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(13);
+                    doc.setTextColor(224, 225, 221);
+                    doc.text('CoralSync', 14, 10);
+                    doc.setFontSize(10);
+                    doc.setTextColor(...WHITE);
+                    doc.text('Medidas para Uniformes - ' + church.name, 14, 18);
+                    const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
+                    doc.setFontSize(7);
+                    doc.setTextColor(180, 180, 180);
+                    doc.text('Generado: ' + now, 283, 18, { align: 'right' });
+
+                    let y = 30;
+
+                    // Resumen
+                    const filled = members.filter(m => m.measures && Object.values(m.measures).some(v => v && String(v).trim() !== '')).length;
+                    doc.setFillColor(...LGRAY);
+                    doc.roundedRect(14, y, 269, 10, 2, 2, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(...NAVY);
+                    doc.text(`${members.length} integrantes | ${filled} con medidas registradas`, 18, y + 6.5);
+                    y += 16;
+
+                    const head = [['Integrante', 'Voz', ...FIELDS_PDF.map(f => f.label + (f.unit ? ' (' + f.unit + ')' : '')), 'Notas']];
+                    const body = members.map(m => {
+                        const mes = m.measures || {};
+                        return [
+                            m.name,
+                            m.voice || '-',
+                            ...FIELDS_PDF.map(f => mes[f.key] || '-'),
+                            mes.notas || ''
+                        ];
+                    });
+
+                    doc.autoTable({
+                        startY: y,
+                        head,
+                        body,
+                        margin: { left: 14, right: 14 },
+                        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2.5, valign: 'middle' },
+                        headStyles: { fillColor: NAVY, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+                        columnStyles: {
+                            0: { cellWidth: 50, fontStyle: 'bold', textColor: NAVY },
+                            1: { cellWidth: 18, halign: 'center' },
+                            [FIELDS_PDF.length + 2]: { cellWidth: 35 }
+                        },
+                        alternateRowStyles: { fillColor: [248, 249, 250] },
+                        didParseCell: (data) => {
+                            if (data.section === 'body' && data.column.index >= 2 && data.column.index <= FIELDS_PDF.length + 1) {
+                                data.cell.styles.halign = 'center';
+                                if (data.cell.raw === '-') data.cell.styles.textColor = [180, 180, 180];
+                            }
+                        }
+                    });
+                });
+
+                if (firstPage) { showToast('No hay datos para generar el informe.'); return; }
+
+                // Footer
+                const totalPages = doc.getNumberOfPages();
+                for (let p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+                    doc.setFillColor(...NAVY);
+                    doc.rect(0, 202, 297, 8, 'F');
+                    doc.setFontSize(7);
+                    doc.setTextColor(180, 180, 180);
+                    doc.text('CoralSync - Medidas para Uniformes', 14, 207);
+                    doc.text(`Pagina ${p}/${totalPages}`, 283, 207, { align: 'right' });
+                }
+
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
+                doc.save('Medidas_Uniformes_CoralSync_' + fecha + '.pdf');
+                showToast('PDF de medidas generado');
             }
 
             // ======================== TOQUE SECRETO (7 clics en logo) ========================
