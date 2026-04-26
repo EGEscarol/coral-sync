@@ -3390,6 +3390,7 @@
             function isDirector()       { return currentSession && currentSession.role === 'director'; }
             function isStateDirector()  { return currentSession && currentSession.role === 'statedirector'; }
             function isAuxiliar()       { return currentSession && currentSession.role === 'auxiliar'; }
+            function isDiacono()        { return currentSession && currentSession.role === 'diacono'; }
             function isDirectorOrAux()  { return isDirector() || isAuxiliar(); }
             function sessionChurchId()  { return (isDirector() || isAuxiliar()) ? currentSession.churchId : null; }
             function sessionStateName() { return (isStateDirector() || isDiacono()) ? currentSession.stateName : null; }
@@ -3760,6 +3761,15 @@
                     if (navPagos)      navPagos.style.display      = 'none';
                 } else if (isStateDirector()) {
                     // Director estatal: ve su estado, uniformes, reportes — no admin
+                    if (navChurches)   navChurches.style.display   = 'none';
+                    if (navDirectors)  navDirectors.style.display  = 'none';
+                    if (navAdminLabel) navAdminLabel.style.display = 'none';
+                    if (navSettings)   navSettings.style.display   = 'none';
+                    if (navStateDirs)  navStateDirs.style.display  = 'none';
+                    if (navPagos)      navPagos.style.display      = 'none';
+                    if (navAux)        navAux.style.display        = 'none';
+                } else if (isDiacono()) {
+                    // Diacono coordinador: solo lectura — mismo scope que director estatal
                     if (navChurches)   navChurches.style.display   = 'none';
                     if (navDirectors)  navDirectors.style.display  = 'none';
                     if (navAdminLabel) navAdminLabel.style.display = 'none';
