@@ -2475,6 +2475,49 @@
                             <div class="empty-state"><p>No hay directores estatales registrados.</p></div>
                         </div>
                     </div>
+
+                    <!-- DIACONOS: agregar -->
+                    <div class="card" style="margin-top:20px;">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            Agregar Diacono Coordinador
+                        </div>
+                        <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px;">Los diaconos coordinadores tienen acceso de <strong>solo lectura</strong> a la informacion de su estado: integrantes, asistencias, uniformes y medidas. No pueden editar ni dar de alta datos.</p>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:1;min-width:150px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Estado</label>
+                                <select id="new-diacono-state" onchange="updateDiaconoMemberSelector()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Selecciona un estado --</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:180px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Integrante</label>
+                                <select id="new-diacono-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                    <option value="">-- Primero elige el estado --</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:130px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Usuario</label>
+                                <input type="text" id="new-diacono-user" placeholder="Usuario" autocomplete="off" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <div style="flex:1;min-width:130px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contrasena</label>
+                                <input type="password" id="new-diacono-pass" placeholder="Contrasena" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <button onclick="addDiacono()" class="btn-solid" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">+ Agregar</button>
+                        </div>
+                    </div>
+
+                    <!-- DIACONOS: lista -->
+                    <div class="card" style="margin-top:20px;">
+                        <div class="card-title" style="margin-bottom:16px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Diaconos Coordinadores registrados
+                        </div>
+                        <div id="diaconos-list" class="item-list">
+                            <div class="empty-state"><p>No hay diaconos coordinadores registrados.</p></div>
+                        </div>
+                    </div>
                 </div>
 
             <!-- PAGE: AUXILIARES -->
@@ -3348,7 +3391,7 @@
             function visibleMembers() {
                 if (!currentSession) return state.members;
                 if (isSuperAdmin()) return state.members;
-                if (isStateDirector()) {
+                if (isStateDirector() || isDiacono()) {
                     const ids = new Set(stateChurches().map(c=>c.id));
                     return state.members.filter(m => ids.has(m.churchId));
                 }
@@ -3358,7 +3401,7 @@
             function visibleRecords() {
                 if (!currentSession) return state.records;
                 if (isSuperAdmin()) return state.records;
-                if (isStateDirector()) {
+                if (isStateDirector() || isDiacono()) {
                     const ids = new Set(stateChurches().map(c=>c.id));
                     return state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && ids.has(m.churchId); });
                 }
@@ -3368,7 +3411,7 @@
             function visibleChurches() {
                 if (!currentSession) return state.churches;
                 if (isSuperAdmin()) return state.churches;
-                if (isStateDirector()) return stateChurches();
+                if (isStateDirector() || isDiacono()) return stateChurches();
                 return state.churches.filter(c => c.id === sessionChurchId());
             }
 
@@ -3554,6 +3597,18 @@
                     return;
                 }
 
+                // ¿Es diacono coordinador?
+                const diac = diaconos.find(d => d.username === user && d.password === pass);
+                if (diac) {
+                    currentSession = { role: 'diacono', name: diac.name, stateName: diac.stateName };
+                    closeAdminLoginModal();
+                    stopCamera();
+                    applySessionUI();
+                    showView('view-admin');
+                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    return;
+                }
+
                 // ¿Es director estatal?
                 const stDir = stateDirectors.find(d => d.username === user && d.password === pass);
                 if (stDir) {
@@ -3624,6 +3679,13 @@
                         nameEl.textContent = currentSession.name;
                         nameEl.style.color = '#60a5fa';
                         if (churchEl) churchEl.textContent = '🗺 Dir. Estatal — ' + (currentSession.stateName || '');
+                    } else if (isDiacono()) {
+                        badgeEl.className = 'cs-session-badge';
+                        badgeEl.style.background = 'rgba(120,53,15,0.2)';
+                        badgeEl.style.borderColor = 'rgba(120,53,15,0.4)';
+                        nameEl.textContent = currentSession.name;
+                        nameEl.style.color = '#d97706';
+                        if (churchEl) churchEl.textContent = '🕊 Diacono — ' + (currentSession.stateName || '');
                     } else if (isAuxiliar()) {
                         badgeEl.className = 'cs-session-badge';
                         badgeEl.style.background = 'rgba(168,99,30,0.2)';
@@ -3693,7 +3755,7 @@
 
                 // Deshabilitar edición en integrantes para director estatal (solo lectura)
                 const addMemberCard = document.querySelector('#page-members .card:first-child');
-                if (addMemberCard) addMemberCard.style.display = isStateDirector() ? 'none' : '';
+                if (addMemberCard) addMemberCard.style.display = (isStateDirector() || isDiacono()) ? 'none' : '';
             }
 
             function saveAdminCredentials() {
@@ -3812,6 +3874,12 @@
             };
 
             function showPage(page) {
+                // Guard: la página de directores estatales es exclusiva del superadmin
+                if (page === 'statedirectors' && !isSuperAdmin()) {
+                    showToast('Acceso restringido al Super Administrador.');
+                    showPage('dashboard');
+                    return;
+                }
                 // Ocultar todas las páginas
                 document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
                 const dashboard = document.getElementById('page-dashboard');
@@ -3844,7 +3912,7 @@
                 if (page === 'activities') renderActivities();
                 if (page === 'reports') renderReportsTab();
                 if (page === 'directors') { renderDirectors(); renderAuxiliares(); }
-                if (page === 'statedirectors') renderStateDirectors();
+                if (page === 'statedirectors') { renderStateDirectors(); renderDiaconos(); }
                 if (page === 'pagos') renderPagos();
                 if (page === 'auxiliares') renderAuxiliares();
                 if (page === 'uniforms') { renderUniformsTab(); renderMeasuresTab(); }
@@ -3987,7 +4055,7 @@
 
                 document.getElementById("members-count").textContent = members.length;
                 const qrLoteBtn = document.querySelector('button[onclick="exportAllQR()"]');
-                if (qrLoteBtn) qrLoteBtn.style.display = (isStateDirector() || isAuxiliar()) ? 'none' : '';
+                if (qrLoteBtn) qrLoteBtn.style.display = (isStateDirector() || isAuxiliar() || isDiacono()) ? 'none' : '';
 
                 // Update church selector in member form
                 const churchSel = document.getElementById("new-member-church");
@@ -4007,7 +4075,7 @@
                 if (churchRow) churchRow.style.display = isDirectorOrAux() ? 'none' : '';
 
                 const addMemberForm = document.querySelector('#page-members .card:first-child');
-                if (addMemberForm) addMemberForm.style.display = (isAuxiliar() || isStateDirector()) ? 'none' : '';
+                if (addMemberForm) addMemberForm.style.display = (isAuxiliar() || isStateDirector() || isDiacono()) ? 'none' : '';
 
                 if (!members.length) {
                     list.innerHTML = '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><p>Aún no hay integrantes registrados.</p></div>';
@@ -4041,7 +4109,7 @@
                     const voiceBadge = m.voice ? `<span style="font-size:0.68rem;font-weight:600;color:#ffffff;background:${voiceColors[m.voice]||'#888'};padding:2px 8px;border-radius:50px;margin-left:6px;">${m.voice}</span>` : '';
                     const notePreview = m.note ? `<span style="font-size:0.72rem;color:var(--accent-dark);margin-left:8px;font-style:italic;">📝 ${m.note.length>40?m.note.substring(0,40)+'…':m.note}</span>` : '';
                     const churchBadge = m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : '';
-                    const canEdit = !isStateDirector() && !isAuxiliar();
+                    const canEdit = !isStateDirector() && !isAuxiliar() && !isDiacono();
                     return `
     <div class="item-row" style="flex-wrap:wrap;gap:8px;">
       <div style="flex:1;min-width:140px;">
@@ -4486,7 +4554,7 @@
                 document.getElementById("activities-count").textContent = state.activities.length;
                 // Ocultar form de agregar actividad si es director
                 const addForm = document.getElementById("activity-add-form");
-                if (addForm) addForm.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
+                if (addForm) addForm.style.display = (isDirector() || isStateDirector() || isDiacono()) ? 'none' : '';
                 if (!state.activities.length) {
                     list.innerHTML =
                         '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle></svg><p>Aún no hay actividades.</p></div>';
@@ -4835,7 +4903,7 @@
 
                 // Ocultar/mostrar registro manual y filtro iglesia según rol
                 const manualCard = document.getElementById('records-manual-card');
-                if (manualCard) manualCard.style.display = isStateDirector() ? 'none' : '';
+                if (manualCard) manualCard.style.display = (isStateDirector() || isDiacono()) ? 'none' : '';
 
                 // Filtro por iglesia para director estatal
                 const churchFilterSel = document.getElementById('records-church-filter');
@@ -4956,14 +5024,14 @@
                         : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
                     return `
       <tr id="row-${r.id}">
-        <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
+        <td style="width:36px;">${(isStateDirector()||isDiacono()) ? '' : `<input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;">`}</td>
         <td style="color:var(--gray-500);font-size:0.78rem;">${i + 1}</td>
         <td style="font-weight:700;">${r.memberName}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
         <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
         <td>${r.date}</td>
         <td>${r.time}</td>
         <td>${mapsLink}</td>
-        <td><button onclick="deleteSingleRecord('${r.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:1rem;padding:4px 6px;border-radius:6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">🗑</button></td>
+        <td>${(isStateDirector()||isDiacono()) ? '' : `<button onclick="deleteSingleRecord('${r.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:1rem;padding:4px 6px;border-radius:6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">🗑</button>`}</td>
       </tr>`;
                 }).join("");
             }
@@ -5018,6 +5086,7 @@
             }
 
             function deleteSingleRecord(id) {
+                if (isStateDirector() || isDiacono()) { showToast('Sin permisos para eliminar registros.'); return; }
                 customConfirm("¿Eliminar este registro?", () => {
                     state.records = state.records.filter((r) => r.id !== id);
                     save();
@@ -5027,6 +5096,7 @@
             }
 
             function deleteSelectedRecords() {
+                if (isStateDirector() || isDiacono()) { showToast('Sin permisos para eliminar registros.'); return; }
                 const checked = document.querySelectorAll(
                     ".record-check:checked",
                 );
@@ -5989,6 +6059,10 @@
             }
 
             function renderUniformsTab() {
+                // Ocultar tarjeta de agregar uniforme para diacono (solo lectura)
+                const addUniformCard = document.querySelector('#page-uniforms .card:first-child');
+                if (addUniformCard) addUniformCard.style.display = isDiacono() ? 'none' : '';
+
                 // Selector de iglesia en catálogo
                 const churchWrap = document.getElementById('uniform-church-wrap');
                 const churchSel  = document.getElementById('new-uniform-church');
@@ -5996,8 +6070,8 @@
 
                 // Director local no ve selector de iglesia (usa la suya automáticamente)
                 // Director estatal no ve selector de iglesia pero sí el de estado
-                if (churchWrap) churchWrap.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
-                if (stateWrap)  stateWrap.style.display  = isDirector() ? 'none' : '';
+                if (churchWrap) churchWrap.style.display = (isDirector() || isStateDirector() || isDiacono()) ? 'none' : '';
+                if (stateWrap)  stateWrap.style.display  = (isDirector() || isDiacono()) ? 'none' : '';
 
                 if (churchSel && !isDirector() && !isStateDirector()) {
                     // Super Admin ve todas las iglesias
@@ -6023,7 +6097,7 @@
                     catalogHTML += unis.map(u => `
                         <div class="item-row" style="padding:8px 14px;background:#eff6ff;border-radius:8px;margin-bottom:4px;">
                             <div class="item-name">🎽 ${u.name} <span style="font-size:0.68rem;color:var(--brand-900);font-weight:700;margin-left:6px;">ESTATAL</span></div>
-                            ${!isDirector() ? `<button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>` : '<span style="font-size:0.72rem;color:#9A9A92;font-style:italic;">Solo estatal</span>'}
+                            ${(!isDirector() && !isDiacono()) ? `<button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>` : '<span style="font-size:0.72rem;color:#9A9A92;font-style:italic;">Solo lectura</span>'}
                         </div>`).join('');
                 });
                 // Luego uniformes de cada iglesia (solo los propios, no los heredados)
@@ -6117,6 +6191,27 @@
 
             // ======================== STATE DIRECTORS ========================
 
+            async function loadDiaconosFromFirebase() {
+                try {
+                    const data = await window._fbLoadDiaconos();
+                    if (data && data.length) {
+                        diaconos = data;
+                        localStorage.setItem('cva_diaconos', JSON.stringify(diaconos));
+                    } else {
+                        const cache = localStorage.getItem('cva_diaconos');
+                        if (cache) diaconos = JSON.parse(cache);
+                    }
+                } catch(e) {
+                    const cache = localStorage.getItem('cva_diaconos');
+                    if (cache) diaconos = JSON.parse(cache);
+                }
+            }
+
+            async function saveDiaconos() {
+                localStorage.setItem('cva_diaconos', JSON.stringify(diaconos));
+                if (window._fbSaveDiaconos) await window._fbSaveDiaconos(diaconos);
+            }
+
             async function loadStateDirectorsFromFirebase() {
                 try {
                     const dirs = await window._fbLoadStateDirs();
@@ -6166,6 +6261,7 @@
             }
 
             function addStateDirector() {
+                if (!isSuperAdmin()) { showToast('Solo el Super Administrador puede dar de alta directores estatales.'); return; }
                 const stateName = (document.getElementById('new-statedir-state')?.value || '').trim();
                 const memberId  = (document.getElementById('new-statedir-member')?.value || '').trim();
                 const username  = (document.getElementById('new-statedir-user').value||'').trim();
@@ -6188,6 +6284,7 @@
             }
 
             function renderStateDirectors() {
+                renderDiaconos();
                 // Poblar selector de estados con los que tienen iglesias
                 const stateSel = document.getElementById('new-statedir-state');
                 if (stateSel) {
@@ -6220,6 +6317,108 @@
                             saveStateDirectors();
                             renderStateDirectors();
                             showToast('Director estatal eliminado.');
+                        });
+                    });
+                });
+            }
+
+            // ======================== DIACONOS COORDINADORES ========================
+
+            function updateDiaconoMemberSelector() {
+                const stateName = document.getElementById('new-diacono-state')?.value || '';
+                const memberSel = document.getElementById('new-diacono-member');
+                if (!memberSel) return;
+                if (!stateName) {
+                    memberSel.innerHTML = '<option value="">-- Primero elige el estado --</option>';
+                    return;
+                }
+                const stateChurchIds = new Set(
+                    state.churches.filter(c => c.state === stateName).map(c => c.id)
+                );
+                // Excluir los que ya son directores estatales o diaconos de este estado
+                const usedMemberIds = new Set([
+                    ...stateDirectors.filter(d => d.stateName === stateName).map(d => d.memberId),
+                    ...diaconos.filter(d => d.stateName === stateName).map(d => d.memberId)
+                ].filter(Boolean));
+                const available = state.members.filter(m =>
+                    stateChurchIds.has(m.churchId) && !usedMemberIds.has(m.id)
+                );
+                if (!available.length) {
+                    memberSel.innerHTML = '<option value="">-- No hay integrantes disponibles --</option>';
+                    return;
+                }
+                memberSel.innerHTML = '<option value="">-- Selecciona el diacono --</option>' +
+                    available.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
+            }
+
+            function addDiacono() {
+                if (!isSuperAdmin()) { showToast('Solo el Super Administrador puede dar de alta diáconos.'); return; }
+                const stateName = (document.getElementById('new-diacono-state')?.value || '').trim();
+                const memberId  = (document.getElementById('new-diacono-member')?.value || '').trim();
+                const username  = (document.getElementById('new-diacono-user').value || '').trim();
+                const password  = (document.getElementById('new-diacono-pass').value || '');
+                if (!stateName) { showToast('Selecciona el estado.'); return; }
+                if (!memberId)  { showToast('Selecciona un integrante.'); return; }
+                if (!username)  { showToast('Ingresa un usuario.'); return; }
+                if (!password)  { showToast('Ingresa una contrasena.'); return; }
+                // Verificar usuario unico en todos los roles
+                const allUsers = [
+                    ADMIN_USERNAME,
+                    ...directors.map(d => d.username),
+                    ...stateDirectors.map(d => d.username),
+                    ...diaconos.map(d => d.username),
+                    ...auxiliares.map(a => a.username)
+                ];
+                if (allUsers.includes(username)) { showToast('Ese usuario ya existe.'); return; }
+                const member = state.members.find(m => m.id === memberId);
+                const name = member ? member.name : '';
+                diaconos.push({ id: 'DC' + Date.now(), name, memberId, stateName, username, password });
+                saveDiaconos();
+                document.getElementById('new-diacono-state').value = '';
+                document.getElementById('new-diacono-member').innerHTML = '<option value="">-- Primero elige el estado --</option>';
+                document.getElementById('new-diacono-user').value = '';
+                document.getElementById('new-diacono-pass').value = '';
+                renderDiaconos();
+                showToast('Diacono coordinador agregado: ' + name + ' (' + stateName + ')');
+            }
+
+            function renderDiaconos() {
+                // Poblar selector de estados
+                const stateSel = document.getElementById('new-diacono-state');
+                if (stateSel) {
+                    const states = [...new Set(state.churches.map(c => c.state).filter(Boolean))].sort();
+                    const curVal = stateSel.value;
+                    stateSel.innerHTML = '<option value="">-- Selecciona un estado --</option>' +
+                        states.map(s => `<option value="${s}">${s}</option>`).join('');
+                    if (states.includes(curVal)) stateSel.value = curVal;
+                }
+                const list = document.getElementById('diaconos-list');
+                if (!list) return;
+                if (!diaconos.length) {
+                    list.innerHTML = '<div class="empty-state"><p>No hay diaconos coordinadores registrados.</p></div>';
+                    return;
+                }
+                list.innerHTML = diaconos.map(d => `
+                    <div class="item-row">
+                        <div style="flex:1;">
+                            <div class="item-name">${sanitize(d.name)}
+                                <span style="font-size:0.72rem;color:white;background:#92400e;padding:2px 8px;border-radius:50px;margin-left:6px;">
+                                    Diacono — ${d.stateName}
+                                </span>
+                            </div>
+                            <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">Usuario: <code>${d.username}</code></div>
+                        </div>
+                        ${isSuperAdmin() ? `<button title="Eliminar" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-diacono="${d.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>` : ''}
+                    </div>`).join('');
+                list.querySelectorAll('[data-delete-diacono]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        customConfirm('Eliminar este diacono coordinador?', () => {
+                            diaconos = diaconos.filter(d => d.id !== btn.getAttribute('data-delete-diacono'));
+                            saveDiaconos();
+                            renderDiaconos();
+                            showToast('Diacono eliminado.');
                         });
                     });
                 });
@@ -6279,6 +6478,7 @@
                 const allUsers = [
                     ...directors.map(d=>d.username),
                     ...stateDirectors.map(d=>d.username),
+                    ...diaconos.map(d=>d.username),
                     ...auxiliares.map(a=>a.username)
                 ];
                 if (allUsers.includes(username)) { showToast('Ese usuario ya existe.'); return; }
@@ -6548,7 +6748,7 @@
                         <div class="cs-stat-icon">👥</div>
                         <div class="cs-stat-val">${members.length}</div>
                         <div class="cs-stat-label">Integrantes</div>
-                        <div class="cs-stat-sub">${isDirector() ? currentSession.churchName : 'en total'}</div>
+                        <div class="cs-stat-sub">${isDirector() ? currentSession.churchName : (isStateDirector() || isDiacono()) ? currentSession.stateName : 'en total'}</div>
                     </div>
                     <div class="cs-stat-card">
                         <div class="cs-stat-icon">📋</div>
@@ -6672,6 +6872,7 @@
                     loadCredentialsFromFirebase(),
                     loadDirectorsFromFirebase(),
                     loadStateDirectorsFromFirebase(),
+                    loadDiaconosFromFirebase(),
                     loadAuxiliaresFromFirebase(),
                     loadUniformsFromFirebase(),
                     loadPagosFromFirebase()
@@ -7909,7 +8110,7 @@
                     ? state.churches.filter(c => c.id === filterChurchId)
                     : myChurches;
 
-                const canEdit = isDirector() || isSuperAdmin();
+                const canEdit = (isDirector() || isSuperAdmin()) && !isDiacono();
 
                 let html = '';
                 churches.forEach(church => {
