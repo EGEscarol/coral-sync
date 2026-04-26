@@ -2496,16 +2496,14 @@
                         </div>
                         <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px;">Los diaconos coordinadores tienen acceso de <strong>solo lectura</strong> a la informacion de su estado: integrantes, asistencias, uniformes y medidas. No pueden editar ni dar de alta datos.</p>
                         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:1;min-width:200px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre completo</label>
+                                <input type="text" id="new-diacono-name" placeholder="Nombre del diacono" autocomplete="off" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
                             <div style="flex:1;min-width:150px;">
                                 <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Estado</label>
-                                <select id="new-diacono-state" onchange="updateDiaconoMemberSelector()" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
+                                <select id="new-diacono-state" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
                                     <option value="">-- Selecciona un estado --</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;min-width:180px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Integrante</label>
-                                <select id="new-diacono-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
-                                    <option value="">-- Primero elige el estado --</option>
                                 </select>
                             </div>
                             <div style="flex:1;min-width:130px;">
@@ -6359,44 +6357,16 @@
 
             // ======================== DIACONOS COORDINADORES ========================
 
-            function updateDiaconoMemberSelector() {
-                const stateName = document.getElementById('new-diacono-state')?.value || '';
-                const memberSel = document.getElementById('new-diacono-member');
-                if (!memberSel) return;
-                if (!stateName) {
-                    memberSel.innerHTML = '<option value="">-- Primero elige el estado --</option>';
-                    return;
-                }
-                const stateChurchIds = new Set(
-                    state.churches.filter(c => c.state === stateName).map(c => c.id)
-                );
-                // Excluir los que ya son directores estatales o diaconos de este estado
-                const usedMemberIds = new Set([
-                    ...stateDirectors.filter(d => d.stateName === stateName).map(d => d.memberId),
-                    ...diaconos.filter(d => d.stateName === stateName).map(d => d.memberId)
-                ].filter(Boolean));
-                const available = state.members.filter(m =>
-                    stateChurchIds.has(m.churchId) && !usedMemberIds.has(m.id)
-                );
-                if (!available.length) {
-                    memberSel.innerHTML = '<option value="">-- No hay integrantes disponibles --</option>';
-                    return;
-                }
-                memberSel.innerHTML = '<option value="">-- Selecciona el diacono --</option>' +
-                    available.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
-            }
-
             function addDiacono() {
-                if (!isSuperAdmin()) { showToast('Solo el Super Administrador puede dar de alta diáconos.'); return; }
+                if (!isSuperAdmin()) { showToast('Solo el Super Administrador puede dar de alta diaconos.'); return; }
+                const name      = (document.getElementById('new-diacono-name').value || '').trim();
                 const stateName = (document.getElementById('new-diacono-state')?.value || '').trim();
-                const memberId  = (document.getElementById('new-diacono-member')?.value || '').trim();
                 const username  = (document.getElementById('new-diacono-user').value || '').trim();
                 const password  = (document.getElementById('new-diacono-pass').value || '');
+                if (!name)      { showToast('Ingresa el nombre del diacono.'); return; }
                 if (!stateName) { showToast('Selecciona el estado.'); return; }
-                if (!memberId)  { showToast('Selecciona un integrante.'); return; }
                 if (!username)  { showToast('Ingresa un usuario.'); return; }
                 if (!password)  { showToast('Ingresa una contrasena.'); return; }
-                // Verificar usuario unico en todos los roles
                 const allUsers = [
                     ADMIN_USERNAME,
                     ...directors.map(d => d.username),
@@ -6405,12 +6375,10 @@
                     ...auxiliares.map(a => a.username)
                 ];
                 if (allUsers.includes(username)) { showToast('Ese usuario ya existe.'); return; }
-                const member = state.members.find(m => m.id === memberId);
-                const name = member ? member.name : '';
-                diaconos.push({ id: 'DC' + Date.now(), name, memberId, stateName, username, password });
+                diaconos.push({ id: 'DC' + Date.now(), name, stateName, username, password });
                 saveDiaconos();
+                document.getElementById('new-diacono-name').value = '';
                 document.getElementById('new-diacono-state').value = '';
-                document.getElementById('new-diacono-member').innerHTML = '<option value="">-- Primero elige el estado --</option>';
                 document.getElementById('new-diacono-user').value = '';
                 document.getElementById('new-diacono-pass').value = '';
                 renderDiaconos();
