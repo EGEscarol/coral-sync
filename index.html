@@ -4326,7 +4326,7 @@
                             doc.setFont('helvetica','bold');
                             doc.setFontSize(8);
                             doc.setTextColor(...GOLD);
-                            doc.text('CoralSync — Códigos QR del Coro', 14, 7);
+                            doc.text('CoralSync - Codigos QR del Coro', 14, 7);
                             doc.setTextColor(180,180,180);
                             doc.text(`Página ${p}/${totalPages}`, 196, 7, { align:'right' });
                         }
@@ -5885,7 +5885,7 @@
                     doc.text('CoralSync', 14, 10);
                     doc.setFontSize(10);
                     doc.setTextColor(...WHITE);
-                    doc.text('Informe de Uniformes — ' + church.name, 14, 18);
+                    doc.text('Informe de Uniformes - ' + church.name, 14, 18);
                     const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
@@ -5904,18 +5904,18 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(9);
                     doc.setTextColor(...NAVY);
-                    doc.text(`${members.length} integrantes  •  ${unis.length} uniformes  •  ${completeCount} con uniforme completo`, 18, y + 6.5);
+                    doc.text(`${members.length} integrantes | ${unis.length} uniformes | ${completeCount} con uniforme completo`, 18, y + 6.5);
                     y += 16;
 
                     // ── Tabla ─────────────────────────────────────────
                     // Construir cabeceras: Integrante + Voz + cada uniforme
-                    const uniCols = unis.map(u => (u.isState ? '★ ' : '') + u.name);
+                    const uniCols = unis.map(u => (u.isState ? '[E] ' : '') + u.name);
                     const head = [['Integrante', 'Voz', ...uniCols, 'Completo']];
 
                     const body = members.map(m => {
-                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? '✓' : '✗');
+                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? 'SI' : 'NO');
                         const allDone = unis.every(u => m.uniforms && m.uniforms[u.id]);
-                        return [m.name, m.voice || '—', ...uniVals, allDone ? '✓' : '✗'];
+                        return [m.name, m.voice || '-', ...uniVals, allDone ? 'SI' : 'NO'];
                     });
 
                     // Anchos de columna dinámicos
@@ -5943,20 +5943,20 @@
                                 // Columnas de uniformes (2 a N+1)
                                 if (colIdx >= 2 && colIdx <= unis.length + 1) {
                                     data.cell.styles.halign = 'center';
-                                    if (data.cell.raw === '✓') {
+                                    if (data.cell.raw === 'SI') {
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
-                                    } else {
+                                    } else if (data.cell.raw === 'NO') {
                                         data.cell.styles.textColor = RED;
                                     }
                                 }
                                 // Columna "Completo"
                                 if (colIdx === unis.length + 2) {
-                                    if (data.cell.raw === '✓') {
+                                    if (data.cell.raw === 'SI') {
                                         data.cell.styles.fillColor = [216, 243, 220];
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
-                                    } else {
+                                    } else if (data.cell.raw === 'NO') {
                                         data.cell.styles.fillColor = [255, 224, 224];
                                         data.cell.styles.textColor = RED;
                                     }
@@ -5977,10 +5977,10 @@
                     doc.rect(0, 202, 297, 8, 'F');
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
-                    doc.text('CoralSync — Informe de Uniformes', 14, 207);
+                    doc.text('CoralSync - Informe de Uniformes', 14, 207);
                     doc.text(`Página ${p}/${totalPages}`, 283, 207, { align: 'right' });
                     doc.setTextColor(...ACENT);
-                    doc.text('★ = Uniforme estatal', 148, 207, { align: 'center' });
+                    doc.text('[E] = Uniforme estatal', 148, 207, { align: 'center' });
                 }
 
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
@@ -6930,7 +6930,7 @@
                 const mesPico = mesRows.length ? mesRows.reduce((a,b)=>b[1]>a[1]?b:a) : null;
 
                 // ========== PÁGINA 1: RESUMEN DEL GRUPO ==========
-                pdfHeader(doc, 'Reporte de Grupo — ' + groupLabel,
+                pdfHeader(doc, 'Reporte de Grupo - ' + groupLabel,
                     selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros' + (monthLbl ? '  •  ' + monthLbl : ''));
 
                 let y = 42;
@@ -7097,7 +7097,7 @@
                     });
                     const actFav = Object.values(byAct).sort((a,b)=>b.count-a.count)[0];
 
-                    pdfHeader(doc, 'Reporte Individual — ' + groupLabel,
+                    pdfHeader(doc, 'Reporte Individual - ' + groupLabel,
                         member.name + (member.churchName ? '  •  '+member.churchName : '') + (member.voice ? '  •  Voz: '+member.voice : ''));
 
                     let iy = 42;
@@ -7130,7 +7130,7 @@
                     doc.setFontSize(8);
                     doc.setTextColor(73,80,87);
                     doc.text('Hora prom. llegada: ' + horaPromedio, 18, iy+5);
-                    doc.text('Act. favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '—'), 18, iy+11);
+                    doc.text('Act. favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '-'), 18, iy+11);
                     doc.text('Primer registro: ' + primerReg, 105, iy+5);
                     doc.text('Ultimo registro: ' + ultimoReg, 105, iy+11);
                     iy += 20;
@@ -7595,7 +7595,7 @@
                     doc.rect(0, 287, 210, 10, 'F');
                     doc.setFontSize(7);
                     doc.setTextColor(130, 130, 120);
-                    doc.text('CoralSync — Coro Vista Alegre', 14, 293);
+                    doc.text('CoralSync - Coro Vista Alegre', 14, 293);
                     doc.text('Pag. ' + i + ' / ' + pageCount, 196, 293, {align:'right'});
                 }
             }
@@ -7652,7 +7652,7 @@
                 const pct = totalPosible > 0 ? Math.round((totalMember / totalPosible) * 100) : 0;
 
                 // ---- ENCABEZADO ----
-                pdfHeader(doc, 'Reporte Individual de Asistencia', member.name + (member.churchName ? '  •  ' + member.churchName : ''));
+                pdfHeader(doc, 'Reporte Individual de Asistencia', member.name + (member.churchName ? ' | ' + member.churchName : ''));
 
                 let y = 42;
 
