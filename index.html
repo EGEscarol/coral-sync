@@ -3575,6 +3575,8 @@
 
             // ======================== LOGIN ========================
             let loginMode = "admin";
+            let loginAttempts = 0;
+            let loginBlockedUntil = 0;
 
             function setLoginMode(mode) {
                 loginMode = mode;
@@ -3594,6 +3596,14 @@
             }
 
             function checkAdminCredentials() {
+                // Verificar bloqueo por intentos fallidos
+                if (loginBlockedUntil && Date.now() < loginBlockedUntil) {
+                    const secsLeft = Math.ceil((loginBlockedUntil - Date.now()) / 1000);
+                    document.getElementById('pin-error').textContent = `Demasiados intentos. Espera ${secsLeft} segundos.`;
+                    document.getElementById('pin-error').style.display = 'block';
+                    return;
+                }
+
                 const user = (document.getElementById('admin-username').value || '').trim();
                 const pass = (document.getElementById('admin-password').value || '');
 
@@ -6894,12 +6904,18 @@
             }
 
             // Esperar a que Firebase esté listo
-            if (window._fbReady) {
+            let _initAppCalled = false;
+            function initAppOnce() {
+                if (_initAppCalled) return;
+                _initAppCalled = true;
                 initApp();
+            }
+            if (window._fbReady) {
+                initAppOnce();
             } else {
-                document.addEventListener("firebase-ready", initApp);
-                // Timeout por si Firebase tarda mucho
-                setTimeout(initApp, 4000);
+                document.addEventListener("firebase-ready", initAppOnce);
+                // Timeout de seguridad por si Firebase no responde
+                setTimeout(initAppOnce, 5000);
             }
         
 
