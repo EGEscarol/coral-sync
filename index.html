@@ -3391,12 +3391,14 @@
             function isAuxiliar()       { return currentSession && currentSession.role === 'auxiliar'; }
             function isDirectorOrAux()  { return isDirector() || isAuxiliar(); }
             function sessionChurchId()  { return (isDirector() || isAuxiliar()) ? currentSession.churchId : null; }
-            function sessionStateName() { return isStateDirector() ? currentSession.stateName : null; }
+            function sessionStateName() { return (isStateDirector() || isDiacono()) ? currentSession.stateName : null; }
 
             // Iglesias del estado del director estatal
             function stateChurches() {
-                if (!isStateDirector()) return state.churches;
-                return state.churches.filter(c => c.state && c.state.toLowerCase() === sessionStateName().toLowerCase());
+                if (!isStateDirector() && !isDiacono()) return state.churches;
+                const sn = sessionStateName();
+                if (!sn) return [];
+                return state.churches.filter(c => c.state && c.state.toLowerCase() === sn.toLowerCase());
             }
 
             // Filtrar datos según sesión activa
