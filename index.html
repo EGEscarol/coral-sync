@@ -45,6 +45,18 @@
                 } catch(e) { return []; }
             };
 
+            const DIAC_REF = doc(db, "coralsync", "diaconos");
+            window._fbSaveDiaconos = async function(data) {
+                try { await setDoc(DIAC_REF, { diaconos: data }, { merge: false }); return true; }
+                catch(e) { console.error(e); return false; }
+            };
+            window._fbLoadDiaconos = async function() {
+                try {
+                    const snap = await getDoc(DIAC_REF);
+                    return snap.exists() ? snap.data().diaconos || [] : [];
+                } catch(e) { return []; }
+            };
+
             window._fbSaveStateDirs = async function(data) {
                 try { await setDoc(STATEDIR_REF, { directors: data }, { merge: false }); return true; }
                 catch(e) { console.error(e); return false; }
