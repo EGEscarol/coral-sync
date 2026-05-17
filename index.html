@@ -4785,6 +4785,19 @@
                 const member = state.members.find((m) => m.id === memberId);
                 const activity = state.activities.find((a) => a.id === activityId);
                 if (!member || !activity) return false;
+
+                // Guard de duplicado: misma persona, misma actividad, mismo día
+                const today = new Date().toLocaleDateString("es-MX");
+                const duplicate = state.records.find(r =>
+                    r.memberId === memberId &&
+                    r.activityId === activityId &&
+                    r.date === today
+                );
+                if (duplicate) {
+                    showToast(member.name + " ya fue registrado en esta actividad hoy.");
+                    return false;
+                }
+
                 const now = new Date();
                 const record = {
                     id: "R" + Date.now() + Math.random().toString(36).slice(2, 7),
@@ -5367,7 +5380,12 @@
                 }
             }
 
+            let _saveRecordInProgress = false;
             function saveRecord(memberId, activityId, lat, lng) {
+                // Evitar doble registro por doble tap o doble escaneo
+                if (_saveRecordInProgress) return;
+                _saveRecordInProgress = true;
+                setTimeout(() => { _saveRecordInProgress = false; }, 4000);
 
                 const ok = addRecord(memberId, activityId, lat, lng);
                 const picker = document.getElementById("activity-picker");
@@ -5378,7 +5396,8 @@
                     showSuccessModal(member.name, activity.name, lat);
                     setTimeout(() => stopCamera(), 3500);
                 } else {
-                    setScanStatus("Error al registrar. Inténtalo de nuevo.", "error");
+                    _saveRecordInProgress = false; // liberar si fue duplicado
+                    setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
                 }
             }
 
