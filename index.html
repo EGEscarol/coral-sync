@@ -110,38 +110,15 @@
                 }
             };
 
-            // Guarda los datos de cada iglesia en su propio documento
+            // Guardar en coralsync/data — documento único, sin guards que bloqueen
             window._fbSave = async function(state) {
                 try {
-                    const churches = state.churches || [];
-
-                    // 1. Guardar lista maestra de iglesias
-                    await setDoc(CHURCHES_REF, { churches }, { merge: false });
-
-                    // 2. Guardar miembros/registros/actividades por iglesia
-                    const churchIds = new Set(churches.map(c => c.id));
-                    // Agrupar miembros por iglesia
-                    const membersByChurch = {};
-                    const recordsByChurch = {};
-                    churchIds.forEach(id => { membersByChurch[id] = []; recordsByChurch[id] = []; });
-
-                    (state.members || []).forEach(m => {
-                        if (m.churchId && churchIds.has(m.churchId)) membersByChurch[m.churchId].push(m);
+                    await setDoc(DOC_REF, {
+                        members:    state.members    || [],
+                        activities: state.activities || [],
+                        records:    state.records    || [],
+                        churches:   state.churches   || []
                     });
-                    (state.records || []).forEach(r => {
-                        const m = (state.members || []).find(x => x.id === r.memberId);
-                        if (m && m.churchId && churchIds.has(m.churchId)) recordsByChurch[m.churchId].push(r);
-                    });
-
-                    // Guardar cada iglesia en paralelo
-                    await Promise.all([...churchIds].map(churchId =>
-                        setDoc(churchDocRef(churchId), {
-                            members: membersByChurch[churchId] || [],
-                            records: recordsByChurch[churchId] || [],
-                            activities: state.activities || [],
-                        }, { merge: false })
-                    ));
-
                     window._setSyncBadge && window._setSyncBadge("✓ Sincronizado", "ok");
                 } catch(e) {
                     console.error("[CoralSync] Firebase save error:", e);
@@ -151,36 +128,7 @@
 
             window._fbLoad = async function() {
                 try {
-                    // 1. Cargar lista de iglesias
-                    const churchSnap = await getDoc(CHURCHES_REF);
-                    const churches = churchSnap.exists() ? (churchSnap.data().churches || []) : [];
-
-                    // 2. Cargar datos de cada iglesia en paralelo
-                    const churchDocs = await Promise.all(
-                        churches.map(c => getDoc(churchDocRef(c.id)))
-                    );
-
-                    let members = [], records = [], activities = [];
-                    const activitiesSet = new Map();
-
-                    churchDocs.forEach(snap => {
-                        if (!snap.exists()) return;
-                        const d = snap.data();
-                        members = members.concat(d.members || []);
-                        records = records.concat(d.records || []);
-                        // Activities: combinar sin duplicados por id
-                        (d.activities || []).forEach(a => {
-                            if (!activitiesSet.has(a.id)) activitiesSet.set(a.id, a);
-                        });
-                    });
-                    activities = [...activitiesSet.values()];
-
-                    if (churches.length > 0 || members.length > 0) {
-                        return { churches, members, records, activities };
-                    }
-
-                    // Fallback: intentar leer el documento legacy coralsync/data
-                    const snap = await getDoc(doc(db, "coralsync", "data"));
+                    const snap = await getDoc(DOC_REF);
                     if (snap.exists()) return snap.data();
                     return null;
                 } catch(e) {
@@ -189,7 +137,7 @@
                 }
             };
 
-            onSnapshot(CHURCHES_REF, (snap) => {
+            onSnapshot(DOC_REF, (snap) => {
                 if (snap.exists() && window._onFirebaseUpdate) {
                     window._onFirebaseUpdate(snap.data());
                 }
@@ -3450,29 +3398,28 @@
 
             // Callback para actualizaciones en tiempo real desde Firebase
             window._onFirebaseUpdate = function(d) {
-                // El snapshot ahora es de CHURCHES_REF: solo contiene {churches}
-                // Recargamos todo desde Firebase para obtener datos por iglesia actualizados
-                if (window._fbLoad) {
-                    window._fbLoad().then(function(full) {
-                        if (!full) return;
-                        state.members    = full.members    || [];
-                        state.activities = full.activities || [];
-                        state.records    = full.records    || [];
-                        state.churches   = full.churches   || [];
-                        localStorage.setItem("cva_cache", JSON.stringify(state));
-                        if (typeof renderAll === 'function') renderAll();
-                        if (typeof updateManualSelects === 'function') updateManualSelects();
-                    }).catch(function() {});
-                }
+                // Actualización en tiempo real desde Firestore
+                state.members    = d.members    || [];
+                state.activities = d.activities || [];
+                state.records    = d.records    || [];
+                state.churches   = d.churches   || [];
+                localStorage.setItem("cva_cache", JSON.stringify(state));
+                if (typeof renderAll === 'function') renderAll();
+                if (typeof updateManualSelects === 'function') updateManualSelects();
             };
 
             // Exponer setSyncBadge al scope global para Firebase
             window._setSyncBadge = function(msg, type) { setSyncBadge(msg, type); };
 
+            let _isSaving = false;
             async function save() {
+                if (window._isLoadingFromCloud) return; // no guardar mientras se carga
                 localStorage.setItem("cva_cache", JSON.stringify(state));
                 if (window._fbSave) {
-                    await window._fbSave(state);
+                    if (_isSaving) return; // evitar guardados simultáneos
+                    _isSaving = true;
+                    try { await window._fbSave(state); }
+                    finally { _isSaving = false; }
                 } else {
                     // Firebase aún no cargó, reintentar en 1s
                     setTimeout(() => window._fbSave && window._fbSave(state), 1000);
@@ -3481,16 +3428,18 @@
             }
 
             async function loadFromCloud() {
+                window._isLoadingFromCloud = true;
                 try {
                     if (window._fbLoad) {
                         const d = await window._fbLoad();
                         if (d) {
-                            state.members = d.members || [];
+                            state.members    = d.members    || [];
                             state.activities = d.activities || [];
-                            state.records = d.records || [];
-                            state.churches = d.churches || [];
+                            state.records    = d.records    || [];
+                            state.churches   = d.churches   || [];
                             localStorage.setItem("cva_cache", JSON.stringify(state));
                             setSyncBadge("✓ Sincronizado", "ok");
+                            window._isLoadingFromCloud = false;
                             return;
                         }
                     }
@@ -3500,13 +3449,14 @@
                     const cache = localStorage.getItem("cva_cache");
                     if (cache) {
                         const d = JSON.parse(cache);
-                        state.members = d.members || [];
+                        state.members    = d.members    || [];
                         state.activities = d.activities || [];
-                        state.records = d.records || [];
-                        state.churches = d.churches || [];
+                        state.records    = d.records    || [];
+                        state.churches   = d.churches   || [];
                     }
                 } catch(e2) {}
                 setSyncBadge("Cache local", "warn");
+                window._isLoadingFromCloud = false;
             }
 
             async function runSetupWizard() { /* Firebase ya configurado */ }
