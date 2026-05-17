@@ -15,7 +15,7 @@
         <!-- Firebase SDK -->
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-            import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDCgZjVwHxOD9H0jiaXFbnWiQVW3avISwg",
@@ -111,6 +111,18 @@
             };
 
             // Guardar en coralsync/data — documento único, sin guards que bloqueen
+            // Agregar un registro de asistencia de forma atómica (sin sobreescribir otros registros)
+            window._fbAddRecord = async function(record) {
+                try {
+                    await updateDoc(DOC_REF, { records: arrayUnion(record) });
+                    return true;
+                } catch(e) {
+                    // Si el documento no existe aún, usar setDoc como fallback
+                    console.warn("[CoralSync] arrayUnion failed, falling back:", e.message);
+                    return false;
+                }
+            };
+
             window._fbSave = async function(state) {
                 try {
                     await setDoc(DOC_REF, {
@@ -4771,13 +4783,11 @@
             // ======================== RECORDS ========================
             function addRecord(memberId, activityId, lat, lng) {
                 const member = state.members.find((m) => m.id === memberId);
-                const activity = state.activities.find(
-                    (a) => a.id === activityId,
-                );
+                const activity = state.activities.find((a) => a.id === activityId);
                 if (!member || !activity) return false;
                 const now = new Date();
-                state.records.push({
-                    id: "R" + Date.now(),
+                const record = {
+                    id: "R" + Date.now() + Math.random().toString(36).slice(2, 7),
                     memberId,
                     memberName: member.name,
                     churchName: member.churchName || null,
@@ -4785,15 +4795,28 @@
                     activityName: activity.name,
                     activityColor: activity.color,
                     date: now.toLocaleDateString("es-MX"),
-                    time: now.toLocaleTimeString("es-MX", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    }),
+                    time: now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
                     lat: lat || null,
                     lng: lng || null,
                     ts: now.getTime(),
-                });
-                save();
+                };
+                // Agregar localmente
+                state.records.push(record);
+                // Guardar en localStorage inmediatamente
+                localStorage.setItem("cva_cache", JSON.stringify(state));
+                // Enviar a Firebase de forma atómica (arrayUnion) para soportar escrituras simultáneas
+                if (window._fbAddRecord) {
+                    window._fbAddRecord(record).then(ok => {
+                        if (!ok) {
+                            // Falló el atomic update — hacer save completo como respaldo
+                            save();
+                        } else {
+                            setSyncBadge("✓ Sincronizado", "ok");
+                        }
+                    }).catch(() => save());
+                } else {
+                    save();
+                }
                 return true;
             }
 
