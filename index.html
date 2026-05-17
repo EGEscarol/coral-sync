@@ -33,6 +33,7 @@
             const DIR_REF = doc(db, "coralsync", "directors");
             const STATEDIR_REF = doc(db, "coralsync", "statedirectors");
             const AUX_REF = doc(db, "coralsync", "auxiliares");
+            const DIAC_REF = doc(db, "coralsync", "diaconos");
 
             window._fbSaveAuxiliares = async function(data) {
                 try { await setDoc(AUX_REF, { auxiliares: data }, { merge: false }); return true; }
@@ -42,18 +43,6 @@
                 try {
                     const snap = await getDoc(AUX_REF);
                     return snap.exists() ? snap.data().auxiliares || [] : [];
-                } catch(e) { return []; }
-            };
-
-            const DIAC_REF = doc(db, "coralsync", "diaconos");
-            window._fbSaveDiaconos = async function(data) {
-                try { await setDoc(DIAC_REF, { diaconos: data }, { merge: false }); return true; }
-                catch(e) { console.error(e); return false; }
-            };
-            window._fbLoadDiaconos = async function() {
-                try {
-                    const snap = await getDoc(DIAC_REF);
-                    return snap.exists() ? snap.data().diaconos || [] : [];
                 } catch(e) { return []; }
             };
 
@@ -121,18 +110,38 @@
                 }
             };
 
+            // Guarda los datos de cada iglesia en su propio documento
             window._fbSave = async function(state) {
                 try {
-                    // Protección: no guardar si members o activities están vacíos
-                    if (!state.members || state.members.length === 0) {
-                                                return;
-                    }
-                    await setDoc(DOC_REF, {
-                        members: state.members,
-                        activities: state.activities,
-                        records: state.records,
-                        churches: state.churches || []
+                    const churches = state.churches || [];
+
+                    // 1. Guardar lista maestra de iglesias
+                    await setDoc(CHURCHES_REF, { churches }, { merge: false });
+
+                    // 2. Guardar miembros/registros/actividades por iglesia
+                    const churchIds = new Set(churches.map(c => c.id));
+                    // Agrupar miembros por iglesia
+                    const membersByChurch = {};
+                    const recordsByChurch = {};
+                    churchIds.forEach(id => { membersByChurch[id] = []; recordsByChurch[id] = []; });
+
+                    (state.members || []).forEach(m => {
+                        if (m.churchId && churchIds.has(m.churchId)) membersByChurch[m.churchId].push(m);
                     });
+                    (state.records || []).forEach(r => {
+                        const m = (state.members || []).find(x => x.id === r.memberId);
+                        if (m && m.churchId && churchIds.has(m.churchId)) recordsByChurch[m.churchId].push(r);
+                    });
+
+                    // Guardar cada iglesia en paralelo
+                    await Promise.all([...churchIds].map(churchId =>
+                        setDoc(churchDocRef(churchId), {
+                            members: membersByChurch[churchId] || [],
+                            records: recordsByChurch[churchId] || [],
+                            activities: state.activities || [],
+                        }, { merge: false })
+                    ));
+
                     window._setSyncBadge && window._setSyncBadge("✓ Sincronizado", "ok");
                 } catch(e) {
                     console.error("[CoralSync] Firebase save error:", e);
@@ -142,7 +151,36 @@
 
             window._fbLoad = async function() {
                 try {
-                    const snap = await getDoc(DOC_REF);
+                    // 1. Cargar lista de iglesias
+                    const churchSnap = await getDoc(CHURCHES_REF);
+                    const churches = churchSnap.exists() ? (churchSnap.data().churches || []) : [];
+
+                    // 2. Cargar datos de cada iglesia en paralelo
+                    const churchDocs = await Promise.all(
+                        churches.map(c => getDoc(churchDocRef(c.id)))
+                    );
+
+                    let members = [], records = [], activities = [];
+                    const activitiesSet = new Map();
+
+                    churchDocs.forEach(snap => {
+                        if (!snap.exists()) return;
+                        const d = snap.data();
+                        members = members.concat(d.members || []);
+                        records = records.concat(d.records || []);
+                        // Activities: combinar sin duplicados por id
+                        (d.activities || []).forEach(a => {
+                            if (!activitiesSet.has(a.id)) activitiesSet.set(a.id, a);
+                        });
+                    });
+                    activities = [...activitiesSet.values()];
+
+                    if (churches.length > 0 || members.length > 0) {
+                        return { churches, members, records, activities };
+                    }
+
+                    // Fallback: intentar leer el documento legacy coralsync/data
+                    const snap = await getDoc(doc(db, "coralsync", "data"));
                     if (snap.exists()) return snap.data();
                     return null;
                 } catch(e) {
@@ -151,7 +189,7 @@
                 }
             };
 
-            onSnapshot(DOC_REF, (snap) => {
+            onSnapshot(CHURCHES_REF, (snap) => {
                 if (snap.exists() && window._onFirebaseUpdate) {
                     window._onFirebaseUpdate(snap.data());
                 }
@@ -2409,42 +2447,6 @@
                         </div>
                         <div id="uniform-matrix" style="overflow-x:auto;"></div>
                     </div>
-
-                    <!-- MEDIDAS -->
-                    <div class="card" id="measures-card" style="margin-top:20px;">
-                        <div class="card-title" style="margin-bottom:16px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="8" y1="9" x2="8" y2="3"/><line x1="16" y1="21" x2="16" y2="15"/></svg>
-                            Medidas de los Integrantes
-                        </div>
-                        <div id="measures-filter-bar" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                            <select id="measures-filter-church" onchange="renderMeasuresTab()" style="padding:8px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;background:white;">
-                                <option value="">-- Todas las iglesias --</option>
-                            </select>
-                            <button onclick="exportMeasuresPDF()" class="btn-solid" style="padding:8px 18px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(27,38,59,0.2);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                Informe PDF
-                            </button>
-                        </div>
-                        <div id="measures-grid"></div>
-                    </div>
-
-                    <!-- MODAL MEDIDAS -->
-                    <div id="measures-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-                        <div style="background:white;border-radius:16px;padding:28px;max-width:460px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-                                <div>
-                                    <div style="font-size:1rem;font-weight:700;color:var(--primary);" id="measures-modal-name"></div>
-                                    <div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;" id="measures-modal-voice"></div>
-                                </div>
-                                <button onclick="closeMeasuresModal()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--gray-400);line-height:1;">&#x2715;</button>
-                            </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="measures-modal-fields"></div>
-                            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-                                <button onclick="closeMeasuresModal()" style="padding:9px 20px;border:2px solid var(--gray-300);border-radius:50px;background:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:600;color:var(--gray-600);">Cancelar</button>
-                                <button onclick="saveMeasuresModal()" style="padding:9px 24px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 3px 10px rgba(27,38,59,0.2);">Guardar medidas</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
             <!-- PAGE: STATE DIRECTORS -->
@@ -2485,47 +2487,6 @@
                         </div>
                         <div id="statedirectors-list" class="item-list">
                             <div class="empty-state"><p>No hay directores estatales registrados.</p></div>
-                        </div>
-                    </div>
-
-                    <!-- DIACONOS: agregar -->
-                    <div class="card" style="margin-top:20px;">
-                        <div class="card-title" style="margin-bottom:16px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                            Agregar Diacono Coordinador
-                        </div>
-                        <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:16px;">Los diaconos coordinadores tienen acceso de <strong>solo lectura</strong> a la informacion de su estado: integrantes, asistencias, uniformes y medidas. No pueden editar ni dar de alta datos.</p>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                            <div style="flex:1;min-width:200px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Nombre completo</label>
-                                <input type="text" id="new-diacono-name" placeholder="Nombre del diacono" autocomplete="off" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div style="flex:1;min-width:150px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Estado</label>
-                                <select id="new-diacono-state" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;box-sizing:border-box;">
-                                    <option value="">-- Selecciona un estado --</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;min-width:130px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Usuario</label>
-                                <input type="text" id="new-diacono-user" placeholder="Usuario" autocomplete="off" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div style="flex:1;min-width:130px;">
-                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Contrasena</label>
-                                <input type="password" id="new-diacono-pass" placeholder="Contrasena" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <button onclick="addDiacono()" class="btn-solid" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">+ Agregar</button>
-                        </div>
-                    </div>
-
-                    <!-- DIACONOS: lista -->
-                    <div class="card" style="margin-top:20px;">
-                        <div class="card-title" style="margin-bottom:16px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            Diaconos Coordinadores registrados
-                        </div>
-                        <div id="diaconos-list" class="item-list">
-                            <div class="empty-state"><p>No hay diaconos coordinadores registrados.</p></div>
                         </div>
                     </div>
                 </div>
@@ -3355,7 +3316,6 @@
             let directors = [];
             // Lista de directores estatales
             let stateDirectors = [];
-            let diaconos = [];   // { id, name, memberId, stateName, username, password }
             // Lista de auxiliares de director
             let auxiliares = [];
 
@@ -3388,24 +3348,21 @@
             function isDirector()       { return currentSession && currentSession.role === 'director'; }
             function isStateDirector()  { return currentSession && currentSession.role === 'statedirector'; }
             function isAuxiliar()       { return currentSession && currentSession.role === 'auxiliar'; }
-            function isDiacono()        { return currentSession && currentSession.role === 'diacono'; }
             function isDirectorOrAux()  { return isDirector() || isAuxiliar(); }
             function sessionChurchId()  { return (isDirector() || isAuxiliar()) ? currentSession.churchId : null; }
-            function sessionStateName() { return (isStateDirector() || isDiacono()) ? currentSession.stateName : null; }
+            function sessionStateName() { return isStateDirector() ? currentSession.stateName : null; }
 
             // Iglesias del estado del director estatal
             function stateChurches() {
-                if (!isStateDirector() && !isDiacono()) return state.churches;
-                const sn = sessionStateName();
-                if (!sn) return [];
-                return state.churches.filter(c => c.state && c.state.toLowerCase() === sn.toLowerCase());
+                if (!isStateDirector()) return state.churches;
+                return state.churches.filter(c => c.state && c.state.toLowerCase() === sessionStateName().toLowerCase());
             }
 
             // Filtrar datos según sesión activa
             function visibleMembers() {
                 if (!currentSession) return state.members;
                 if (isSuperAdmin()) return state.members;
-                if (isStateDirector() || isDiacono()) {
+                if (isStateDirector()) {
                     const ids = new Set(stateChurches().map(c=>c.id));
                     return state.members.filter(m => ids.has(m.churchId));
                 }
@@ -3415,7 +3372,7 @@
             function visibleRecords() {
                 if (!currentSession) return state.records;
                 if (isSuperAdmin()) return state.records;
-                if (isStateDirector() || isDiacono()) {
+                if (isStateDirector()) {
                     const ids = new Set(stateChurches().map(c=>c.id));
                     return state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && ids.has(m.churchId); });
                 }
@@ -3425,7 +3382,7 @@
             function visibleChurches() {
                 if (!currentSession) return state.churches;
                 if (isSuperAdmin()) return state.churches;
-                if (isStateDirector() || isDiacono()) return stateChurches();
+                if (isStateDirector()) return stateChurches();
                 return state.churches.filter(c => c.id === sessionChurchId());
             }
 
@@ -3493,14 +3450,20 @@
 
             // Callback para actualizaciones en tiempo real desde Firebase
             window._onFirebaseUpdate = function(d) {
-                // Solo actualizar si no hay una operación de guardado en curso
-                state.members = d.members || [];
-                state.activities = d.activities || [];
-                state.records = d.records || [];
-                state.churches = d.churches || [];
-                localStorage.setItem("cva_cache", JSON.stringify(state));
-                renderAll();
-                updateManualSelects();
+                // El snapshot ahora es de CHURCHES_REF: solo contiene {churches}
+                // Recargamos todo desde Firebase para obtener datos por iglesia actualizados
+                if (window._fbLoad) {
+                    window._fbLoad().then(function(full) {
+                        if (!full) return;
+                        state.members    = full.members    || [];
+                        state.activities = full.activities || [];
+                        state.records    = full.records    || [];
+                        state.churches   = full.churches   || [];
+                        localStorage.setItem("cva_cache", JSON.stringify(state));
+                        if (typeof renderAll === 'function') renderAll();
+                        if (typeof updateManualSelects === 'function') updateManualSelects();
+                    }).catch(function() {});
+                }
             };
 
             // Exponer setSyncBadge al scope global para Firebase
@@ -3577,8 +3540,6 @@
 
             // ======================== LOGIN ========================
             let loginMode = "admin";
-            let loginAttempts = 0;
-            let loginBlockedUntil = 0;
 
             function setLoginMode(mode) {
                 loginMode = mode;
@@ -3598,14 +3559,6 @@
             }
 
             function checkAdminCredentials() {
-                // Verificar bloqueo por intentos fallidos
-                if (loginBlockedUntil && Date.now() < loginBlockedUntil) {
-                    const secsLeft = Math.ceil((loginBlockedUntil - Date.now()) / 1000);
-                    document.getElementById('pin-error').textContent = `Demasiados intentos. Espera ${secsLeft} segundos.`;
-                    document.getElementById('pin-error').style.display = 'block';
-                    return;
-                }
-
                 const user = (document.getElementById('admin-username').value || '').trim();
                 const pass = (document.getElementById('admin-password').value || '');
 
@@ -3613,18 +3566,6 @@
                 if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
                     currentSession = { role: 'superadmin', name: 'Super Admin' };
                     loginAttempts = 0; loginBlockedUntil = 0;
-                    closeAdminLoginModal();
-                    stopCamera();
-                    applySessionUI();
-                    showView('view-admin');
-                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
-                    return;
-                }
-
-                // ¿Es diacono coordinador?
-                const diac = diaconos.find(d => d.username === user && d.password === pass);
-                if (diac) {
-                    currentSession = { role: 'diacono', name: diac.name, stateName: diac.stateName };
                     closeAdminLoginModal();
                     stopCamera();
                     applySessionUI();
@@ -3703,13 +3644,6 @@
                         nameEl.textContent = currentSession.name;
                         nameEl.style.color = '#60a5fa';
                         if (churchEl) churchEl.textContent = '🗺 Dir. Estatal — ' + (currentSession.stateName || '');
-                    } else if (isDiacono()) {
-                        badgeEl.className = 'cs-session-badge';
-                        badgeEl.style.background = 'rgba(120,53,15,0.2)';
-                        badgeEl.style.borderColor = 'rgba(120,53,15,0.4)';
-                        nameEl.textContent = currentSession.name;
-                        nameEl.style.color = '#d97706';
-                        if (churchEl) churchEl.textContent = '🕊 Diacono — ' + (currentSession.stateName || '');
                     } else if (isAuxiliar()) {
                         badgeEl.className = 'cs-session-badge';
                         badgeEl.style.background = 'rgba(168,99,30,0.2)';
@@ -3766,15 +3700,6 @@
                     if (navStateDirs)  navStateDirs.style.display  = 'none';
                     if (navPagos)      navPagos.style.display      = 'none';
                     if (navAux)        navAux.style.display        = 'none';
-                } else if (isDiacono()) {
-                    // Diacono coordinador: solo lectura — mismo scope que director estatal
-                    if (navChurches)   navChurches.style.display   = 'none';
-                    if (navDirectors)  navDirectors.style.display  = 'none';
-                    if (navAdminLabel) navAdminLabel.style.display = 'none';
-                    if (navSettings)   navSettings.style.display   = 'none';
-                    if (navStateDirs)  navStateDirs.style.display  = 'none';
-                    if (navPagos)      navPagos.style.display      = 'none';
-                    if (navAux)        navAux.style.display        = 'none';
                 } else {
                     // Super admin: ve todo
                     if (navChurches)   navChurches.style.display   = '';
@@ -3788,7 +3713,7 @@
 
                 // Deshabilitar edición en integrantes para director estatal (solo lectura)
                 const addMemberCard = document.querySelector('#page-members .card:first-child');
-                if (addMemberCard) addMemberCard.style.display = (isStateDirector() || isDiacono()) ? 'none' : '';
+                if (addMemberCard) addMemberCard.style.display = isStateDirector() ? 'none' : '';
             }
 
             function saveAdminCredentials() {
@@ -3907,12 +3832,6 @@
             };
 
             function showPage(page) {
-                // Guard: la página de directores estatales es exclusiva del superadmin
-                if (page === 'statedirectors' && !isSuperAdmin()) {
-                    showToast('Acceso restringido al Super Administrador.');
-                    showPage('dashboard');
-                    return;
-                }
                 // Ocultar todas las páginas
                 document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
                 const dashboard = document.getElementById('page-dashboard');
@@ -3945,10 +3864,10 @@
                 if (page === 'activities') renderActivities();
                 if (page === 'reports') renderReportsTab();
                 if (page === 'directors') { renderDirectors(); renderAuxiliares(); }
-                if (page === 'statedirectors') { renderStateDirectors(); renderDiaconos(); }
+                if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'pagos') renderPagos();
                 if (page === 'auxiliares') renderAuxiliares();
-                if (page === 'uniforms') { renderUniformsTab(); renderMeasuresTab(); }
+                if (page === 'uniforms') renderUniformsTab();
                 if (page === 'dashboard') {
                     loadFromCloud().then(() => {
                         renderDashboard();
@@ -4088,7 +4007,7 @@
 
                 document.getElementById("members-count").textContent = members.length;
                 const qrLoteBtn = document.querySelector('button[onclick="exportAllQR()"]');
-                if (qrLoteBtn) qrLoteBtn.style.display = (isStateDirector() || isAuxiliar() || isDiacono()) ? 'none' : '';
+                if (qrLoteBtn) qrLoteBtn.style.display = (isStateDirector() || isAuxiliar()) ? 'none' : '';
 
                 // Update church selector in member form
                 const churchSel = document.getElementById("new-member-church");
@@ -4108,7 +4027,7 @@
                 if (churchRow) churchRow.style.display = isDirectorOrAux() ? 'none' : '';
 
                 const addMemberForm = document.querySelector('#page-members .card:first-child');
-                if (addMemberForm) addMemberForm.style.display = (isAuxiliar() || isStateDirector() || isDiacono()) ? 'none' : '';
+                if (addMemberForm) addMemberForm.style.display = (isAuxiliar() || isStateDirector()) ? 'none' : '';
 
                 if (!members.length) {
                     list.innerHTML = '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><p>Aún no hay integrantes registrados.</p></div>';
@@ -4142,7 +4061,7 @@
                     const voiceBadge = m.voice ? `<span style="font-size:0.68rem;font-weight:600;color:#ffffff;background:${voiceColors[m.voice]||'#888'};padding:2px 8px;border-radius:50px;margin-left:6px;">${m.voice}</span>` : '';
                     const notePreview = m.note ? `<span style="font-size:0.72rem;color:var(--accent-dark);margin-left:8px;font-style:italic;">📝 ${m.note.length>40?m.note.substring(0,40)+'…':m.note}</span>` : '';
                     const churchBadge = m.churchName && isSuperAdmin() ? `<span style="font-size:0.75rem;font-weight:400;color:var(--gray-500);margin-left:8px;">⛪ ${m.churchName}</span>` : '';
-                    const canEdit = !isStateDirector() && !isAuxiliar() && !isDiacono();
+                    const canEdit = !isStateDirector() && !isAuxiliar();
                     return `
     <div class="item-row" style="flex-wrap:wrap;gap:8px;">
       <div style="flex:1;min-width:140px;">
@@ -4427,7 +4346,7 @@
                             doc.setFont('helvetica','bold');
                             doc.setFontSize(8);
                             doc.setTextColor(...GOLD);
-                            doc.text('CoralSync - Codigos QR del Coro', 14, 7);
+                            doc.text('CoralSync — Códigos QR del Coro', 14, 7);
                             doc.setTextColor(180,180,180);
                             doc.text(`Página ${p}/${totalPages}`, 196, 7, { align:'right' });
                         }
@@ -4587,7 +4506,7 @@
                 document.getElementById("activities-count").textContent = state.activities.length;
                 // Ocultar form de agregar actividad si es director
                 const addForm = document.getElementById("activity-add-form");
-                if (addForm) addForm.style.display = (isDirector() || isStateDirector() || isDiacono()) ? 'none' : '';
+                if (addForm) addForm.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
                 if (!state.activities.length) {
                     list.innerHTML =
                         '<div class="empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle></svg><p>Aún no hay actividades.</p></div>';
@@ -4936,7 +4855,7 @@
 
                 // Ocultar/mostrar registro manual y filtro iglesia según rol
                 const manualCard = document.getElementById('records-manual-card');
-                if (manualCard) manualCard.style.display = (isStateDirector() || isDiacono()) ? 'none' : '';
+                if (manualCard) manualCard.style.display = isStateDirector() ? 'none' : '';
 
                 // Filtro por iglesia para director estatal
                 const churchFilterSel = document.getElementById('records-church-filter');
@@ -5057,14 +4976,14 @@
                         : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
                     return `
       <tr id="row-${r.id}">
-        <td style="width:36px;">${(isStateDirector()||isDiacono()) ? '' : `<input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;">`}</td>
+        <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
         <td style="color:var(--gray-500);font-size:0.78rem;">${i + 1}</td>
         <td style="font-weight:700;">${r.memberName}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
         <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
         <td>${r.date}</td>
         <td>${r.time}</td>
         <td>${mapsLink}</td>
-        <td>${(isStateDirector()||isDiacono()) ? '' : `<button onclick="deleteSingleRecord('${r.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:1rem;padding:4px 6px;border-radius:6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">🗑</button>`}</td>
+        <td><button onclick="deleteSingleRecord('${r.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:1rem;padding:4px 6px;border-radius:6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">🗑</button></td>
       </tr>`;
                 }).join("");
             }
@@ -5119,7 +5038,6 @@
             }
 
             function deleteSingleRecord(id) {
-                if (isStateDirector() || isDiacono()) { showToast('Sin permisos para eliminar registros.'); return; }
                 customConfirm("¿Eliminar este registro?", () => {
                     state.records = state.records.filter((r) => r.id !== id);
                     save();
@@ -5129,7 +5047,6 @@
             }
 
             function deleteSelectedRecords() {
-                if (isStateDirector() || isDiacono()) { showToast('Sin permisos para eliminar registros.'); return; }
                 const checked = document.querySelectorAll(
                     ".record-check:checked",
                 );
@@ -5988,7 +5905,7 @@
                     doc.text('CoralSync', 14, 10);
                     doc.setFontSize(10);
                     doc.setTextColor(...WHITE);
-                    doc.text('Informe de Uniformes - ' + church.name, 14, 18);
+                    doc.text('Informe de Uniformes — ' + church.name, 14, 18);
                     const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
@@ -6007,18 +5924,18 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(9);
                     doc.setTextColor(...NAVY);
-                    doc.text(`${members.length} integrantes | ${unis.length} uniformes | ${completeCount} con uniforme completo`, 18, y + 6.5);
+                    doc.text(`${members.length} integrantes  •  ${unis.length} uniformes  •  ${completeCount} con uniforme completo`, 18, y + 6.5);
                     y += 16;
 
                     // ── Tabla ─────────────────────────────────────────
                     // Construir cabeceras: Integrante + Voz + cada uniforme
-                    const uniCols = unis.map(u => (u.isState ? '[E] ' : '') + u.name);
+                    const uniCols = unis.map(u => (u.isState ? '★ ' : '') + u.name);
                     const head = [['Integrante', 'Voz', ...uniCols, 'Completo']];
 
                     const body = members.map(m => {
-                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? 'SI' : 'NO');
+                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? '✓' : '✗');
                         const allDone = unis.every(u => m.uniforms && m.uniforms[u.id]);
-                        return [m.name, m.voice || '-', ...uniVals, allDone ? 'SI' : 'NO'];
+                        return [m.name, m.voice || '—', ...uniVals, allDone ? '✓' : '✗'];
                     });
 
                     // Anchos de columna dinámicos
@@ -6046,20 +5963,20 @@
                                 // Columnas de uniformes (2 a N+1)
                                 if (colIdx >= 2 && colIdx <= unis.length + 1) {
                                     data.cell.styles.halign = 'center';
-                                    if (data.cell.raw === 'SI') {
+                                    if (data.cell.raw === '✓') {
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
-                                    } else if (data.cell.raw === 'NO') {
+                                    } else {
                                         data.cell.styles.textColor = RED;
                                     }
                                 }
                                 // Columna "Completo"
                                 if (colIdx === unis.length + 2) {
-                                    if (data.cell.raw === 'SI') {
+                                    if (data.cell.raw === '✓') {
                                         data.cell.styles.fillColor = [216, 243, 220];
                                         data.cell.styles.textColor = GREEN;
                                         data.cell.styles.fontStyle = 'bold';
-                                    } else if (data.cell.raw === 'NO') {
+                                    } else {
                                         data.cell.styles.fillColor = [255, 224, 224];
                                         data.cell.styles.textColor = RED;
                                     }
@@ -6080,10 +5997,10 @@
                     doc.rect(0, 202, 297, 8, 'F');
                     doc.setFontSize(7);
                     doc.setTextColor(180, 180, 180);
-                    doc.text('CoralSync - Informe de Uniformes', 14, 207);
+                    doc.text('CoralSync — Informe de Uniformes', 14, 207);
                     doc.text(`Página ${p}/${totalPages}`, 283, 207, { align: 'right' });
                     doc.setTextColor(...ACENT);
-                    doc.text('[E] = Uniforme estatal', 148, 207, { align: 'center' });
+                    doc.text('★ = Uniforme estatal', 148, 207, { align: 'center' });
                 }
 
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
@@ -6092,10 +6009,6 @@
             }
 
             function renderUniformsTab() {
-                // Ocultar tarjeta de agregar uniforme para diacono (solo lectura)
-                const addUniformCard = document.querySelector('#page-uniforms .card:first-child');
-                if (addUniformCard) addUniformCard.style.display = isDiacono() ? 'none' : '';
-
                 // Selector de iglesia en catálogo
                 const churchWrap = document.getElementById('uniform-church-wrap');
                 const churchSel  = document.getElementById('new-uniform-church');
@@ -6103,8 +6016,8 @@
 
                 // Director local no ve selector de iglesia (usa la suya automáticamente)
                 // Director estatal no ve selector de iglesia pero sí el de estado
-                if (churchWrap) churchWrap.style.display = (isDirector() || isStateDirector() || isDiacono()) ? 'none' : '';
-                if (stateWrap)  stateWrap.style.display  = (isDirector() || isDiacono()) ? 'none' : '';
+                if (churchWrap) churchWrap.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
+                if (stateWrap)  stateWrap.style.display  = isDirector() ? 'none' : '';
 
                 if (churchSel && !isDirector() && !isStateDirector()) {
                     // Super Admin ve todas las iglesias
@@ -6130,7 +6043,7 @@
                     catalogHTML += unis.map(u => `
                         <div class="item-row" style="padding:8px 14px;background:#eff6ff;border-radius:8px;margin-bottom:4px;">
                             <div class="item-name">🎽 ${u.name} <span style="font-size:0.68rem;color:var(--brand-900);font-weight:700;margin-left:6px;">ESTATAL</span></div>
-                            ${(!isDirector() && !isDiacono()) ? `<button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>` : '<span style="font-size:0.72rem;color:#9A9A92;font-style:italic;">Solo lectura</span>'}
+                            ${!isDirector() ? `<button class="btn-danger" onclick="deleteUniform('STATE:${sn}','${u.id}')">Eliminar</button>` : '<span style="font-size:0.72rem;color:#9A9A92;font-style:italic;">Solo estatal</span>'}
                         </div>`).join('');
                 });
                 // Luego uniformes de cada iglesia (solo los propios, no los heredados)
@@ -6224,27 +6137,6 @@
 
             // ======================== STATE DIRECTORS ========================
 
-            async function loadDiaconosFromFirebase() {
-                try {
-                    const data = await window._fbLoadDiaconos();
-                    if (data && data.length) {
-                        diaconos = data;
-                        localStorage.setItem('cva_diaconos', JSON.stringify(diaconos));
-                    } else {
-                        const cache = localStorage.getItem('cva_diaconos');
-                        if (cache) diaconos = JSON.parse(cache);
-                    }
-                } catch(e) {
-                    const cache = localStorage.getItem('cva_diaconos');
-                    if (cache) diaconos = JSON.parse(cache);
-                }
-            }
-
-            async function saveDiaconos() {
-                localStorage.setItem('cva_diaconos', JSON.stringify(diaconos));
-                if (window._fbSaveDiaconos) await window._fbSaveDiaconos(diaconos);
-            }
-
             async function loadStateDirectorsFromFirebase() {
                 try {
                     const dirs = await window._fbLoadStateDirs();
@@ -6294,7 +6186,6 @@
             }
 
             function addStateDirector() {
-                if (!isSuperAdmin()) { showToast('Solo el Super Administrador puede dar de alta directores estatales.'); return; }
                 const stateName = (document.getElementById('new-statedir-state')?.value || '').trim();
                 const memberId  = (document.getElementById('new-statedir-member')?.value || '').trim();
                 const username  = (document.getElementById('new-statedir-user').value||'').trim();
@@ -6317,7 +6208,6 @@
             }
 
             function renderStateDirectors() {
-                renderDiaconos();
                 // Poblar selector de estados con los que tienen iglesias
                 const stateSel = document.getElementById('new-statedir-state');
                 if (stateSel) {
@@ -6350,78 +6240,6 @@
                             saveStateDirectors();
                             renderStateDirectors();
                             showToast('Director estatal eliminado.');
-                        });
-                    });
-                });
-            }
-
-            // ======================== DIACONOS COORDINADORES ========================
-
-            function addDiacono() {
-                if (!isSuperAdmin()) { showToast('Solo el Super Administrador puede dar de alta diaconos.'); return; }
-                const name      = (document.getElementById('new-diacono-name').value || '').trim();
-                const stateName = (document.getElementById('new-diacono-state')?.value || '').trim();
-                const username  = (document.getElementById('new-diacono-user').value || '').trim();
-                const password  = (document.getElementById('new-diacono-pass').value || '');
-                if (!name)      { showToast('Ingresa el nombre del diacono.'); return; }
-                if (!stateName) { showToast('Selecciona el estado.'); return; }
-                if (!username)  { showToast('Ingresa un usuario.'); return; }
-                if (!password)  { showToast('Ingresa una contrasena.'); return; }
-                const allUsers = [
-                    ADMIN_USERNAME,
-                    ...directors.map(d => d.username),
-                    ...stateDirectors.map(d => d.username),
-                    ...diaconos.map(d => d.username),
-                    ...auxiliares.map(a => a.username)
-                ];
-                if (allUsers.includes(username)) { showToast('Ese usuario ya existe.'); return; }
-                diaconos.push({ id: 'DC' + Date.now(), name, stateName, username, password });
-                saveDiaconos();
-                document.getElementById('new-diacono-name').value = '';
-                document.getElementById('new-diacono-state').value = '';
-                document.getElementById('new-diacono-user').value = '';
-                document.getElementById('new-diacono-pass').value = '';
-                renderDiaconos();
-                showToast('Diacono coordinador agregado: ' + name + ' (' + stateName + ')');
-            }
-
-            function renderDiaconos() {
-                // Poblar selector de estados
-                const stateSel = document.getElementById('new-diacono-state');
-                if (stateSel) {
-                    const states = [...new Set(state.churches.map(c => c.state).filter(Boolean))].sort();
-                    const curVal = stateSel.value;
-                    stateSel.innerHTML = '<option value="">-- Selecciona un estado --</option>' +
-                        states.map(s => `<option value="${s}">${s}</option>`).join('');
-                    if (states.includes(curVal)) stateSel.value = curVal;
-                }
-                const list = document.getElementById('diaconos-list');
-                if (!list) return;
-                if (!diaconos.length) {
-                    list.innerHTML = '<div class="empty-state"><p>No hay diaconos coordinadores registrados.</p></div>';
-                    return;
-                }
-                list.innerHTML = diaconos.map(d => `
-                    <div class="item-row">
-                        <div style="flex:1;">
-                            <div class="item-name">${sanitize(d.name)}
-                                <span style="font-size:0.72rem;color:white;background:#92400e;padding:2px 8px;border-radius:50px;margin-left:6px;">
-                                    Diacono — ${d.stateName}
-                                </span>
-                            </div>
-                            <div style="font-size:0.72rem;color:var(--gray-500);margin-top:2px;">Usuario: <code>${d.username}</code></div>
-                        </div>
-                        ${isSuperAdmin() ? `<button title="Eliminar" style="width:32px;height:32px;border:none;background:#fee2e2;color:#dc2626;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;" data-delete-diacono="${d.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                        </button>` : ''}
-                    </div>`).join('');
-                list.querySelectorAll('[data-delete-diacono]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        customConfirm('Eliminar este diacono coordinador?', () => {
-                            diaconos = diaconos.filter(d => d.id !== btn.getAttribute('data-delete-diacono'));
-                            saveDiaconos();
-                            renderDiaconos();
-                            showToast('Diacono eliminado.');
                         });
                     });
                 });
@@ -6481,7 +6299,6 @@
                 const allUsers = [
                     ...directors.map(d=>d.username),
                     ...stateDirectors.map(d=>d.username),
-                    ...diaconos.map(d=>d.username),
                     ...auxiliares.map(a=>a.username)
                 ];
                 if (allUsers.includes(username)) { showToast('Ese usuario ya existe.'); return; }
@@ -6751,7 +6568,7 @@
                         <div class="cs-stat-icon">👥</div>
                         <div class="cs-stat-val">${members.length}</div>
                         <div class="cs-stat-label">Integrantes</div>
-                        <div class="cs-stat-sub">${isDirector() ? currentSession.churchName : (isStateDirector() || isDiacono()) ? currentSession.stateName : 'en total'}</div>
+                        <div class="cs-stat-sub">${isDirector() ? currentSession.churchName : 'en total'}</div>
                     </div>
                     <div class="cs-stat-card">
                         <div class="cs-stat-icon">📋</div>
@@ -6875,7 +6692,6 @@
                     loadCredentialsFromFirebase(),
                     loadDirectorsFromFirebase(),
                     loadStateDirectorsFromFirebase(),
-                    loadDiaconosFromFirebase(),
                     loadAuxiliaresFromFirebase(),
                     loadUniformsFromFirebase(),
                     loadPagosFromFirebase()
@@ -6885,18 +6701,12 @@
             }
 
             // Esperar a que Firebase esté listo
-            let _initAppCalled = false;
-            function initAppOnce() {
-                if (_initAppCalled) return;
-                _initAppCalled = true;
-                initApp();
-            }
             if (window._fbReady) {
-                initAppOnce();
+                initApp();
             } else {
-                document.addEventListener("firebase-ready", initAppOnce);
-                // Timeout de seguridad por si Firebase no responde
-                setTimeout(initAppOnce, 5000);
+                document.addEventListener("firebase-ready", initApp);
+                // Timeout por si Firebase tarda mucho
+                setTimeout(initApp, 4000);
             }
         
 
@@ -7140,7 +6950,7 @@
                 const mesPico = mesRows.length ? mesRows.reduce((a,b)=>b[1]>a[1]?b:a) : null;
 
                 // ========== PÁGINA 1: RESUMEN DEL GRUPO ==========
-                pdfHeader(doc, 'Reporte de Grupo - ' + groupLabel,
+                pdfHeader(doc, 'Reporte de Grupo — ' + groupLabel,
                     selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros' + (monthLbl ? '  •  ' + monthLbl : ''));
 
                 let y = 42;
@@ -7307,7 +7117,7 @@
                     });
                     const actFav = Object.values(byAct).sort((a,b)=>b.count-a.count)[0];
 
-                    pdfHeader(doc, 'Reporte Individual - ' + groupLabel,
+                    pdfHeader(doc, 'Reporte Individual — ' + groupLabel,
                         member.name + (member.churchName ? '  •  '+member.churchName : '') + (member.voice ? '  •  Voz: '+member.voice : ''));
 
                     let iy = 42;
@@ -7340,7 +7150,7 @@
                     doc.setFontSize(8);
                     doc.setTextColor(73,80,87);
                     doc.text('Hora prom. llegada: ' + horaPromedio, 18, iy+5);
-                    doc.text('Act. favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '-'), 18, iy+11);
+                    doc.text('Act. favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '—'), 18, iy+11);
                     doc.text('Primer registro: ' + primerReg, 105, iy+5);
                     doc.text('Ultimo registro: ' + ultimoReg, 105, iy+11);
                     iy += 20;
@@ -7805,7 +7615,7 @@
                     doc.rect(0, 287, 210, 10, 'F');
                     doc.setFontSize(7);
                     doc.setTextColor(130, 130, 120);
-                    doc.text('CoralSync - Coro Vista Alegre', 14, 293);
+                    doc.text('CoralSync — Coro Vista Alegre', 14, 293);
                     doc.text('Pag. ' + i + ' / ' + pageCount, 196, 293, {align:'right'});
                 }
             }
@@ -7862,7 +7672,7 @@
                 const pct = totalPosible > 0 ? Math.round((totalMember / totalPosible) * 100) : 0;
 
                 // ---- ENCABEZADO ----
-                pdfHeader(doc, 'Reporte Individual de Asistencia', member.name + (member.churchName ? ' | ' + member.churchName : ''));
+                pdfHeader(doc, 'Reporte Individual de Asistencia', member.name + (member.churchName ? '  •  ' + member.churchName : ''));
 
                 let y = 42;
 
@@ -8065,273 +7875,6 @@
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
                 doc.save('ReporteGeneral_CoralSync_' + fecha + '.pdf');
                 showToast('✓ PDF general generado');
-            }
-
-
-            // ======================== MEDIDAS ========================
-
-            const MEASURE_FIELDS = [
-                { key: 'estatura',    label: 'Estatura',      unit: 'cm' },
-                { key: 'peso',        label: 'Peso',          unit: 'kg' },
-                { key: 'talla',       label: 'Talla ropa',    unit: '' },
-                { key: 'busto',       label: 'Busto / Pecho', unit: 'cm' },
-                { key: 'cintura',     label: 'Cintura',       unit: 'cm' },
-                { key: 'cadera',      label: 'Cadera',        unit: 'cm' },
-                { key: 'hombros',     label: 'Hombros',       unit: 'cm' },
-                { key: 'manga',       label: 'Largo manga',   unit: 'cm' },
-                { key: 'entrepierna', label: 'Entrepierna',   unit: 'cm' },
-                { key: 'pie',         label: 'Talla zapato',  unit: '' },
-                { key: 'notas',       label: 'Notas',         unit: '' }
-            ];
-
-            let _measuresModalMemberId = null;
-
-            function renderMeasuresTab() {
-                const filterBar  = document.getElementById('measures-filter-bar');
-                const filterSel  = document.getElementById('measures-filter-church');
-                const grid       = document.getElementById('measures-grid');
-                const card       = document.getElementById('measures-card');
-
-                // Visibilidad del card: directores locales y estatales lo ven; admin tambien
-                if (card) card.style.display = '';
-
-                // Filtro de iglesia: solo para estado/admin
-                if (isDirector()) {
-                    if (filterBar) filterBar.style.display = 'none';
-                } else {
-                    if (filterBar) filterBar.style.display = '';
-                    const filterChurches = isStateDirector() ? stateChurches() : state.churches;
-                    if (filterSel) {
-                        filterSel.innerHTML = '<option value="">-- Todas las iglesias --</option>' +
-                            filterChurches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                    }
-                }
-
-                const filterChurchId = isDirector()
-                    ? sessionChurchId()
-                    : (filterSel ? filterSel.value : '');
-
-                const myChurches = isDirector()
-                    ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
-                    : isStateDirector() ? stateChurches() : state.churches;
-
-                const churches = filterChurchId
-                    ? state.churches.filter(c => c.id === filterChurchId)
-                    : myChurches;
-
-                const canEdit = (isDirector() || isSuperAdmin()) && !isDiacono();
-
-                let html = '';
-                churches.forEach(church => {
-                    const members = state.members.filter(m => m.churchId === church.id);
-                    if (!members.length) return;
-
-                    const churchHeader = !isDirector()
-                        ? `<div style="font-weight:700;color:var(--primary);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;margin:16px 0 10px;">&#x26EA; ${sanitize(church.name)}</div>`
-                        : '';
-
-                    const filled = members.filter(m => m.measures && Object.values(m.measures).some(v => v && String(v).trim() !== '')).length;
-                    const pct = members.length > 0 ? Math.round((filled / members.length) * 100) : 0;
-                    const barColor = pct === 100 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626';
-
-                    const summary = `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--gray-100);border-radius:10px;padding:10px 16px;margin-bottom:14px;">
-                        <span style="font-size:0.82rem;color:var(--gray-500);">Integrantes con medidas registradas</span>
-                        <span style="font-size:0.85rem;font-weight:700;color:${barColor};">${filled}/${members.length}</span>
-                    </div>`;
-
-                    const cards = members.map(m => {
-                        const mes = m.measures || {};
-                        const hasMeasures = Object.values(mes).some(v => v && String(v).trim() !== '');
-                        const preview = hasMeasures
-                            ? MEASURE_FIELDS.filter(f => f.key !== 'notas' && mes[f.key]).slice(0, 4)
-                                .map(f => `<span style="font-size:0.72rem;background:#f1f5f9;padding:2px 7px;border-radius:50px;color:var(--gray-600);">${f.label}: <b>${mes[f.key]}${f.unit}</b></span>`).join(' ')
-                            : '<span style="font-size:0.75rem;color:var(--gray-400);font-style:italic;">Sin medidas registradas</span>';
-
-                        const editBtn = canEdit
-                            ? `<button onclick="openMeasuresModal('${m.id}')" style="padding:5px 14px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:700;flex-shrink:0;">${hasMeasures ? 'Editar' : '+ Medidas'}</button>`
-                            : '';
-
-                        return `<div style="background:white;border-radius:12px;border:1px solid ${hasMeasures ? '#e2f0d9' : 'var(--gray-200)'};padding:14px;box-shadow:0 1px 4px rgba(27,38,59,0.06);">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
-                                <div>
-                                    <div style="font-size:0.88rem;font-weight:700;color:var(--primary);">${sanitize(m.name)}</div>
-                                    ${m.voice ? `<div style="font-size:0.72rem;color:var(--gray-400);margin-top:1px;">${m.voice}</div>` : ''}
-                                </div>
-                                ${editBtn}
-                            </div>
-                            <div style="display:flex;flex-wrap:wrap;gap:4px;">${preview}</div>
-                        </div>`;
-                    }).join('');
-
-                    html += churchHeader + summary + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:20px;">${cards}</div>`;
-                });
-
-                if (grid) grid.innerHTML = html || '<div class="empty-state" style="padding:24px 0;"><p>No hay integrantes para mostrar.</p></div>';
-            }
-
-            function openMeasuresModal(memberId) {
-                const member = state.members.find(m => m.id === memberId);
-                if (!member) return;
-                _measuresModalMemberId = memberId;
-
-                document.getElementById('measures-modal-name').textContent = member.name;
-                document.getElementById('measures-modal-voice').textContent = member.voice ? 'Voz: ' + member.voice : '';
-
-                const mes = member.measures || {};
-                const fieldsEl = document.getElementById('measures-modal-fields');
-                fieldsEl.innerHTML = MEASURE_FIELDS.map(f => {
-                    const isWide = f.key === 'notas';
-                    const inputType = f.key === 'notas' ? 'textarea' : 'input';
-                    const inputStyle = "width:100%;padding:8px 10px;border:2px solid var(--gray-300);border-radius:8px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;box-sizing:border-box;";
-                    const input = f.key === 'notas'
-                        ? `<textarea id="mf-${f.key}" rows="2" style="${inputStyle}resize:vertical;" placeholder="Observaciones adicionales...">${mes[f.key] || ''}</textarea>`
-                        : `<input type="text" id="mf-${f.key}" value="${mes[f.key] || ''}" placeholder="${f.unit ? 'ej: 165' : f.key === 'talla' ? 'ej: M, L, XL, 38...' : 'ej: 26'}" style="${inputStyle}">`;
-                    return `<div style="${isWide ? 'grid-column:1/-1;' : ''}">
-                        <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);margin-bottom:5px;">${f.label}${f.unit ? ' (' + f.unit + ')' : ''}</label>
-                        ${input}
-                    </div>`;
-                }).join('');
-
-                const modal = document.getElementById('measures-modal');
-                modal.style.display = 'flex';
-            }
-
-            function closeMeasuresModal() {
-                document.getElementById('measures-modal').style.display = 'none';
-                _measuresModalMemberId = null;
-            }
-
-            function saveMeasuresModal() {
-                const member = state.members.find(m => m.id === _measuresModalMemberId);
-                if (!member) return;
-                if (!member.measures) member.measures = {};
-                MEASURE_FIELDS.forEach(f => {
-                    const el = document.getElementById('mf-' + f.key);
-                    if (el) member.measures[f.key] = el.value.trim();
-                });
-                save();
-                closeMeasuresModal();
-                renderMeasuresTab();
-                showToast('Medidas guardadas correctamente');
-            }
-
-            // Cerrar modal al hacer clic fuera
-            document.addEventListener('click', function(e) {
-                const modal = document.getElementById('measures-modal');
-                if (modal && e.target === modal) closeMeasuresModal();
-            });
-
-            function exportMeasuresPDF() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-                const NAVY  = [27, 38, 59];
-                const ACENT = [75, 9, 14];
-                const WHITE = [255, 255, 255];
-                const LGRAY = [232, 237, 244];
-
-                const filterSel = document.getElementById('measures-filter-church');
-                const filterChurchId = isDirector() ? sessionChurchId() : (filterSel ? filterSel.value : '');
-
-                const myChurches = isDirector()
-                    ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
-                    : isStateDirector() ? stateChurches() : state.churches;
-
-                let churches = filterChurchId
-                    ? state.churches.filter(c => c.id === filterChurchId)
-                    : myChurches;
-
-                if (!churches.length) { showToast('No hay iglesias para generar el informe.'); return; }
-
-                const FIELDS_PDF = MEASURE_FIELDS.filter(f => f.key !== 'notas');
-                let firstPage = true;
-
-                churches.forEach(church => {
-                    const members = state.members.filter(m => m.churchId === church.id);
-                    if (!members.length) return;
-
-                    if (!firstPage) doc.addPage();
-                    firstPage = false;
-
-                    // Header
-                    doc.setFillColor(...NAVY);
-                    doc.rect(0, 0, 297, 22, 'F');
-                    doc.setFillColor(...ACENT);
-                    doc.rect(0, 22, 297, 1.5, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(13);
-                    doc.setTextColor(224, 225, 221);
-                    doc.text('CoralSync', 14, 10);
-                    doc.setFontSize(10);
-                    doc.setTextColor(...WHITE);
-                    doc.text('Medidas para Uniformes - ' + church.name, 14, 18);
-                    const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
-                    doc.setFontSize(7);
-                    doc.setTextColor(180, 180, 180);
-                    doc.text('Generado: ' + now, 283, 18, { align: 'right' });
-
-                    let y = 30;
-
-                    // Resumen
-                    const filled = members.filter(m => m.measures && Object.values(m.measures).some(v => v && String(v).trim() !== '')).length;
-                    doc.setFillColor(...LGRAY);
-                    doc.roundedRect(14, y, 269, 10, 2, 2, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(9);
-                    doc.setTextColor(...NAVY);
-                    doc.text(`${members.length} integrantes | ${filled} con medidas registradas`, 18, y + 6.5);
-                    y += 16;
-
-                    const head = [['Integrante', 'Voz', ...FIELDS_PDF.map(f => f.label + (f.unit ? ' (' + f.unit + ')' : '')), 'Notas']];
-                    const body = members.map(m => {
-                        const mes = m.measures || {};
-                        return [
-                            m.name,
-                            m.voice || '-',
-                            ...FIELDS_PDF.map(f => mes[f.key] || '-'),
-                            mes.notas || ''
-                        ];
-                    });
-
-                    doc.autoTable({
-                        startY: y,
-                        head,
-                        body,
-                        margin: { left: 14, right: 14 },
-                        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2.5, valign: 'middle' },
-                        headStyles: { fillColor: NAVY, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
-                        columnStyles: {
-                            0: { cellWidth: 50, fontStyle: 'bold', textColor: NAVY },
-                            1: { cellWidth: 18, halign: 'center' },
-                            [FIELDS_PDF.length + 2]: { cellWidth: 35 }
-                        },
-                        alternateRowStyles: { fillColor: [248, 249, 250] },
-                        didParseCell: (data) => {
-                            if (data.section === 'body' && data.column.index >= 2 && data.column.index <= FIELDS_PDF.length + 1) {
-                                data.cell.styles.halign = 'center';
-                                if (data.cell.raw === '-') data.cell.styles.textColor = [180, 180, 180];
-                            }
-                        }
-                    });
-                });
-
-                if (firstPage) { showToast('No hay datos para generar el informe.'); return; }
-
-                // Footer
-                const totalPages = doc.getNumberOfPages();
-                for (let p = 1; p <= totalPages; p++) {
-                    doc.setPage(p);
-                    doc.setFillColor(...NAVY);
-                    doc.rect(0, 202, 297, 8, 'F');
-                    doc.setFontSize(7);
-                    doc.setTextColor(180, 180, 180);
-                    doc.text('CoralSync - Medidas para Uniformes', 14, 207);
-                    doc.text(`Pagina ${p}/${totalPages}`, 283, 207, { align: 'right' });
-                }
-
-                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
-                doc.save('Medidas_Uniformes_CoralSync_' + fecha + '.pdf');
-                showToast('PDF de medidas generado');
             }
 
             // ======================== TOQUE SECRETO (7 clics en logo) ========================
