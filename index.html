@@ -4839,22 +4839,24 @@
                 let records = visibleRecords();
                 const members = visibleMembers();
 
-                // Ocultar/mostrar registro manual y filtro iglesia según rol
+                // Ocultar/mostrar registro manual según rol
                 const manualCard = document.getElementById('records-manual-card');
-                if (manualCard) manualCard.style.display = isStateDirector() ? 'none' : '';
+                if (manualCard) manualCard.style.display = (isStateDirector() || isDiacono()) ? 'none' : '';
 
-                // Filtro por iglesia para director estatal
+                // Filtro por iglesia: superadmin ve todas, director estatal ve las de su estado
                 const churchFilterSel = document.getElementById('records-church-filter');
                 if (churchFilterSel) {
-                    if (isStateDirector()) {
+                    if (isSuperAdmin() || isStateDirector() || isDiacono()) {
                         churchFilterSel.style.display = '';
-                        const churches = stateChurches();
+                        const churches = isSuperAdmin()
+                            ? [...state.churches].sort((a,b) => a.name.localeCompare(b.name))
+                            : stateChurches();
                         const curVal = churchFilterSel.value;
                         churchFilterSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
-                            churches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                            churches.map(c => `<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
                         churchFilterSel.value = curVal;
                         if (curVal) records = records.filter(r => {
-                            const m = state.members.find(x=>x.id===r.memberId);
+                            const m = state.members.find(x => x.id === r.memberId);
                             return m && m.churchId === curVal;
                         });
                     } else {
@@ -5059,7 +5061,7 @@
             function exportCSV() {
                 // Respetar el filtro de mes activo
                 const monthVal = document.getElementById('records-month-filter')?.value || '';
-                const churchFilterVal = isStateDirector()
+                const churchFilterVal = (isSuperAdmin() || isStateDirector() || isDiacono())
                     ? (document.getElementById('records-church-filter')?.value || '')
                     : '';
 
