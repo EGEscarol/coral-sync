@@ -2469,13 +2469,15 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Estado de Uniformes por Integrante
                         </div>
-                        <div id="uniform-filter-bar" style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                            <select id="uniform-filter-church" onchange="renderUniformsTab()" style="padding:8px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;background:white;">
-                                <option value="">-- Todas las iglesias --</option>
-                            </select>
+                        <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <div id="uniform-filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                                <select id="uniform-filter-church" onchange="renderUniformsTab()" style="padding:8px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;background:white;">
+                                    <option value="">-- Todas las iglesias --</option>
+                                </select>
+                            </div>
                             <button onclick="exportUniformsPDF()" class="btn-solid" style="padding:8px 18px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(27,38,59,0.2);">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                Informe PDF
+                                Informe PDF de Uniformes
                             </button>
                         </div>
                         <div id="uniform-matrix" style="overflow-x:auto;"></div>
@@ -6129,147 +6131,173 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-                // Determinar iglesias a mostrar según rol
                 const filterChurchId = document.getElementById('uniform-filter-church')?.value || '';
                 let churches = isDirector()
                     ? [state.churches.find(c => c.id === sessionChurchId())].filter(Boolean)
-                    : isStateDirector()
-                        ? stateChurches()
-                        : state.churches;
+                    : (isStateDirector() || isDiacono()) ? stateChurches() : state.churches;
                 if (filterChurchId) churches = churches.filter(c => c.id === filterChurchId);
-
                 if (!churches.length) { showToast('No hay iglesias para generar el informe.'); return; }
 
-                const NAVY  = [27, 38, 59];
-                const ACENT = [75, 9, 14];
-                const WHITE = [255, 255, 255];
-                const GRAY  = [73, 80, 87];
-                const LGRAY = [232, 237, 244];
-                const GREEN = [45, 106, 79];
-                const RED   = [208, 0, 0];
+                const NAVY  = [27,38,59], ACENT = [75,9,14], WHITE = [255,255,255];
+                const GRAY  = [110,110,110], LGRAY = [245,246,248];
+                const GREEN = [22,163,74], RED = [220,38,38];
+                const PW = 297, PH = 210; // landscape A4
 
                 let firstPage = true;
 
                 churches.forEach(church => {
-                    const members = state.members.filter(m => m.churchId === church.id);
+                    const members = state.members.filter(m => m.churchId === church.id)
+                        .sort((a,b) => a.name.localeCompare(b.name));
                     const unis = getChurchUniformsWithState(church.id);
                     if (!members.length || !unis.length) return;
 
                     if (!firstPage) doc.addPage();
                     firstPage = false;
 
-                    // ── Header ──────────────────────────────────────
-                    doc.setFillColor(...NAVY);
-                    doc.rect(0, 0, 297, 22, 'F');
-                    doc.setFillColor(...ACENT);
-                    doc.rect(0, 22, 297, 1.5, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(13);
-                    doc.setTextColor(224, 225, 221);
-                    doc.text('CoralSync', 14, 10);
-                    doc.setFontSize(10);
-                    doc.setTextColor(...WHITE);
-                    doc.text('Informe de Uniformes — ' + church.name, 14, 18);
-                    const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
-                    doc.setFontSize(7);
-                    doc.setTextColor(180, 180, 180);
-                    doc.text('Generado: ' + now, 283, 18, { align: 'right' });
+                    // ── Header ──────────────────────────────────────────────────
+                    doc.setFillColor(...NAVY); doc.rect(0,0,PW,22,'F');
+                    doc.setFillColor(...ACENT); doc.rect(0,22,PW,1.5,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+                    doc.setTextColor(224,225,221); doc.text('CoralSync', 14, 10);
+                    doc.setFontSize(10); doc.setTextColor(...WHITE);
+                    doc.text('Informe de Uniformes - ' + church.name, 14, 18);
+                    const now = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+                    doc.setFontSize(7); doc.setTextColor(180,180,180);
+                    doc.text('Generado: ' + now, 283, 18, {align:'right'});
 
-                    let y = 30;
+                    let y = 28;
 
-                    // ── Resumen ──────────────────────────────────────
-                    const completeCount = members.filter(m => {
-                        const pureUnis = unis.filter(u => !u.isState);
-                        return pureUnis.length === 0 || pureUnis.every(u => m.uniforms && m.uniforms[u.id]);
-                    }).length;
+                    // ── Tarjetas resumen ─────────────────────────────────────────
+                    const totalM = members.length;
+                    const completeCount = members.filter(m =>
+                        unis.every(u => m.uniforms && m.uniforms[u.id])
+                    ).length;
+                    const sinNinguno = members.filter(m =>
+                        unis.every(u => !m.uniforms || !m.uniforms[u.id])
+                    ).length;
+                    const pctCompleto = totalM > 0 ? Math.round(completeCount/totalM*100) : 0;
 
-                    doc.setFillColor(...LGRAY);
-                    doc.roundedRect(14, y, 269, 10, 2, 2, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(9);
-                    doc.setTextColor(...NAVY);
-                    doc.text(`${members.length} integrantes  •  ${unis.length} uniformes  •  ${completeCount} con uniforme completo`, 18, y + 6.5);
-                    y += 16;
-
-                    // ── Tabla ─────────────────────────────────────────
-                    // Construir cabeceras: Integrante + Voz + cada uniforme
-                    const uniCols = unis.map(u => (u.isState ? '★ ' : '') + u.name);
-                    const head = [['Integrante', 'Voz', ...uniCols, 'Completo']];
-
-                    const body = members.map(m => {
-                        const uniVals = unis.map(u => m.uniforms && m.uniforms[u.id] ? '✓' : '✗');
-                        const allDone = unis.every(u => m.uniforms && m.uniforms[u.id]);
-                        return [m.name, m.voice || '—', ...uniVals, allDone ? '✓' : '✗'];
+                    const cardDefs = [
+                        {label:'Integrantes',       value:totalM,                color:NAVY},
+                        {label:'Uniformes',          value:unis.length,           color:[46,100,160]},
+                        {label:'Completos',          value:completeCount,         color:GREEN},
+                        {label:'Sin uniforme',       value:sinNinguno,            color:sinNinguno>0?RED:GRAY},
+                        {label:'% Completado',       value:pctCompleto+'%',       color:pctCompleto>=80?GREEN:pctCompleto>=50?[202,138,4]:RED},
+                    ];
+                    const cw=46, ch=18, cg=3;
+                    cardDefs.forEach((c,i) => {
+                        const cx = 14+i*(cw+cg);
+                        doc.setFillColor(...c.color); doc.roundedRect(cx,y,cw,ch,2,2,'F');
+                        doc.setFont('helvetica','bold'); doc.setFontSize(14);
+                        doc.setTextColor(...WHITE);
+                        doc.text(String(c.value), cx+cw/2, y+10, {align:'center'});
+                        doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+                        doc.text(c.label.toUpperCase(), cx+cw/2, y+16, {align:'center'});
                     });
+                    y += ch+6;
 
-                    // Anchos de columna dinámicos
-                    const totalW = 269;
-                    const nameW  = 55;
-                    const voiceW = 22;
-                    const complW = 18;
-                    const uniW   = Math.max(14, Math.floor((totalW - nameW - voiceW - complW) / Math.max(unis.length, 1)));
+                    // Barra de progreso general
+                    doc.setFillColor(220,220,220); doc.roundedRect(14,y,269,4,2,2,'F');
+                    if (pctCompleto>0) {
+                        doc.setFillColor(...(pctCompleto>=80?GREEN:pctCompleto>=50?[202,138,4]:RED));
+                        doc.roundedRect(14,y,269*pctCompleto/100,4,2,2,'F');
+                    }
+                    y += 8;
 
-                    doc.autoTable({
-                        startY: y,
-                        head,
-                        body,
-                        margin: { left: 14, right: 14 },
-                        styles: { font: 'helvetica', fontSize: 8, cellPadding: 3, valign: 'middle' },
-                        headStyles: { fillColor: NAVY, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5 },
-                        columnStyles: {
-                            0: { cellWidth: nameW, fontStyle: 'bold', textColor: NAVY },
-                            1: { cellWidth: voiceW, halign: 'center', textColor: GRAY },
-                            [unis.length + 2]: { cellWidth: complW, halign: 'center', fontStyle: 'bold' }
-                        },
-                        didParseCell: (data) => {
-                            if (data.section === 'body') {
-                                const colIdx = data.column.index;
-                                // Columnas de uniformes (2 a N+1)
-                                if (colIdx >= 2 && colIdx <= unis.length + 1) {
-                                    data.cell.styles.halign = 'center';
-                                    if (data.cell.raw === '✓') {
-                                        data.cell.styles.textColor = GREEN;
-                                        data.cell.styles.fontStyle = 'bold';
-                                    } else {
-                                        data.cell.styles.textColor = RED;
-                                    }
-                                }
-                                // Columna "Completo"
-                                if (colIdx === unis.length + 2) {
-                                    if (data.cell.raw === '✓') {
-                                        data.cell.styles.fillColor = [216, 243, 220];
-                                        data.cell.styles.textColor = GREEN;
-                                        data.cell.styles.fontStyle = 'bold';
-                                    } else {
-                                        data.cell.styles.fillColor = [255, 224, 224];
-                                        data.cell.styles.textColor = RED;
-                                    }
-                                }
+                    // ── Tabla por voz ────────────────────────────────────────────
+                    const voces = ['Soprano','Contralto','Tenor','Bajo'];
+                    const voiceColors = {Soprano:[74,144,196],Contralto:[180,130,10],Tenor:[45,139,85],Bajo:[184,64,73]};
+                    const sinVoz = members.filter(m => !m.voice);
+                    const grupos = [...voces.map(v=>({v, mems:members.filter(m=>m.voice===v)})).filter(g=>g.mems.length), ...(sinVoz.length?[{v:'Sin voz',mems:sinVoz}]:[])];
+
+                    grupos.forEach(({v, mems}) => {
+                        if (y > 185) { doc.addPage(); y=10; }
+
+                        // Etiqueta de sección de voz
+                        const vc = voiceColors[v]||GRAY;
+                        doc.setFillColor(...vc.map(x=>Math.round(x*0.1+235*0.9)));
+                        doc.roundedRect(14, y, 269, 6.5, 1.5,1.5,'F');
+                        doc.setFillColor(...vc); doc.roundedRect(14,y,4,6.5,1,1,'F'); doc.rect(14+2,y,2,6.5,'F');
+                        doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                        const vCompletos = mems.filter(m=>unis.every(u=>m.uniforms&&m.uniforms[u.id])).length;
+                        doc.text(v + '  -  ' + mems.length + ' integrantes  |  ' + vCompletos + ' completos', 22, y+4.5);
+                        y += 8;
+
+                        // Encabezado de tabla manual
+                        const totalW=269, nameW=58, voiceW=0, complW=20;
+                        const uniW = Math.max(12, Math.floor((totalW-nameW-complW)/Math.max(unis.length,1)));
+
+                        doc.setFillColor(...NAVY); doc.rect(14,y,totalW,7,'F');
+                        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
+                        doc.text('Integrante', 16, y+5);
+                        unis.forEach((u,i) => {
+                            const cx = 14+nameW+i*uniW;
+                            const uName = u.name.length>12 ? u.name.substring(0,11)+'.': u.name;
+                            doc.text((u.isState?'[E] ':'')+uName, cx+uniW/2, y+5, {align:'center'});
+                        });
+                        doc.text('Completo', 14+nameW+unis.length*uniW+complW/2, y+5, {align:'center'});
+                        y += 7;
+
+                        // Filas por integrante
+                        mems.forEach((m,idx) => {
+                            if (y > 197) { doc.addPage(); y=10; }
+                            const rowH = 7.5;
+                            const allDone = unis.every(u=>m.uniforms&&m.uniforms[u.id]);
+                            const bg = allDone ? [232,248,237] : idx%2===0 ? WHITE : [248,249,250];
+                            doc.setFillColor(...bg); doc.rect(14,y,totalW,rowH,'F');
+
+                            // Nombre
+                            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                            const nStr = m.name.length>28 ? m.name.substring(0,26)+'..' : m.name;
+                            doc.text(nStr, 16, y+5);
+
+                            // Cada uniforme: SI en verde, NO en rojo
+                            unis.forEach((u,i) => {
+                                const cx = 14+nameW+i*uniW;
+                                const tiene = m.uniforms && m.uniforms[u.id];
+                                doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+                                doc.setTextColor(...(tiene?GREEN:RED));
+                                doc.text(tiene?'SI':'NO', cx+uniW/2, y+5, {align:'center'});
+                            });
+
+                            // Columna Completo
+                            const cx2 = 14+nameW+unis.length*uniW;
+                            if (allDone) {
+                                doc.setFillColor(...GREEN.map(x=>Math.round(x*0.15+240*0.85)));
+                                doc.rect(cx2,y,complW,rowH,'F');
+                                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GREEN);
+                                doc.text('SI', cx2+complW/2, y+5, {align:'center'});
+                            } else {
+                                doc.setFillColor(...RED.map(x=>Math.round(x*0.1+245*0.9)));
+                                doc.rect(cx2,y,complW,rowH,'F');
+                                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...RED);
+                                doc.text('NO', cx2+complW/2, y+5, {align:'center'});
                             }
-                        },
-                        alternateRowStyles: { fillColor: [248, 249, 250] },
+
+                            // Línea divisora
+                            doc.setDrawColor(220,220,220); doc.line(14,y+rowH,283,y+rowH);
+                            y += rowH;
+                        });
+                        y += 5;
                     });
                 });
 
                 if (firstPage) { showToast('No hay datos para generar el informe.'); return; }
 
-                // Pie de página en cada hoja
+                // Pie de pagina
                 const totalPages = doc.getNumberOfPages();
-                for (let p = 1; p <= totalPages; p++) {
+                for (let p=1; p<=totalPages; p++) {
                     doc.setPage(p);
-                    doc.setFillColor(...NAVY);
-                    doc.rect(0, 202, 297, 8, 'F');
-                    doc.setFontSize(7);
-                    doc.setTextColor(180, 180, 180);
-                    doc.text('CoralSync — Informe de Uniformes', 14, 207);
-                    doc.text(`Página ${p}/${totalPages}`, 283, 207, { align: 'right' });
-                    doc.setTextColor(...ACENT);
-                    doc.text('★ = Uniforme estatal', 148, 207, { align: 'center' });
+                    doc.setFillColor(...NAVY); doc.rect(0,202,PW,8,'F');
+                    doc.setFontSize(7); doc.setTextColor(180,180,180);
+                    doc.text('CoralSync - Informe de Uniformes', 14, 207);
+                    doc.text('[E] = Uniforme estatal', PW/2, 207, {align:'center'});
+                    doc.text('Pagina '+p+'/'+totalPages, 283, 207, {align:'right'});
                 }
 
-                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
-                doc.save(`CoralSync_Uniformes_${fecha}.pdf`);
-                showToast('✓ Informe de uniformes generado');
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                doc.save('CoralSync_Uniformes_'+fecha+'.pdf');
+                showToast('Informe de uniformes generado');
             }
 
             function renderUniformsTab() {
@@ -6326,11 +6354,10 @@
                 // Filtro de iglesia para la matriz
                 const filterSel = document.getElementById('uniform-filter-church');
                 const filterBar = document.getElementById('uniform-filter-bar');
-                if (isDirector()) {
-                    filterBar.style.display = 'none';
-                } else {
-                    filterBar.style.display = '';
-                    const filterChurches = isStateDirector() ? stateChurches() : state.churches;
+                // Director local no necesita filtro de iglesia (usa la suya)
+                if (filterBar) filterBar.style.display = isDirector() ? 'none' : '';
+                if (!isDirector() && filterSel) {
+                    const filterChurches = (isStateDirector() || isDiacono()) ? stateChurches() : state.churches;
                     filterSel.innerHTML = '<option value="">— Todas las iglesias —</option>' +
                         filterChurches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                 }
