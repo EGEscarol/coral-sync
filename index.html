@@ -1768,26 +1768,53 @@
 
                     <!-- Registro manual integrado en dashboard -->
                     <div class="cs-manual-card" id="dashboard-manual" style="margin-bottom:24px;">
-                        <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:var(--primary);font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--accent);">
+                        <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:var(--primary);font-weight:700;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--accent);">
                             ✏ Registro Manual de Asistencia
                         </div>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                            <div style="flex:1;min-width:160px;">
-                                <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:5px;">Integrante</label>
-                                <select id="dash-manual-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;">
-                                    <option value="">-- Selecciona --</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;min-width:160px;">
-                                <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:5px;">Actividad</label>
-                                <select id="dash-manual-activity" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;">
-                                    <option value="">-- Selecciona --</option>
-                                </select>
-                            </div>
-                            <button onclick="submitDashManual()" class="btn-solid" style="padding:10px 22px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(27,38,59,0.25);">
-                                ✓ Registrar
-                            </button>
+
+                        <!-- Paso 1: actividad -->
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:8px;">1. Selecciona la actividad</label>
+                            <div id="dash-activity-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
                         </div>
+
+                        <!-- Paso 2: buscar integrante -->
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:8px;">2. Busca al integrante</label>
+                            <div style="position:relative;">
+                                <input type="text" id="dash-member-search"
+                                    placeholder="Escribe el nombre..."
+                                    oninput="filterDashMembers()"
+                                    onfocus="showDashDropdown()"
+                                    autocomplete="off"
+                                    style="width:100%;padding:10px 14px 10px 38px;border:2px solid var(--gray-300);border-radius:12px;font-family:'Inter',sans-serif;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+                                    onfocusin="this.style.borderColor='var(--primary)'"
+                                    onfocusout="setTimeout(()=>hideDashDropdown(),200)">
+                                <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-400);" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <div id="dash-member-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid var(--primary);border-radius:12px;box-shadow:0 8px 24px rgba(27,38,59,0.15);z-index:500;max-height:220px;overflow-y:auto;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div id="dash-member-preview" style="display:none;background:var(--gray-100);border-radius:12px;padding:10px 14px;margin-bottom:14px;align-items:center;gap:12px;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700;color:var(--primary);font-size:0.9rem;" id="dash-preview-name"></div>
+                                <div style="font-size:0.73rem;color:var(--gray-500);margin-top:2px;" id="dash-preview-info"></div>
+                            </div>
+                            <button onclick="clearDashMember()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.2rem;padding:4px;line-height:1;">&#x2715;</button>
+                        </div>
+
+                        <!-- Botón -->
+                        <button onclick="submitDashManual()" id="dash-submit-btn"
+                            style="width:100%;padding:11px;background:var(--gray-300);color:var(--gray-500);border:none;border-radius:12px;cursor:not-allowed;font-family:'Inter',sans-serif;font-size:0.92rem;font-weight:700;transition:all 0.2s;opacity:0.6;"
+                            disabled>✓ Registrar asistencia</button>
+
+                        <!-- Hidden inputs para compatibilidad -->
+                        <input type="hidden" id="dash-manual-member">
+                        <select id="dash-manual-activity" style="display:none;"></select>
                     </div>
 
                     <!-- Últimas actividades -->
@@ -6889,25 +6916,148 @@
                 updateDashManualSelects();
             }
 
+            let _dashSelectedMemberId = null;
+            let _dashSelectedActivityId = null;
+
             function updateDashManualSelects() {
-                const ms = document.getElementById('dash-manual-member');
                 const as = document.getElementById('dash-manual-activity');
-                if (!ms || !as) return;
-                const members = visibleMembers();
-                ms.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                    members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
-                as.innerHTML = '<option value="">-- Selecciona la actividad --</option>' +
-                    state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                if (as) {
+                    as.innerHTML = '<option value=""></option>' +
+                        state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                }
+                renderDashActivityChips();
+                updateDashSubmitBtn();
+            }
+
+            function renderDashActivityChips() {
+                const container = document.getElementById('dash-activity-chips');
+                if (!container) return;
+                if (!state.activities.length) {
+                    container.innerHTML = '<span style="font-size:0.82rem;color:var(--gray-400);font-style:italic;">No hay actividades.</span>';
+                    return;
+                }
+                container.innerHTML = state.activities.map(a => {
+                    const selected = _dashSelectedActivityId === a.id;
+                    return `<button onclick="selectDashActivity('${a.id}')"
+                        style="padding:7px 16px;border-radius:50px;border:2px solid ${selected ? a.color||'var(--primary)' : 'var(--gray-300)'};
+                        background:${selected ? a.color||'var(--primary)' : 'white'};
+                        color:${selected ? 'white' : 'var(--gray-600)'};
+                        font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:${selected?'700':'500'};
+                        cursor:pointer;transition:all 0.15s;">${sanitize(a.name)}</button>`;
+                }).join('');
+            }
+
+            function selectDashActivity(activityId) {
+                _dashSelectedActivityId = _dashSelectedActivityId === activityId ? null : activityId;
+                renderDashActivityChips();
+                updateDashMemberPreview();
+                updateDashSubmitBtn();
+            }
+
+            function filterDashMembers() {
+                const q = (document.getElementById('dash-member-search')?.value || '').toLowerCase().trim();
+                showDashDropdown(q);
+            }
+
+            function showDashDropdown(q = '') {
+                const dropdown = document.getElementById('dash-member-dropdown');
+                if (!dropdown) return;
+                const today = new Date().toLocaleDateString('es-MX');
+                const members = visibleMembers()
+                    .filter(m => !q || m.name.toLowerCase().includes(q))
+                    .slice(0, 30);
+                if (!members.length) {
+                    dropdown.innerHTML = '<div style="padding:12px 16px;color:var(--gray-400);font-size:0.85rem;">Sin resultados</div>';
+                    dropdown.style.display = 'block';
+                    return;
+                }
+                dropdown.innerHTML = members.map(m => {
+                    const alreadyToday = _dashSelectedActivityId
+                        ? state.records.some(r => r.memberId === m.id && r.activityId === _dashSelectedActivityId && r.date === today)
+                        : false;
+                    const voice = m.voice ? `<span style="font-size:0.7rem;color:var(--gray-400);margin-left:6px;">${m.voice}</span>` : '';
+                    const badge = alreadyToday
+                        ? `<span style="font-size:0.68rem;background:#dcfce7;color:#16a34a;padding:2px 7px;border-radius:50px;flex-shrink:0;font-weight:700;">Ya registrado hoy</span>`
+                        : '';
+                    return `<div onmousedown="selectDashMember('${m.id}')"
+                        style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--gray-100);transition:background 0.1s;"
+                        onmouseover="this.style.background='var(--gray-100)'"
+                        onmouseout="this.style.background='white'">
+                        <div><span style="font-size:0.88rem;font-weight:600;color:var(--primary);">${sanitize(m.name)}</span>${voice}</div>
+                        ${badge}
+                    </div>`;
+                }).join('');
+                dropdown.style.display = 'block';
+            }
+
+            function hideDashDropdown() {
+                const d = document.getElementById('dash-member-dropdown');
+                if (d) d.style.display = 'none';
+            }
+
+            function selectDashMember(memberId) {
+                _dashSelectedMemberId = memberId;
+                document.getElementById('dash-manual-member').value = memberId;
+                const member = state.members.find(m => m.id === memberId);
+                if (member) {
+                    const el = document.getElementById('dash-member-search');
+                    if (el) el.value = member.name;
+                }
+                hideDashDropdown();
+                updateDashMemberPreview();
+                updateDashSubmitBtn();
+            }
+
+            function clearDashMember() {
+                _dashSelectedMemberId = null;
+                document.getElementById('dash-manual-member').value = '';
+                const el = document.getElementById('dash-member-search');
+                if (el) { el.value = ''; el.focus(); }
+                const preview = document.getElementById('dash-member-preview');
+                if (preview) preview.style.display = 'none';
+                updateDashSubmitBtn();
+            }
+
+            function updateDashMemberPreview() {
+                const preview = document.getElementById('dash-member-preview');
+                if (!preview) return;
+                if (!_dashSelectedMemberId) { preview.style.display = 'none'; return; }
+                const member = state.members.find(m => m.id === _dashSelectedMemberId);
+                if (!member) { preview.style.display = 'none'; return; }
+                const today = new Date().toLocaleDateString('es-MX');
+                const actName = _dashSelectedActivityId
+                    ? state.activities.find(a => a.id === _dashSelectedActivityId)?.name : null;
+                const alreadyToday = actName
+                    ? state.records.some(r => r.memberId === member.id && r.activityId === _dashSelectedActivityId && r.date === today)
+                    : false;
+                document.getElementById('dash-preview-name').textContent = member.name;
+                let info = member.voice || '';
+                if (member.churchName) info += (info ? ' · ' : '') + member.churchName;
+                if (alreadyToday && actName) info += ' · ⚠ Ya registrado en ' + actName + ' hoy';
+                document.getElementById('dash-preview-info').textContent = info;
+                document.getElementById('dash-preview-info').style.color = alreadyToday ? '#dc2626' : '';
+                preview.style.display = 'flex';
+            }
+
+            function updateDashSubmitBtn() {
+                const btn = document.getElementById('dash-submit-btn');
+                if (!btn) return;
+                const ready = _dashSelectedMemberId && _dashSelectedActivityId;
+                btn.disabled = !ready;
+                btn.style.background = ready ? 'var(--primary)' : 'var(--gray-300)';
+                btn.style.color = ready ? 'white' : 'var(--gray-500)';
+                btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+                btn.style.opacity = ready ? '1' : '0.6';
             }
 
             function submitDashManual() {
-                const memberId = document.getElementById('dash-manual-member').value;
-                const activityId = document.getElementById('dash-manual-activity').value;
-                if (!memberId || !activityId) { showToast('Selecciona integrante y actividad.'); return; }
+                const memberId = _dashSelectedMemberId;
+                const activityId = _dashSelectedActivityId;
+                if (!memberId || !activityId) { showToast('Selecciona actividad e integrante.'); return; }
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         pos => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude); afterDashManual(); },
-                        () => { addRecord(memberId, activityId, null, null); afterDashManual(); },
+                        ()  => { addRecord(memberId, activityId, null, null); afterDashManual(); },
                         { timeout: 5000 }
                     );
                 } else {
@@ -6917,9 +7067,8 @@
             }
 
             function afterDashManual() {
-                showToast('✓ Asistencia registrada correctamente');
-                document.getElementById('dash-manual-member').value = '';
-                document.getElementById('dash-manual-activity').value = '';
+                showToast('✓ Asistencia registrada');
+                clearDashMember();
                 renderDashboard();
             }
 
@@ -8325,4 +8474,3 @@
                 </script>
     </body>
 </html>
-
