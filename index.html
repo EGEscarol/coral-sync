@@ -7335,10 +7335,9 @@
                 const filteredRecs = getReportRecords();
                 const groupRecs = filteredRecs.filter(r => selectedIds.includes(r.memberId));
                 const totalRecords = groupRecs.length;
-                const totalPosible = state.activities.reduce((sum,a) => {
-                    const ud = [...new Set(filteredRecs.filter(r=>r.activityId===a.id).map(r=>r.date))];
-                    return sum + ud.length;
-                }, 0);
+                // totalPosible = numero de actividades distintas que ocurrieron en el periodo
+                const actividadesOcurridas = [...new Set(filteredRecs.map(r => r.activityId))];
+                const totalPosible = actividadesOcurridas.length;
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
                     const pct = totalPosible > 0 ? Math.round((recs.length/totalPosible)*100) : 0;
@@ -7355,407 +7354,394 @@
                     totalPosible, memberStats, topMember, bottomMember, avgAtt, mesRows, mesPico };
             }
 
-            // Reporte General del Coro — solo el resumen grupal, sin páginas individuales
+            // ============================================================
+            // HELPER: semaforo de color segun porcentaje
+            // ============================================================
+            function semaforoColor(pct) {
+                if (pct >= 80) return [22, 163, 74];   // verde
+                if (pct >= 50) return [202, 138, 4];    // amarillo
+                return [220, 38, 38];                   // rojo
+            }
+            function semaforoLabel(pct) {
+                if (pct >= 80) return 'Excelente';
+                if (pct >= 50) return 'Regular';
+                return 'Necesita atencion';
+            }
+
+            // ============================================================
+            // REPORTE GENERAL DEL CORO
+            // ============================================================
             function exportPDFCoro() {
                 const s = getReportSetup();
                 if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-                const { selectedMembers, groupLabel, monthLbl, monthVal, totalRecords,
-                    totalPosible, memberStats, topMember, bottomMember, avgAtt,
-                    mesRows, mesPico, filteredRecs, groupRecs } = s;
+                const { selectedIds, selectedMembers, groupLabel, monthLbl, monthVal,
+                    totalRecords, totalPosible, memberStats, topMember, bottomMember,
+                    avgAtt, mesRows, mesPico, filteredRecs, groupRecs } = s;
 
+                const NAVY = [27,38,59], RED = [75,9,14], WHITE = [255,255,255];
+                const LGRAY = [245,246,248], GRAY = [100,100,100];
+                const GREEN = [22,163,74], YELLOW = [202,138,4], ROSE = [220,38,38];
 
-                // ========== RESUMEN DEL CORO ==========
-                pdfHeader(doc, 'Reporte de Grupo — ' + groupLabel,
-                    selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros' + (monthLbl ? '  •  ' + monthLbl : ''));
+                // ── HEADER ──────────────────────────────────────────────
+                pdfHeader(doc, 'Reporte General del Coro', groupLabel + (monthLbl ? '  |  ' + monthLbl : ''));
+                let y = 40;
 
-                let y = 42;
+                // ── TARJETAS DE RESUMEN ──────────────────────────────────
+                const totalActividadesOcurridas = [...new Set(filteredRecs.map(r => r.activityId))].length;
+                const pctGeneral = totalPosible > 0
+                    ? Math.round(groupRecs.length / (selectedMembers.length * totalPosible) * 100)
+                    : 0;
+                const sinAsistencia = selectedMembers.filter(m => !filteredRecs.some(r => r.memberId === m.id)).length;
+                const excelentes = memberStats.filter(m => m.pct >= 80).length;
 
-                // Stat boxes
-                statBox(doc, 14,  y, 42, 22, 'Integrantes', selectedMembers.length, [27,38,59]);
-                statBox(doc, 60,  y, 42, 22, 'Total Registros', totalRecords, [46,125,82]);
-                statBox(doc, 106, y, 42, 22, 'Prom./persona', avgAtt, [168,99,30]);
-                statBox(doc, 152, y, 42, 22, 'Mes pico', mesPico ? mesPico[0] : '—', [90,90,82]);
-                y += 30;
-
-                // Composición de voces del grupo
-                const voiceCount = { Soprano:0, Contralto:0, Tenor:0, Bajo:0, 'Sin asignar':0 };
-                const voiceColors = { Soprano:[74,144,196], Contralto:[201,150,10], Tenor:[45,139,85], Bajo:[184,64,73], 'Sin asignar':[150,150,150] };
-                selectedMembers.forEach(m => {
-                    const v = m.voice || 'Sin asignar';
-                    if (voiceCount[v] !== undefined) voiceCount[v]++;
-                    else voiceCount['Sin asignar']++;
-                });
-                const voicesWithMembers = Object.entries(voiceCount).filter(([,n])=>n>0);
-
-                y = sectionTitle(doc, 'Composición de Voces', y);
-                // Mini cards de voces
-                const cardW = 38, cardH = 20, gap = 4;
-                const totalCards = voicesWithMembers.length;
-                const startX = 14;
-                voicesWithMembers.forEach(([voice, count], i) => {
-                    const cx = startX + i*(cardW+gap);
-                    const col = voiceColors[voice] || [150,150,150];
-                    doc.setFillColor(...col);
-                    doc.roundedRect(cx, y, cardW, cardH, 2, 2, 'F');
+                const cards = [
+                    { label: 'Integrantes', value: selectedMembers.length, color: NAVY },
+                    { label: 'Actividades', value: totalActividadesOcurridas, color: [46,125,82] },
+                    { label: 'Asistencia general', value: pctGeneral + '%', color: semaforoColor(pctGeneral) },
+                    { label: 'Sin asistencia', value: sinAsistencia, color: sinAsistencia > 0 ? ROSE : [150,150,150] },
+                ];
+                const cw = 44, ch = 22, gap = 3;
+                cards.forEach((c, i) => {
+                    const cx = 14 + i*(cw+gap);
+                    doc.setFillColor(...c.color);
+                    doc.roundedRect(cx, y, cw, ch, 3, 3, 'F');
                     doc.setFont('helvetica','bold');
-                    doc.setFontSize(14);
-                    doc.setTextColor(255,255,255);
-                    doc.text(String(count), cx+cardW/2, y+11, {align:'center'});
-                    doc.setFontSize(7);
+                    doc.setFontSize(15);
+                    doc.setTextColor(...WHITE);
+                    doc.text(String(c.value), cx + cw/2, y + 12, {align:'center'});
+                    doc.setFontSize(6.5);
                     doc.setFont('helvetica','normal');
-                    doc.text(voice, cx+cardW/2, y+17, {align:'center'});
+                    doc.text(c.label.toUpperCase(), cx + cw/2, y + 19, {align:'center'});
                 });
-                y += cardH + 10;
+                y += ch + 10;
 
-                // Destacados del grupo
-                y = sectionTitle(doc, 'Destacados del Grupo', y);
+                // ── SEMAFORO POR SECCIÓN DE VOZ ──────────────────────────
+                y = sectionTitle(doc, 'Asistencia por Seccion de Voz', y);
+                const voces = ['Soprano','Contralto','Tenor','Bajo'];
+                const voiceColors = { Soprano:[74,144,196], Contralto:[201,150,10], Tenor:[45,139,85], Bajo:[184,64,73] };
+                const vw = 43, vh = 28;
+                let hasVoice = false;
+                voces.forEach((v, i) => {
+                    const mems = selectedMembers.filter(m => m.voice === v);
+                    if (!mems.length) return;
+                    hasVoice = true;
+                    const vRecs = filteredRecs.filter(r => mems.some(m => m.id === r.memberId));
+                    const vPct = totalPosible > 0
+                        ? Math.round(vRecs.length / (mems.length * totalPosible) * 100)
+                        : 0;
+                    const cx = 14 + i*(vw+3);
+                    // Fondo
+                    doc.setFillColor(...LGRAY);
+                    doc.roundedRect(cx, y, vw, vh, 3, 3, 'F');
+                    // Barra de color arriba
+                    doc.setFillColor(...(voiceColors[v]||NAVY));
+                    doc.roundedRect(cx, y, vw, 5, 2, 2, 'F');
+                    doc.rect(cx, y+3, vw, 2, 'F');
+                    // Nombre de voz
+                    doc.setFont('helvetica','bold');
+                    doc.setFontSize(8);
+                    doc.setTextColor(...NAVY);
+                    doc.text(v, cx + vw/2, y + 12, {align:'center'});
+                    // Porcentaje grande
+                    doc.setFontSize(14);
+                    doc.setTextColor(...semaforoColor(vPct));
+                    doc.text(vPct + '%', cx + vw/2, y + 21, {align:'center'});
+                    // Conteo
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(...GRAY);
+                    doc.text(mems.length + ' integrantes', cx + vw/2, y + 27, {align:'center'});
+                });
+                if (!hasVoice) {
+                    doc.setFontSize(8); doc.setTextColor(...GRAY);
+                    doc.text('No hay integrantes con voz asignada.', 14, y+10);
+                }
+                y += vh + 12;
+
+                // ── RANKING CON SEMAFORO ──────────────────────────────────
+                if (y > 210) { doc.addPage(); y = 20; }
+                y = sectionTitle(doc, 'Ranking de Asistencia', y);
+
+                const rankRows = memberStats.map(m => {
+                    const label = semaforoLabel(m.pct);
+                    return [m.name, m.church || '-', m.total + ' / ' + totalPosible, m.pct + '%', label];
+                });
+
                 doc.autoTable({
                     startY: y,
-                    head: [['','Integrante','Iglesia','Asistencias','%']],
-                    body: [
-                        ['Mas constante', topMember ? topMember.name : '—', topMember ? topMember.church : '—', topMember ? topMember.total : 0, topMember ? topMember.pct+'%' : '—'],
-                        ['Menos constante', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.name : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.church : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.total : '—', bottomMember && bottomMember.id !== (topMember||{}).id ? bottomMember.pct+'%' : '—'],
-                    ],
-                    theme: 'grid',
-                    headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                    bodyStyles: {fontSize:9,textColor:[40,40,40]},
-                    columnStyles: {0:{cellWidth:38},1:{cellWidth:60},2:{cellWidth:45},3:{cellWidth:25,halign:'center'},4:{cellWidth:18,halign:'center'}},
-                    margin:{left:14,right:14}
-                });
-
-                y = doc.lastAutoTable.finalY + 10;
-
-                // Ranking del grupo
-                y = sectionTitle(doc, 'Ranking de Asistencia del Grupo', y);
-                const rankRows = memberStats.map(m => [m.name, m.church, m.total, m.pct+'%', m.racha.actual, m.racha.max]);
-                doc.autoTable({
-                    startY: y,
-                    head: [['Integrante','Iglesia','Asist.','%','Racha act.','Racha máx.']],
+                    head: [['Integrante','Iglesia','Asistencias','%','Estado']],
                     body: rankRows,
                     theme: 'grid',
-                    headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:8.5},
-                    bodyStyles: {fontSize:8,textColor:[40,40,40]},
-                    columnStyles: {0:{cellWidth:58},1:{cellWidth:45},2:{cellWidth:18,halign:'center'},3:{cellWidth:18,halign:'center'},4:{cellWidth:22,halign:'center'},5:{cellWidth:22,halign:'center'}},
-                    alternateRowStyles: {fillColor:[248,248,246]},
+                    headStyles: {fillColor:NAVY, textColor:WHITE, fontStyle:'bold', fontSize:8.5},
+                    bodyStyles: {fontSize:8, textColor:[40,40,40]},
+                    columnStyles: {
+                        0:{cellWidth:60, fontStyle:'bold'},
+                        1:{cellWidth:48},
+                        2:{cellWidth:28, halign:'center'},
+                        3:{cellWidth:18, halign:'center'},
+                        4:{cellWidth:28, halign:'center'}
+                    },
+                    alternateRowStyles: {fillColor:LGRAY},
                     didParseCell: function(d) {
-                        if(d.column.index===0 && d.section==='body' && d.row.index===0){
-                            d.cell.styles.fillColor=[75,9,14];
-                            d.cell.styles.textColor=[255,255,255];
-                            d.cell.styles.fontStyle='bold';
+                        if (d.section === 'body') {
+                            if (d.column.index === 4) {
+                                const v = d.cell.raw;
+                                if (v === 'Excelente') { d.cell.styles.textColor = GREEN; d.cell.styles.fontStyle = 'bold'; }
+                                else if (v === 'Regular') { d.cell.styles.textColor = YELLOW; d.cell.styles.fontStyle = 'bold'; }
+                                else { d.cell.styles.textColor = ROSE; d.cell.styles.fontStyle = 'bold'; }
+                            }
+                            if (d.column.index === 3) {
+                                const pct = parseInt(d.cell.raw);
+                                d.cell.styles.textColor = semaforoColor(pct);
+                                d.cell.styles.fontStyle = 'bold';
+                            }
                         }
                     },
-                    margin:{left:14,right:14}
+                    margin:{left:14, right:14}
                 });
-
                 y = doc.lastAutoTable.finalY + 10;
 
-                // Asistencia del grupo por actividad
-                if (y > 220) { doc.addPage(); y = 20; }
-                y = sectionTitle(doc, 'Asistencia por Actividad', y);
-                const actRows = state.activities.map(a => {
-                    const recs = state.records.filter(r=>r.activityId===a.id && selectedIds.includes(r.memberId));
-                    const uniq = [...new Set(recs.map(r=>r.memberId))].length;
-                    const avg = selectedMembers.length>0 ? (recs.length/selectedMembers.length).toFixed(1) : 0;
-                    return [a.name, recs.length, uniq+'/'+selectedMembers.length, avg];
-                }).sort((a,b)=>b[1]-a[1]);
-
-                doc.autoTable({
-                    startY: y,
-                    head: [['Actividad','Total','Únicos','Prom./persona']],
-                    body: actRows.length ? actRows : [['Sin actividades','','','']],
-                    theme: 'grid',
-                    headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                    bodyStyles: {fontSize:8.5,textColor:[40,40,40]},
-                    columnStyles: {0:{cellWidth:90},1:{cellWidth:22,halign:'center'},2:{cellWidth:35,halign:'center'},3:{cellWidth:35,halign:'center'}},
-                    alternateRowStyles: {fillColor:[248,248,246]},
-                    margin:{left:14,right:14}
-                });
-
-                y = doc.lastAutoTable.finalY + 10;
-
-                // Comparativa mensual del grupo
-                if (y > 220) { doc.addPage(); y = 20; }
-                y = sectionTitle(doc, 'Asistencia Mensual del Grupo', y);
-                doc.autoTable({
-                    startY: y,
-                    head: [['Mes','Total Registros del Grupo']],
-                    body: mesRows.length ? mesRows : [['Sin datos','']],
-                    theme: 'grid',
-                    headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                    bodyStyles: {fontSize:9,textColor:[40,40,40]},
-                    columnStyles: {0:{cellWidth:60},1:{cellWidth:60,halign:'center'}},
-                    alternateRowStyles: {fillColor:[248,248,246]},
-                    didParseCell: function(d) {
-                        if (d.section==='body' && d.column.index===0 && mesPico && d.cell.raw===mesPico[0]) {
-                            d.cell.styles.fillColor=[75,9,14];
-                            d.cell.styles.textColor=[255,255,255];
-                            d.cell.styles.fontStyle='bold';
-                        }
-                    },
-                    margin:{left:14,right:14}
-                });
-
-                // Interpretacion grupal
-                {
-                    let interpY = doc.lastAutoTable.finalY + 12;
-                    pdfInterpretacionGrupal(doc, interpY, {
-                        groupLabel, totalRecords, selectedMembers, avgAtt,
-                        topMember, bottomMember: memberStats[memberStats.length-1],
-                        mesPico, mesRows, actRows
+                // ── AUSENTES EN EL PERIODO ────────────────────────────────
+                const ausentes = selectedMembers.filter(m => !filteredRecs.some(r => r.memberId === m.id));
+                if (ausentes.length) {
+                    if (y > 220) { doc.addPage(); y = 20; }
+                    y = sectionTitle(doc, 'Sin Asistencia en el Periodo (' + ausentes.length + ')', y);
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Integrante','Voz','Iglesia']],
+                        body: ausentes.map(m => [m.name, m.voice||'-', m.churchName||'-']),
+                        theme: 'grid',
+                        headStyles: {fillColor:ROSE, textColor:WHITE, fontStyle:'bold', fontSize:8.5},
+                        bodyStyles: {fontSize:8, textColor:[40,40,40]},
+                        columnStyles: {0:{cellWidth:80},1:{cellWidth:30,halign:'center'},2:{cellWidth:72}},
+                        alternateRowStyles: {fillColor:[255,240,240]},
+                        margin:{left:14, right:14}
                     });
+                    y = doc.lastAutoTable.finalY + 10;
                 }
-                pdfFooter(doc);
-                pdfGlosario(doc, false);
+
+                // ── ASISTENCIA POR ACTIVIDAD ──────────────────────────────
+                if (y > 210) { doc.addPage(); y = 20; }
+                y = sectionTitle(doc, 'Participacion por Actividad', y);
+                const actRows = [...new Set(filteredRecs.map(r => r.activityId))].map(actId => {
+                    const a = state.activities.find(x => x.id === actId) || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
+                    const recs = filteredRecs.filter(r => r.activityId === actId && selectedIds.includes(r.memberId));
+                    const uniq = [...new Set(recs.map(r => r.memberId))].length;
+                    const pct = selectedMembers.length > 0 ? Math.round(uniq/selectedMembers.length*100) : 0;
+                    return [a.name, uniq + ' de ' + selectedMembers.length, pct + '%', semaforoLabel(pct)];
+                }).sort((a,b) => parseInt(b[2]) - parseInt(a[2]));
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Actividad','Asistentes','Cobertura','Estado']],
+                    body: actRows.length ? actRows : [['Sin actividades registradas','','','']],
+                    theme: 'grid',
+                    headStyles: {fillColor:NAVY, textColor:WHITE, fontStyle:'bold', fontSize:8.5},
+                    bodyStyles: {fontSize:8.5, textColor:[40,40,40]},
+                    columnStyles: {0:{cellWidth:90},1:{cellWidth:38,halign:'center'},2:{cellWidth:28,halign:'center'},3:{cellWidth:26,halign:'center'}},
+                    alternateRowStyles: {fillColor:LGRAY},
+                    didParseCell: function(d) {
+                        if (d.section==='body' && d.column.index === 3) {
+                            const v = d.cell.raw;
+                            if (v==='Excelente') { d.cell.styles.textColor=GREEN; d.cell.styles.fontStyle='bold'; }
+                            else if (v==='Regular') { d.cell.styles.textColor=YELLOW; d.cell.styles.fontStyle='bold'; }
+                            else if (v==='Necesita atencion') { d.cell.styles.textColor=ROSE; d.cell.styles.fontStyle='bold'; }
+                        }
+                        if (d.section==='body' && d.column.index === 2) {
+                            const pct = parseInt(d.cell.raw);
+                            if (!isNaN(pct)) d.cell.styles.textColor = semaforoColor(pct);
+                        }
+                    },
+                    margin:{left:14, right:14}
+                });
+                y = doc.lastAutoTable.finalY + 10;
+
+                // ── NOTA EXPLICATIVA ──────────────────────────────────────
+                if (y > 240) { doc.addPage(); y = 20; }
+                doc.setFillColor(...LGRAY);
+                doc.roundedRect(14, y, 182, 22, 3, 3, 'F');
+                doc.setFont('helvetica','bold');
+                doc.setFontSize(8);
+                doc.setTextColor(...NAVY);
+                doc.text('Como leer este reporte:', 18, y+6);
+                doc.setFont('helvetica','normal');
+                doc.setFontSize(7.5);
+                doc.setTextColor(...GRAY);
+                doc.text('Excelente (verde): 80% o mas de asistencia.  Regular (amarillo): 50-79%.  Necesita atencion (rojo): menos del 50%.', 18, y+12);
+                doc.text('El % se calcula sobre el numero de actividades distintas que se realizaron en el periodo seleccionado.', 18, y+18);
+
                 pdfFooter(doc);
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
-                doc.save('Reporte_Coro_' + groupLabel.replace(/\s+/g,'_') + (monthVal ? '_' + monthVal : '') + '_' + fecha + '.pdf');
+                doc.save('Reporte_Coro_' + groupLabel.replace(/\s+/g,'_') + (monthVal?'_'+monthVal:'') + '_' + fecha + '.pdf');
                 showToast('Reporte general del coro generado');
             }
 
-            // Reporte de integrantes seleccionados — solo páginas individuales
+            // ============================================================
+            // REPORTE INDIVIDUAL DE SELECCIONADOS
+            // ============================================================
             function exportPDFMembers() {
                 const s = getReportSetup();
                 if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-                const { selectedIds, selectedMembers, groupLabel, monthVal, totalRecords,
-                    totalPosible, filteredRecs } = s;
+                const { selectedIds, selectedMembers, groupLabel, monthVal, monthLbl,
+                    totalRecords, totalPosible, filteredRecs } = s;
+
+                const NAVY = [27,38,59], RED = [75,9,14], WHITE = [255,255,255];
+                const LGRAY = [245,246,248], GRAY = [100,100,100];
 
                 let firstPage = true;
                 selectedMembers.forEach(member => {
                     if (!firstPage) doc.addPage();
                     firstPage = false;
-                    const memberRecords = filteredRecs.filter(r => r.memberId === member.id)
-                        .sort((a,b)=>(b.ts||0)-(a.ts||0));
 
+                    const memberRecords = filteredRecs.filter(r => r.memberId === member.id)
+                        .sort((a,b) => (b.ts||0) - (a.ts||0));
                     const totalMember = memberRecords.length;
-                    const pct = totalPosible > 0 ? Math.round((totalMember/totalPosible)*100) : 0;
+                    const pct = totalPosible > 0 ? Math.round((totalMember / totalPosible) * 100) : 0;
                     const racha = calcRacha(memberRecords);
                     const horaPromedio = calcHoraPromedio(memberRecords);
                     const mesRowsM = calcComparativaMensual(memberRecords);
+                    const sorted = [...memberRecords].sort((a,b) => (a.ts||0)-(b.ts||0));
+                    const primerReg = sorted.length ? sorted[0].date : '-';
+                    const ultimoReg = sorted.length ? sorted[sorted.length-1].date : '-';
 
-                    // Primer y último registro
-                    const sorted = [...memberRecords].sort((a,b)=>(a.ts||0)-(b.ts||0));
-                    const primerReg = sorted.length ? sorted[0].date + ' ' + sorted[0].time : '—';
-                    const ultimoReg = sorted.length ? sorted[sorted.length-1].date + ' ' + sorted[sorted.length-1].time : '—';
+                    // ── HEADER ──
+                    pdfHeader(doc, member.name, (member.voice ? member.voice + '  |  ' : '') + (member.churchName || '') + (monthLbl ? '  |  ' + monthLbl : ''));
+                    let y = 40;
 
-                    // Asistencias por actividad
-                    const byAct = {};
-                    state.activities.forEach(a => { byAct[a.id]={name:a.name,count:0}; });
-                    memberRecords.forEach(r => {
-                        if(byAct[r.activityId]) byAct[r.activityId].count++;
-                        else byAct[r.activityId]={name:r.activityName,count:1};
-                    });
-                    const actFav = Object.values(byAct).sort((a,b)=>b.count-a.count)[0];
+                    // ── TARJETAS INDIVIDUALES ──
+                    const semColor = semaforoColor(pct);
+                    const semLabel = semaforoLabel(pct);
 
-                    pdfHeader(doc, 'Reporte Individual — ' + groupLabel,
-                        member.name + (member.churchName ? '  •  '+member.churchName : '') + (member.voice ? '  •  Voz: '+member.voice : ''));
-
-                    let iy = 42;
-
-                    // Badge de voz
-                    if (member.voice) {
-                        const vColors = { Soprano:[162,210,255], Contralto:[255,214,10], Tenor:[183,228,199], Bajo:[229,152,155] };
-                        const vc = vColors[member.voice] || [150,150,150];
-                        doc.setFillColor(...vc);
-                        doc.roundedRect(14, iy, 38, 10, 2, 2, 'F');
+                    const icards = [
+                        { label: 'Asistencias', value: totalMember + ' / ' + totalPosible, color: NAVY },
+                        { label: '% Asistencia', value: pct + '%', color: semColor },
+                        { label: 'Racha actual', value: racha.actual, color: racha.actual >= 3 ? [46,125,82] : GRAY },
+                        { label: 'Racha maxima', value: racha.max, color: NAVY },
+                    ];
+                    const cw = 44, ch = 24, gap = 3;
+                    icards.forEach((c, i) => {
+                        const cx = 14 + i*(cw+gap);
+                        doc.setFillColor(...c.color);
+                        doc.roundedRect(cx, y, cw, ch, 3, 3, 'F');
                         doc.setFont('helvetica','bold');
-                        doc.setFontSize(8);
-                        doc.setTextColor(255,255,255);
-                        doc.text('VOZ: ' + member.voice.toUpperCase(), 33, iy+6.5, {align:'center'});
-                        iy += 16;
-                    }
+                        doc.setFontSize(15);
+                        doc.setTextColor(...WHITE);
+                        doc.text(String(c.value), cx+cw/2, y+13, {align:'center'});
+                        doc.setFontSize(6.5);
+                        doc.setFont('helvetica','normal');
+                        doc.text(c.label.toUpperCase(), cx+cw/2, y+21, {align:'center'});
+                    });
+                    y += ch + 6;
 
-                    // Stat boxes fila 1
-                    const coroAvg = (totalRecords/(selectedMembers.length||1)).toFixed(1);
-                    statBox(doc, 14,  iy, 44, 22, 'Asistencias', totalMember, [27, 38, 59]);
-                    statBox(doc, 62,  iy, 44, 22, '% Asistencia', pct+'%', [46,125,82]);
-                    statBox(doc, 110, iy, 44, 22, 'Racha actual', racha.actual, [168,99,30]);
-                    statBox(doc, 158, iy, 38, 22, 'Racha máxima', racha.max, [90,90,82]);
-                    iy += 28;
+                    // ── BADGE DE ESTADO ──
+                    doc.setFillColor(...semColor);
+                    doc.roundedRect(14, y, 182, 10, 3, 3, 'F');
+                    doc.setFont('helvetica','bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(...WHITE);
+                    doc.text('Estado: ' + semLabel + (pct >= 80 ? '  —  Asistencia sobresaliente' : pct >= 50 ? '  —  Asistencia regular, con oportunidad de mejora' : '  —  Se recomienda seguimiento personal'), 105, y+6.5, {align:'center'});
+                    y += 16;
 
-                    // Fila de datos extra
-                    doc.setFillColor(232,237,244);
-                    doc.roundedRect(14, iy, 182, 14, 3, 3, 'F');
+                    // ── DETALLE EXTRA ──
+                    doc.setFillColor(...LGRAY);
+                    doc.roundedRect(14, y, 182, 14, 3, 3, 'F');
                     doc.setFont('helvetica','normal');
                     doc.setFontSize(8);
-                    doc.setTextColor(73,80,87);
-                    doc.text('Hora prom. llegada: ' + horaPromedio, 18, iy+5);
-                    doc.text('Act. favorita: ' + (actFav && actFav.count>0 ? actFav.name+' ('+actFav.count+'x)' : '—'), 18, iy+11);
-                    doc.text('Primer registro: ' + primerReg, 105, iy+5);
-                    doc.text('Ultimo registro: ' + ultimoReg, 105, iy+11);
-                    iy += 20;
+                    doc.setTextColor(...GRAY);
+                    doc.text('Primer registro: ' + primerReg, 18, y+5.5);
+                    doc.text('Ultimo registro: ' + ultimoReg, 18, y+11);
+                    doc.text('Hora promedio de llegada: ' + horaPromedio, 105, y+5.5);
+                    const actFav = (() => {
+                        const byAct = {};
+                        memberRecords.forEach(r => { byAct[r.activityId] = (byAct[r.activityId]||{name:r.activityName||r.activityId,count:0}); byAct[r.activityId].count++; });
+                        return Object.values(byAct).sort((a,b)=>b.count-a.count)[0];
+                    })();
+                    doc.text('Actividad favorita: ' + (actFav ? actFav.name + ' (' + actFav.count + 'x)' : '-'), 105, y+11);
+                    y += 20;
 
-                    // Tabla actividades vs promedio
-                    iy = sectionTitle(doc, 'Asistencias por Actividad vs. Promedio del Grupo', iy);
-                    const actRowsM = Object.values(byAct).map(a => {
-                        const actObj = state.activities.find(ac=>ac.name===a.name);
-                        let avg = '—', diff = '—';
-                        if (actObj) {
-                            const gRecs = state.records.filter(r=>r.activityId===actObj.id && selectedIds.includes(r.memberId));
-                            avg = (gRecs.length/(selectedMembers.length||1)).toFixed(1);
-                            const d = (a.count - parseFloat(avg)).toFixed(1);
-                            diff = d > 0 ? '+'+d : String(d);
-                        }
-                        return [a.name, a.count, avg, diff];
+                    // ── ASISTENCIAS POR ACTIVIDAD ──
+                    y = sectionTitle(doc, 'Asistencias por Actividad', y);
+                    const actRowsM = [...new Set(filteredRecs.map(r => r.activityId))].map(actId => {
+                        const aObj = state.activities.find(a => a.id === actId) || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
+                        const myCount = memberRecords.filter(r => r.activityId === actId).length;
+                        const grpRecs = filteredRecs.filter(r => r.activityId === actId && selectedIds.includes(r.memberId));
+                        const grpAvg = selectedMembers.length > 0 ? (grpRecs.length / selectedMembers.length).toFixed(1) : '0';
+                        const asistio = myCount > 0 ? 'SI' : 'NO';
+                        const diff = myCount > 0 ? (myCount - parseFloat(grpAvg) > 0 ? '+' + (myCount - parseFloat(grpAvg)).toFixed(1) : (myCount - parseFloat(grpAvg)).toFixed(1)) : '-';
+                        return [aObj.name, asistio, myCount, grpAvg, diff];
                     });
 
                     doc.autoTable({
-                        startY: iy,
-                        head: [['Actividad','Tus Asistencias','Prom. Grupo','Diferencia']],
-                        body: actRowsM,
+                        startY: y,
+                        head: [['Actividad', 'Asistio', 'Veces', 'Prom. del coro', 'Diferencia']],
+                        body: actRowsM.length ? actRowsM : [['Sin actividades','','','','']],
                         theme: 'grid',
-                        headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                        bodyStyles: {fontSize:9,textColor:[40,40,40]},
-                        columnStyles: {0:{cellWidth:80},1:{cellWidth:35,halign:'center'},2:{cellWidth:35,halign:'center'},3:{cellWidth:35,halign:'center'}},
-                        didParseCell: function(d) {
-                            if(d.column.index===3 && d.section==='body'){
-                                const v = parseFloat(d.cell.raw);
-                                if(v>0) d.cell.styles.textColor=[46,125,82];
-                                else if(v<0) d.cell.styles.textColor=[179,58,58];
-                            }
+                        headStyles: {fillColor:NAVY, textColor:WHITE, fontStyle:'bold', fontSize:8.5},
+                        bodyStyles: {fontSize:8.5, textColor:[40,40,40]},
+                        columnStyles: {
+                            0:{cellWidth:80},
+                            1:{cellWidth:20, halign:'center'},
+                            2:{cellWidth:20, halign:'center'},
+                            3:{cellWidth:30, halign:'center'},
+                            4:{cellWidth:30, halign:'center'}
                         },
-                        margin:{left:14,right:14}
-                    });
-
-                    iy = doc.lastAutoTable.finalY + 10;
-
-                    // Comparativa mensual individual
-                    if(iy>200){doc.addPage();iy=20;}
-                    iy = sectionTitle(doc, 'Asistencia por Mes', iy);
-                    const mesPicoM = mesRowsM.length ? mesRowsM.reduce((a,b)=>b[1]>a[1]?b:a) : null;
-                    doc.autoTable({
-                        startY: iy,
-                        head: [['Mes','Asistencias']],
-                        body: mesRowsM.length ? mesRowsM : [['Sin datos','']],
-                        theme: 'grid',
-                        headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                        bodyStyles: {fontSize:9,textColor:[40,40,40]},
-                        columnStyles: {0:{cellWidth:60},1:{cellWidth:40,halign:'center'}},
-                        alternateRowStyles: {fillColor:[248,248,246]},
+                        alternateRowStyles: {fillColor:LGRAY},
                         didParseCell: function(d) {
-                            if(d.section==='body' && d.column.index===0 && mesPicoM && d.cell.raw===mesPicoM[0]){
-                                d.cell.styles.fillColor=[75,9,14];
-                                d.cell.styles.textColor=[255,255,255];
-                                d.cell.styles.fontStyle='bold';
-                            }
-                        },
-                        margin:{left:14,right:14}
-                    });
-
-                    iy = doc.lastAutoTable.finalY + 10;
-
-                    // Uniformes del integrante
-                    const churchUnis = getChurchUniforms(member.churchId || '');
-                    if (churchUnis.length > 0) {
-                        if(iy>200){doc.addPage();iy=20;}
-                        iy = sectionTitle(doc, 'Uniformes', iy);
-                        const uniRows = churchUnis.map(u => {
-                            const tiene = member.uniforms && member.uniforms[u.id];
-                            return [u.name, tiene ? 'TIENE' : 'NO TIENE'];
-                        });
-                        const totalTiene = uniRows.filter(r => r[1] === 'TIENE').length;
-                        const pctUni = Math.round((totalTiene / churchUnis.length) * 100);
-                        doc.autoTable({
-                            startY: iy,
-                            head: [['Uniforme', 'Estado']],
-                            body: uniRows,
-                            theme: 'striped',
-                            headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                            bodyStyles: {fontSize:9,textColor:[40,40,40]},
-                            columnStyles: {
-                                0:{cellWidth:140},
-                                1:{cellWidth:42, halign:'center', fontStyle:'bold'}
-                            },
-                            didParseCell: function(data) {
-                                if (data.section === 'body' && data.column.index === 1) {
-                                    data.cell.styles.textColor = data.cell.raw === 'TIENE' ? [22,163,74] : [220,38,38];
-                                    data.cell.styles.fontStyle = 'bold';
+                            if (d.section === 'body') {
+                                if (d.column.index === 1) {
+                                    d.cell.styles.fontStyle = 'bold';
+                                    d.cell.styles.textColor = d.cell.raw === 'SI' ? [22,163,74] : [220,38,38];
                                 }
-                            },
-                            alternateRowStyles: {fillColor:[248,248,246]},
-                            margin:{left:14,right:14}
+                                if (d.column.index === 4) {
+                                    const v = parseFloat(d.cell.raw);
+                                    if (v > 0) d.cell.styles.textColor = [22,163,74];
+                                    else if (v < 0) d.cell.styles.textColor = [220,38,38];
+                                }
+                            }
+                        },
+                        margin:{left:14, right:14}
+                    });
+                    y = doc.lastAutoTable.finalY + 10;
+
+                    // ── TENDENCIA MENSUAL ──
+                    if (mesRowsM.length > 0) {
+                        if (y > 210) { doc.addPage(); y = 20; }
+                        y = sectionTitle(doc, 'Asistencia por Mes', y);
+                        doc.autoTable({
+                            startY: y,
+                            head: [['Mes', 'Registros']],
+                            body: mesRowsM,
+                            theme: 'grid',
+                            headStyles: {fillColor:NAVY, textColor:WHITE, fontStyle:'bold', fontSize:8.5},
+                            bodyStyles: {fontSize:8.5, textColor:[40,40,40]},
+                            columnStyles: {0:{cellWidth:80}, 1:{cellWidth:40, halign:'center'}},
+                            alternateRowStyles: {fillColor:LGRAY},
+                            margin:{left:14, right:14}
                         });
-                        iy = doc.lastAutoTable.finalY + 4;
-                        // Resumen de uniformes
-                        const completo = totalTiene === churchUnis.length;
-                        if (completo) {
-                            doc.setFillColor(240,253,244);
-                        } else {
-                            doc.setFillColor(255,245,245);
-                        }
-                        doc.roundedRect(14, iy, 182, 10, 2, 2, 'F');
-                        doc.setFont('helvetica','bold');
-                        doc.setFontSize(9);
-                        if (completo) {
-                            doc.setTextColor(22,163,74);
-                        } else {
-                            doc.setTextColor(220,38,38);
-                        }
-                        const uniResumen = completo
-                            ? 'Uniforme completo (' + totalTiene + '/' + churchUnis.length + ')'
-                            : 'Faltan ' + (churchUnis.length - totalTiene) + ' uniforme(s) — tiene ' + totalTiene + '/' + churchUnis.length + ' (' + pctUni + '%)';
-                        doc.text(uniResumen, 105, iy + 6.5, {align:'center'});
-                        iy += 16;
+                        y = doc.lastAutoTable.finalY + 10;
                     }
 
-                    // Historial cronológico
-                    if(iy>200){doc.addPage();iy=20;}
-                    iy = sectionTitle(doc, 'Historial Cronológico', iy);
-                    const histRows = memberRecords.map(r=>[r.date, r.time, r.activityName]);
-                    doc.autoTable({
-                        startY: iy,
-                        head: [['Fecha','Hora','Actividad']],
-                        body: histRows.length ? histRows : [['Sin registros','','']],
-                        theme: 'striped',
-                        headStyles: {fillColor:[27, 38, 59],textColor:255,fontStyle:'bold',fontSize:9},
-                        bodyStyles: {fontSize:8.5,textColor:[40,40,40]},
-                        columnStyles: {0:{cellWidth:40},1:{cellWidth:30},2:{cellWidth:110}},
-                        alternateRowStyles: {fillColor:[248,248,246]},
-                        margin:{left:14,right:14}
-                    });
-
-                    // Interpretacion individual
-                    let interpIY = doc.lastAutoTable.finalY + 12;
-                    pdfInterpretacionIndividual(doc, interpIY, {
-                        nombre: member.name,
-                        pct, total: totalMember,
-                        racha, actFav,
-                        mesRowsM, coroAvg: parseFloat(coroAvg),
+                    // ── INTERPRETACION ──
+                    if (y > 230) { doc.addPage(); y = 20; }
+                    pdfInterpretacionIndividual(doc, y, {
+                        nombre: member.name, pct, total: totalMember,
+                        racha, actFav, mesRowsM,
+                        coroAvg: (totalRecords / (selectedMembers.length||1)).toFixed(1),
                         actRowsM
                     });
                 });
 
-                pdfGlosario(doc, true);
                 pdfFooter(doc);
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
-                doc.save('Reporte_' + groupLabel.replace(/\s+/g,'_') + (monthVal ? '_' + monthVal : '') + '_' + fecha + '.pdf');
-                showToast('✓ PDF generado para ' + selectedMembers.length + ' integrante' + (selectedMembers.length!==1?'s':''));
-            }
-
-            // ======================== PDF GENERATION ========================
-
-            function showPDFMemberPicker() {
-                const sel = document.getElementById('pdf-member-select');
-                sel.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                    state.members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
-                document.getElementById('pdf-member-modal').style.display = 'flex';
-            
-                pdfGlosario(doc, true);
-                pdfFooter(doc);
-                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
-                doc.save('Reporte_Integrantes_' + groupLabel.replace(/\s+/g,'_') + (monthVal ? '_' + monthVal : '') + '_' + fecha + '.pdf');
+                doc.save('Reporte_Integrantes_' + groupLabel.replace(/\s+/g,'_') + (monthVal?'_'+monthVal:'') + '_' + fecha + '.pdf');
                 showToast('Reporte de ' + selectedMembers.length + ' integrante' + (selectedMembers.length!==1?'s':'') + ' generado');
             }
 
-            // Mantener exportPDFGroup como alias para compatibilidad
-            function exportPDFGroup() {
-                const s = getReportSetup();
-                if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
-                exportPDFCoro();
-            }
+            // Alias para compatibilidad
+            function exportPDFGroup() { exportPDFCoro(); }
 
             // ---- Helpers PDF ----
             function pdfHeader(doc, title, subtitle) {
