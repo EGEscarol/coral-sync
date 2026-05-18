@@ -7689,7 +7689,7 @@
                         if (asistio) {
                             const veces = memberRecords.filter(r=>r.activityId===actId).length;
                             doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-                            doc.text(veces+' vez'+(veces>1?'es':''), 188, y+6.5, {align:'right'});
+                            doc.text(veces+(veces>1?' veces':' vez'), 188, y+6.5, {align:'right'});
                         } else {
                             doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(200,100,100);
                             doc.text('No asistio', 188, y+6.5, {align:'right'});
