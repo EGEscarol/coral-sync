@@ -2417,12 +2417,19 @@
                         <div id="report-member-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px;max-height:340px;overflow-y:auto;padding:4px;">
                         </div>
 
-                        <!-- CONTADOR Y BOTÓN -->
+                        <!-- CONTADOR Y BOTONES -->
                         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:16px;border-top:1px solid var(--gray-200);">
                             <p id="report-selected-count" style="font-size:0.88rem;color:var(--gray-500);">0 integrantes seleccionados</p>
-                            <button onclick="exportPDFGroup()" style="padding:11px 24px;border:none;background:var(--primary);color:white;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.92rem;font-weight:700;letter-spacing:0.04em;">
-                                📄 Generar PDF del Grupo
-                            </button>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <button onclick="exportPDFCoro()" style="padding:11px 22px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;display:flex;align-items:center;gap:7px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                    Reporte General del Coro
+                                </button>
+                                <button onclick="exportPDFMembers()" style="padding:11px 22px;border:none;background:var(--primary);color:white;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;display:flex;align-items:center;gap:7px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    Reporte de Seleccionados
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -7314,51 +7321,52 @@
                 return y + 10;
             }
 
-            function exportPDFGroup() {
+            // Helper: get selected members + common setup for reports
+            function getReportSetup() {
                 const selectedIds = [...document.querySelectorAll('.report-member-cb:checked')].map(cb => cb.value);
-                if (!selectedIds.length) { showToast('Selecciona al menos un integrante.'); return; }
-
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-
                 const selectedMembers = state.members.filter(m => selectedIds.includes(m.id));
                 const churchFilter = document.getElementById('report-church-filter');
                 const monthVal = document.getElementById('report-month-filter')?.value || '';
                 const monthLbl = monthVal ? monthLabel(monthVal) : '';
-
-                const groupLabel = churchFilter.value
+                const groupLabel = churchFilter?.value
                     ? (state.churches.find(c => c.id === churchFilter.value)||{}).name||'Grupo'
                     : selectedMembers.length === state.members.length ? 'Todo el Coro' : 'Grupo Seleccionado';
-
                 const fullLabel = monthLbl ? groupLabel + ' — ' + monthLbl : groupLabel;
-
-                // Registros filtrados por mes si aplica
                 const filteredRecs = getReportRecords();
                 const groupRecs = filteredRecs.filter(r => selectedIds.includes(r.memberId));
                 const totalRecords = groupRecs.length;
-
                 const totalPosible = state.activities.reduce((sum,a) => {
                     const ud = [...new Set(filteredRecs.filter(r=>r.activityId===a.id).map(r=>r.date))];
                     return sum + ud.length;
                 }, 0);
-
-                // Calc stats por miembro para resumen
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
                     const pct = totalPosible > 0 ? Math.round((recs.length/totalPosible)*100) : 0;
                     const racha = calcRacha(recs);
-                    return { id: m.id, name: m.name, church: m.churchName||'—', total: recs.length, pct, racha };
+                    return { id: m.id, name: m.name, church: m.churchName||'-', total: recs.length, pct, racha };
                 }).sort((a,b) => b.total - a.total);
-
                 const topMember = memberStats[0];
                 const bottomMember = memberStats[memberStats.length-1];
                 const avgAtt = selectedMembers.length > 0 ? (totalRecords/selectedMembers.length).toFixed(1) : 0;
-
-                // Mes con mayor asistencia del grupo
                 const mesRows = calcComparativaMensual(groupRecs);
                 const mesPico = mesRows.length ? mesRows.reduce((a,b)=>b[1]>a[1]?b:a) : null;
+                return { selectedIds, selectedMembers, churchFilter, monthVal, monthLbl,
+                    groupLabel, fullLabel, filteredRecs, groupRecs, totalRecords,
+                    totalPosible, memberStats, topMember, bottomMember, avgAtt, mesRows, mesPico };
+            }
 
-                // ========== PÁGINA 1: RESUMEN DEL GRUPO ==========
+            // Reporte General del Coro — solo el resumen grupal, sin páginas individuales
+            function exportPDFCoro() {
+                const s = getReportSetup();
+                if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+                const { selectedMembers, groupLabel, monthLbl, monthVal, totalRecords,
+                    totalPosible, memberStats, topMember, bottomMember, avgAtt,
+                    mesRows, mesPico, filteredRecs, groupRecs } = s;
+
+
+                // ========== RESUMEN DEL CORO ==========
                 pdfHeader(doc, 'Reporte de Grupo — ' + groupLabel,
                     selectedMembers.length + ' integrantes  •  ' + totalRecords + ' registros' + (monthLbl ? '  •  ' + monthLbl : ''));
 
@@ -7499,10 +7507,26 @@
                     });
                 }
                 pdfFooter(doc);
+                pdfGlosario(doc, false);
+                pdfFooter(doc);
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                doc.save('Reporte_Coro_' + groupLabel.replace(/\s+/g,'_') + (monthVal ? '_' + monthVal : '') + '_' + fecha + '.pdf');
+                showToast('Reporte general del coro generado');
+            }
 
-                // ========== PÁGINAS INDIVIDUALES ==========
+            // Reporte de integrantes seleccionados — solo páginas individuales
+            function exportPDFMembers() {
+                const s = getReportSetup();
+                if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+                const { selectedMembers, groupLabel, monthVal, totalRecords,
+                    totalPosible, filteredRecs } = s;
+
+                let firstPage = true;
                 selectedMembers.forEach(member => {
-                    doc.addPage();
+                    if (!firstPage) doc.addPage();
+                    firstPage = false;
                     const memberRecords = filteredRecs.filter(r => r.memberId === member.id)
                         .sort((a,b)=>(b.ts||0)-(a.ts||0));
 
@@ -7718,6 +7742,19 @@
                 sel.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
                     state.members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
                 document.getElementById('pdf-member-modal').style.display = 'flex';
+            
+                pdfGlosario(doc, true);
+                pdfFooter(doc);
+                const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
+                doc.save('Reporte_Integrantes_' + groupLabel.replace(/\s+/g,'_') + (monthVal ? '_' + monthVal : '') + '_' + fecha + '.pdf');
+                showToast('Reporte de ' + selectedMembers.length + ' integrante' + (selectedMembers.length!==1?'s':'') + ' generado');
+            }
+
+            // Mantener exportPDFGroup como alias para compatibilidad
+            function exportPDFGroup() {
+                const s = getReportSetup();
+                if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
+                exportPDFCoro();
             }
 
             // ---- Helpers PDF ----
