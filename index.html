@@ -7520,7 +7520,7 @@
                 if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-                const { selectedMembers, groupLabel, monthVal, totalRecords,
+                const { selectedIds, selectedMembers, groupLabel, monthVal, totalRecords,
                     totalPosible, filteredRecs } = s;
 
                 let firstPage = true;
