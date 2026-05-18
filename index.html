@@ -7520,13 +7520,15 @@
                 // ── RANKING ──────────────────────────────────────────────
                 if (y > 195) { doc.addPage(); y=20; }
                 y = sectionTitle(doc, 'Ranking de Asistencia', y);
-                // Encabezado manual
+
+                // Columnas: Integrante(18-74) | Barra(76-126) | %(128-140) | No.Asistencias(142-164) | Estado(166-196)
                 doc.setFillColor(...NAVY); doc.rect(14, y, 182, 8, 'F');
                 doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
-                doc.text('Integrante', 18, y+5.5);
-                doc.text('Actividades asistidas', 104, y+5.5, {align:'center'});
-                doc.text('%', 150, y+5.5, {align:'center'});
-                doc.text('Estado', 175, y+5.5, {align:'center'});
+                doc.text('Integrante',        18,  y+5.5);
+                doc.text('Asistencia',        101, y+5.5, {align:'center'});
+                doc.text('%',                 134, y+5.5, {align:'center'});
+                doc.text('No. Asistencias',   154, y+5.5, {align:'center'});
+                doc.text('Estado',            181, y+5.5, {align:'center'});
                 y += 10;
 
                 memberStats.forEach((m,i) => {
@@ -7534,26 +7536,26 @@
                     const rowH = 9;
                     const bg = i%2===0 ? WHITE : LGRAY;
                     doc.setFillColor(...bg); doc.rect(14, y, 182, rowH, 'F');
-                    // nombre
+                    // Nombre
                     doc.setFont('helvetica', m.pct>=80?'bold':'normal');
                     doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    const nameStr = m.name.length>30 ? m.name.substring(0,28)+'...' : m.name;
+                    const nameStr = m.name.length>28 ? m.name.substring(0,26)+'...' : m.name;
                     doc.text(nameStr, 18, y+6);
-                    // barra
-                    drawProgressBar(doc, 76, y+3, 52, 3.5, m.pct, semaforoColor(m.pct));
-                    // conteo
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-                    doc.text(m.total+'/'+totalPosible, 104, y+6, {align:'center'});
-                    // pct
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...semaforoColor(m.pct));
-                    doc.text(m.pct+'%', 150, y+6, {align:'center'});
-                    // estado
+                    // Barra de progreso (sin número dentro)
+                    drawProgressBar(doc, 76, y+2.8, 50, 3.5, m.pct, semaforoColor(m.pct));
+                    // % a la derecha de la barra
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...semaforoColor(m.pct));
+                    doc.text(m.pct+'%', 134, y+6, {align:'center'});
+                    // No. de asistencias
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NAVY);
+                    doc.text(m.total+' / '+totalPosible, 154, y+6, {align:'center'});
+                    // Estado badge
                     const lbl = semaforoLabel(m.pct);
                     const lblCol = semaforoColor(m.pct);
                     doc.setFillColor(...lblCol.map(c=>Math.round(c*0.15+240*0.85)));
-                    doc.roundedRect(157, y+1.5, 34, 5.5, 1.5, 1.5, 'F');
+                    doc.roundedRect(163, y+1.5, 30, 5.5, 1.5, 1.5, 'F');
                     doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...lblCol);
-                    doc.text(lbl, 174, y+5.5, {align:'center'});
+                    doc.text(lbl, 178, y+5.5, {align:'center'});
                     y += rowH;
                 });
                 y += 6;
