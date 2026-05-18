@@ -5634,7 +5634,7 @@
                     const badge = alreadyToday
                         ? `<span style="font-size:0.68rem;background:#dcfce7;color:#16a34a;padding:2px 7px;border-radius:50px;flex-shrink:0;font-weight:700;">Ya registrado hoy</span>`
                         : '';
-                    return `<div onclick="selectManualMember('${m.id}')"
+                    return `<div onmousedown="selectManualMember('${m.id}')"
                         style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--gray-100);transition:background 0.1s;"
                         onmouseover="this.style.background='var(--gray-100)'"
                         onmouseout="this.style.background='white'">
