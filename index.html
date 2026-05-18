@@ -2158,27 +2158,55 @@
 
                     <!-- Registro manual para directores (oculto para dir. estatal) -->
                     <div class="card" id="records-manual-card" style="margin-bottom:20px;border-left:4px solid var(--accent);">
-                        <div class="card-title" style="margin-bottom:16px;">
+                        <div class="card-title" style="margin-bottom:18px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:8px;color:var(--accent);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             Registro Manual de Asistencia
                         </div>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                            <div style="flex:1;min-width:160px;">
-                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Integrante</label>
-                                <select id="manual-member" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;">
-                                    <option value="">-- Selecciona un integrante --</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;min-width:160px;">
-                                <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Actividad</label>
-                                <select id="manual-activity" style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;background:white;">
-                                    <option value="">-- Selecciona la actividad --</option>
-                                </select>
-                            </div>
-                            <button onclick="submitManualRecord()" class="btn-solid" style="padding:9px 20px;background:var(--primary);color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;">
-                                ✓ Registrar
-                            </button>
+
+                        <!-- Paso 1: Seleccionar actividad -->
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:8px;">1. Selecciona la actividad</label>
+                            <div id="manual-activity-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
                         </div>
+
+                        <!-- Paso 2: Buscar integrante -->
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:8px;">2. Busca al integrante</label>
+                            <div style="position:relative;">
+                                <input type="text" id="manual-member-search"
+                                    placeholder="Escribe el nombre..."
+                                    oninput="filterManualMembers()"
+                                    onfocus="showManualDropdown()"
+                                    autocomplete="off"
+                                    style="width:100%;padding:10px 14px 10px 38px;border:2px solid var(--gray-300);border-radius:12px;font-family:'Inter',sans-serif;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+                                    onfocusin="this.style.borderColor='var(--primary)'"
+                                    onfocusout="setTimeout(()=>hideManualDropdown(),200)">
+                                <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-400);" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <div id="manual-member-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid var(--primary);border-radius:12px;box-shadow:0 8px 24px rgba(27,38,59,0.15);z-index:500;max-height:240px;overflow-y:auto;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Vista previa del integrante seleccionado -->
+                        <div id="manual-member-preview" style="display:none;background:var(--gray-100);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:none;align-items:center;gap:12px;">
+                            <div style="width:38px;height:38px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700;color:var(--primary);font-size:0.92rem;" id="manual-preview-name"></div>
+                                <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;" id="manual-preview-info"></div>
+                            </div>
+                            <button onclick="clearManualMember()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.2rem;padding:4px;line-height:1;">&#x2715;</button>
+                        </div>
+
+                        <!-- Botón registrar -->
+                        <button onclick="submitManualRecord()" id="manual-submit-btn"
+                            style="width:100%;padding:12px;background:var(--gray-300);color:var(--gray-500);border:none;border-radius:12px;cursor:not-allowed;font-family:'Inter',sans-serif;font-size:0.95rem;font-weight:700;transition:all 0.2s;opacity:0.6;"
+                            disabled>
+                            ✓ Registrar asistencia
+                        </button>
+                        <!-- Input hidden para mantener compatibilidad -->
+                        <input type="hidden" id="manual-member">
+                        <select id="manual-activity" style="display:none;"></select>
                     </div>
 
                     <div class="card">
@@ -5540,36 +5568,157 @@
             }
 
             // ======================== MANUAL RECORD (solo panel admin) ========================
+            let _manualSelectedMemberId = null;
+            let _manualSelectedActivityId = null;
+
             function updateManualSelects() {
-                const ms = document.getElementById("manual-member");
+                // Rebuild hidden select for compat
                 const as = document.getElementById("manual-activity");
-                if (!ms || !as) return;
-                // Filtrar integrantes según sesión activa
-                const members = visibleMembers();
-                ms.innerHTML = '<option value="">-- Selecciona un integrante --</option>' +
-                    members.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join("");
-                as.innerHTML = '<option value="">-- Selecciona la actividad --</option>' +
-                    state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+                if (as) {
+                    as.innerHTML = '<option value=""></option>' +
+                        state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+                }
+                renderManualActivityChips();
+                updateManualSubmitBtn();
+            }
+
+            function renderManualActivityChips() {
+                const container = document.getElementById('manual-activity-chips');
+                if (!container) return;
+                if (!state.activities.length) {
+                    container.innerHTML = '<span style="font-size:0.82rem;color:var(--gray-400);font-style:italic;">No hay actividades registradas.</span>';
+                    return;
+                }
+                container.innerHTML = state.activities.map(a => {
+                    const selected = _manualSelectedActivityId === a.id;
+                    return `<button onclick="selectManualActivity('${a.id}')"
+                        style="padding:7px 16px;border-radius:50px;border:2px solid ${selected ? a.color || 'var(--primary)' : 'var(--gray-300)'};
+                        background:${selected ? (a.color || 'var(--primary)') : 'white'};
+                        color:${selected ? 'white' : 'var(--gray-600)'};
+                        font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:${selected ? '700' : '500'};
+                        cursor:pointer;transition:all 0.15s;">${sanitize(a.name)}</button>`;
+                }).join('');
+            }
+
+            function selectManualActivity(activityId) {
+                _manualSelectedActivityId = _manualSelectedActivityId === activityId ? null : activityId;
+                renderManualActivityChips();
+                updateManualMemberPreview();
+                updateManualSubmitBtn();
+            }
+
+            function filterManualMembers() {
+                const q = (document.getElementById('manual-member-search')?.value || '').toLowerCase().trim();
+                showManualDropdown(q);
+            }
+
+            function showManualDropdown(q = '') {
+                const dropdown = document.getElementById('manual-member-dropdown');
+                if (!dropdown) return;
+                const today = new Date().toLocaleDateString('es-MX');
+                const members = visibleMembers()
+                    .filter(m => !q || m.name.toLowerCase().includes(q))
+                    .slice(0, 30);
+
+                if (!members.length) {
+                    dropdown.innerHTML = '<div style="padding:12px 16px;color:var(--gray-400);font-size:0.85rem;">Sin resultados</div>';
+                    dropdown.style.display = 'block';
+                    return;
+                }
+
+                dropdown.innerHTML = members.map(m => {
+                    const alreadyToday = _manualSelectedActivityId
+                        ? state.records.some(r => r.memberId === m.id && r.activityId === _manualSelectedActivityId && r.date === today)
+                        : false;
+                    const voice = m.voice ? `<span style="font-size:0.7rem;color:var(--gray-400);margin-left:6px;">${m.voice}</span>` : '';
+                    const badge = alreadyToday
+                        ? `<span style="font-size:0.68rem;background:#dcfce7;color:#16a34a;padding:2px 7px;border-radius:50px;flex-shrink:0;font-weight:700;">Ya registrado hoy</span>`
+                        : '';
+                    return `<div onclick="selectManualMember('${m.id}')"
+                        style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--gray-100);transition:background 0.1s;"
+                        onmouseover="this.style.background='var(--gray-100)'"
+                        onmouseout="this.style.background='white'">
+                        <div><span style="font-size:0.88rem;font-weight:600;color:var(--primary);">${sanitize(m.name)}</span>${voice}</div>
+                        ${badge}
+                    </div>`;
+                }).join('');
+                dropdown.style.display = 'block';
+            }
+
+            function hideManualDropdown() {
+                const d = document.getElementById('manual-member-dropdown');
+                if (d) d.style.display = 'none';
+            }
+
+            function selectManualMember(memberId) {
+                _manualSelectedMemberId = memberId;
+                document.getElementById('manual-member').value = memberId;
+                const member = state.members.find(m => m.id === memberId);
+                if (member) {
+                    const searchEl = document.getElementById('manual-member-search');
+                    if (searchEl) searchEl.value = member.name;
+                }
+                hideManualDropdown();
+                updateManualMemberPreview();
+                updateManualSubmitBtn();
+            }
+
+            function clearManualMember() {
+                _manualSelectedMemberId = null;
+                document.getElementById('manual-member').value = '';
+                const searchEl = document.getElementById('manual-member-search');
+                if (searchEl) { searchEl.value = ''; searchEl.focus(); }
+                const preview = document.getElementById('manual-member-preview');
+                if (preview) preview.style.display = 'none';
+                updateManualSubmitBtn();
+            }
+
+            function updateManualMemberPreview() {
+                const preview = document.getElementById('manual-member-preview');
+                if (!preview) return;
+                if (!_manualSelectedMemberId) { preview.style.display = 'none'; return; }
+                const member = state.members.find(m => m.id === _manualSelectedMemberId);
+                if (!member) { preview.style.display = 'none'; return; }
+
+                const today = new Date().toLocaleDateString('es-MX');
+                const actName = _manualSelectedActivityId
+                    ? state.activities.find(a => a.id === _manualSelectedActivityId)?.name
+                    : null;
+                const alreadyToday = actName
+                    ? state.records.some(r => r.memberId === member.id && r.activityId === _manualSelectedActivityId && r.date === today)
+                    : false;
+
+                document.getElementById('manual-preview-name').textContent = member.name;
+                let info = member.voice || '';
+                if (member.churchName) info += (info ? ' · ' : '') + member.churchName;
+                if (alreadyToday && actName) info += ' · ⚠ Ya registrado en ' + actName + ' hoy';
+                document.getElementById('manual-preview-info').textContent = info;
+                document.getElementById('manual-preview-info').style.color = alreadyToday ? '#dc2626' : '';
+                preview.style.display = 'flex';
+            }
+
+            function updateManualSubmitBtn() {
+                const btn = document.getElementById('manual-submit-btn');
+                if (!btn) return;
+                const ready = _manualSelectedMemberId && _manualSelectedActivityId;
+                btn.disabled = !ready;
+                btn.style.background = ready ? 'var(--primary)' : 'var(--gray-300)';
+                btn.style.color = ready ? 'white' : 'var(--gray-500)';
+                btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+                btn.style.opacity = ready ? '1' : '0.6';
             }
 
             function submitManualRecord() {
-                const memberId = document.getElementById("manual-member").value;
-                const activityId = document.getElementById("manual-activity").value;
+                const memberId = _manualSelectedMemberId;
+                const activityId = _manualSelectedActivityId;
                 if (!memberId || !activityId) {
-                    showToast("Selecciona integrante y actividad.");
+                    showToast("Selecciona actividad e integrante.");
                     return;
                 }
-                // Intentar obtener GPS, registrar de todas formas
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude);
-                            afterManual();
-                        },
-                        () => {
-                            addRecord(memberId, activityId, null, null);
-                            afterManual();
-                        },
+                        (pos) => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude); afterManual(); },
+                        ()    => { addRecord(memberId, activityId, null, null); afterManual(); },
                         { timeout: 5000 }
                     );
                 } else {
@@ -5579,9 +5728,8 @@
             }
 
             function afterManual() {
-                showToast("✓ Asistencia registrada manualmente");
-                document.getElementById("manual-member").value = "";
-                document.getElementById("manual-activity").value = "";
+                showToast("✓ Asistencia registrada");
+                clearManualMember();
                 renderRecords();
             }
 
