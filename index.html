@@ -9246,9 +9246,13 @@ Si la pregunta no tiene que ver con los datos del coro, responde amablemente que
 DATOS ACTUALES DEL SISTEMA:
 ${context}`;
 
-            // Construir body con contexto completo en cada mensaje
+            // Construir body: contexto del sistema + pregunta del usuario
             const body = {
-                contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+                contents: [
+                    { role: 'user', parts: [{ text: systemPrompt }] },
+                    { role: 'model', parts: [{ text: 'Entendido, estoy listo para responder preguntas sobre los datos de CoralSync.' }] },
+                    { role: 'user', parts: [{ text: question }] }
+                ],
                 generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
             };
 
