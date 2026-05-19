@@ -7629,6 +7629,115 @@
                 });
                 y += 6;
 
+                // ── RANKING POR ACTIVIDAD ─────────────────────────────────
+                doc.addPage(); y = 20;
+                y = sectionTitle(doc, 'Ranking por Actividad', y);
+
+                actividadesIds.forEach(actId => {
+                    const aObj = state.activities.find(a=>a.id===actId)
+                        || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName || actId};
+                    const actName = aObj.name;
+                    const actRecs = filteredRecs.filter(r => r.activityId===actId && selectedIds.includes(r.memberId));
+                    const posible = calcTotalPosibleByActivity(actId, actName, monthVal, filteredRecs);
+
+                    // Stats de cada miembro para esta actividad
+                    const actStats = selectedMembers.map(m => {
+                        const cnt = actRecs.filter(r => r.memberId===m.id).length;
+                        const pct = posible > 0 ? Math.min(100, Math.round(cnt/posible*100)) : 0;
+                        return { name:m.name, voice:m.voice||'', cnt, pct };
+                    }).sort((a,b) => b.pct - a.pct || b.cnt - a.cnt);
+
+                    const asistentes = actStats.filter(m => m.cnt > 0).length;
+                    const pctGrupal  = selectedMembers.length ? Math.round(asistentes/selectedMembers.length*100) : 0;
+
+                    // Espacio mínimo: encabezado + header tabla + filas
+                    const blockH = 10 + 8 + Math.min(actStats.length, 5) * 8 + 8;
+                    if (y + blockH > 265) { doc.addPage(); y = 20; }
+
+                    // ── Encabezado de la actividad ──
+                    const semCol = semaforoColor(pctGrupal);
+                    doc.setFillColor(...semCol.map(c=>Math.round(c*0.12+238*0.88)));
+                    doc.roundedRect(14, y, 182, 10, 2, 2, 'F');
+                    doc.setFillColor(...semCol);
+                    doc.roundedRect(14, y, 4, 10, 1.5, 1.5, 'F');
+                    doc.rect(14+2, y, 2, 10, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
+                    const aTitle = actName.length>40 ? actName.substring(0,38)+'...' : actName;
+                    doc.text(aTitle, 22, y+6.5);
+                    // stats rápidas a la derecha
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+                    doc.text(asistentes+' de '+selectedMembers.length+' asistentes', 165, y+4.5, {align:'right'});
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...semCol);
+                    doc.text(pctGrupal+'% cobertura  |  '+posible+' ocurrencias posibles', 165, y+8.5, {align:'right'});
+                    y += 12;
+
+                    // ── Header tabla ──
+                    doc.setFillColor(...NAVY); doc.rect(14, y, 182, 7, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+                    doc.text('Integrante',     18,  y+5);
+                    doc.text('Asistencia',     101, y+5, {align:'center'});
+                    doc.text('%',              134, y+5, {align:'center'});
+                    doc.text('No. Asistencias',154, y+5, {align:'center'});
+                    doc.text('Estado',         181, y+5, {align:'center'});
+                    y += 8;
+
+                    // ── Filas ──
+                    actStats.forEach((m, i) => {
+                        if (y > 265) { doc.addPage(); y=20; }
+                        const rowH = 8;
+                        const bg = m.cnt > 0
+                            ? (i%2===0 ? WHITE : LGRAY)
+                            : [255, 245, 245];
+                        doc.setFillColor(...bg); doc.rect(14, y, 182, rowH, 'F');
+
+                        // Nombre + voz
+                        doc.setFont('helvetica', m.pct>=80?'bold':'normal');
+                        doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                        const nStr = m.name.length>28 ? m.name.substring(0,26)+'..' : m.name;
+                        doc.text(nStr, 18, y+5.5);
+                        if (m.voice) {
+                            doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+                            doc.text(m.voice, 76, y+5.5);
+                        }
+
+                        // Barra (solo si asistió)
+                        if (m.cnt > 0) {
+                            drawProgressBar(doc, 84, y+2.5, 42, 3, m.pct, semaforoColor(m.pct));
+                        } else {
+                            doc.setFillColor(230,230,230); doc.roundedRect(84, y+2.5, 42, 3, 1.5,1.5,'F');
+                        }
+
+                        // %
+                        doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+                        doc.setTextColor(...(m.cnt>0 ? semaforoColor(m.pct) : [180,180,180]));
+                        doc.text(m.pct+'%', 134, y+5.5, {align:'center'});
+
+                        // No. Asistencias
+                        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                        doc.setTextColor(...(m.cnt>0 ? NAVY : [180,180,180]));
+                        doc.text(m.cnt+' / '+posible, 154, y+5.5, {align:'center'});
+
+                        // Estado badge
+                        if (m.cnt > 0) {
+                            const lbl = semaforoLabel(m.pct);
+                            const lblCol = semaforoColor(m.pct);
+                            doc.setFillColor(...lblCol.map(c=>Math.round(c*0.15+240*0.85)));
+                            doc.roundedRect(163, y+1.5, 30, 5, 1.5,1.5,'F');
+                            doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(...lblCol);
+                            doc.text(lbl, 178, y+5.5, {align:'center'});
+                        } else {
+                            doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(180,180,180);
+                            doc.text('No asistio', 178, y+5.5, {align:'center'});
+                        }
+
+                        // Línea divisora
+                        doc.setDrawColor(220,220,220); doc.line(14,y+rowH,196,y+rowH);
+                        y += rowH;
+                    });
+                    y += 8;
+                });
+                y += 4;
+
                 // ── AUSENTES ─────────────────────────────────────────────
                 if (sinAsistencia.length) {
                     if (y > 230) { doc.addPage(); y=20; }
