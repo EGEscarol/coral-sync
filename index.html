@@ -2278,6 +2278,12 @@
                                 <select id="records-month-filter" onchange="renderRecords()" style="padding:7px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Inter',sans-serif;font-size:0.82rem;outline:none;background:white;">
                                     <option value="">— Todos los meses —</option>
                                 </select>
+                                <select id="records-activity-filter" onchange="renderRecords()" style="padding:7px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Inter',sans-serif;font-size:0.82rem;outline:none;background:white;">
+                                    <option value="">— Todas las actividades —</option>
+                                </select>
+                                <select id="records-member-filter" onchange="renderRecords()" style="padding:7px 12px;border:2px solid var(--gray-300);border-radius:50px;font-family:'Inter',sans-serif;font-size:0.82rem;outline:none;background:white;">
+                                    <option value="">— Todos los integrantes —</option>
+                                </select>
                                 <button class="btn-accent btn-sm" onclick="exportCSV()">⬇ Exportar CSV</button>
                             </div>
                         </div>
@@ -5033,6 +5039,27 @@
                     }
                 }
 
+                // Filtro por actividad
+                const actFilterSel = document.getElementById('records-activity-filter');
+                if (actFilterSel) {
+                    const curActVal = actFilterSel.value;
+                    actFilterSel.innerHTML = '<option value="">— Todas las actividades —</option>' +
+                        state.activities.map(a => `<option value="${a.id}">${sanitize(a.name)}</option>`).join('');
+                    actFilterSel.value = curActVal;
+                    if (curActVal) records = records.filter(r => r.activityId === curActVal);
+                }
+
+                // Filtro por integrante
+                const memberFilterSel = document.getElementById('records-member-filter');
+                if (memberFilterSel) {
+                    const curMemVal = memberFilterSel.value;
+                    const visMembers = visibleMembers().sort((a,b) => a.name.localeCompare(b.name));
+                    memberFilterSel.innerHTML = '<option value="">— Todos los integrantes —</option>' +
+                        visMembers.map(m => `<option value="${m.id}">${sanitize(m.name)}</option>`).join('');
+                    memberFilterSel.value = curMemVal;
+                    if (curMemVal) records = records.filter(r => r.memberId === curMemVal);
+                }
+
                 // Stats
                 stats.innerHTML = `
     <div class="stat-card"><div class="num">${records.length}</div><div class="lbl">Total Registros</div></div>
@@ -7348,15 +7375,15 @@
                 const filteredRecs = getReportRecords();
                 const groupRecs = filteredRecs.filter(r => selectedIds.includes(r.memberId));
                 const totalRecords = groupRecs.length;
-                // totalPosible = numero de actividades distintas que ocurrieron en el periodo
+                // totalPosible por reglas de actividad
                 const actividadesOcurridas = [...new Set(filteredRecs.map(r => r.activityId))];
-                const totalPosible = actividadesOcurridas.length;
+                const totalPosible = calcTotalPosible(actividadesOcurridas, monthVal, filteredRecs);
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
-                    const pct = totalPosible > 0 ? Math.round((recs.length/totalPosible)*100) : 0;
+                    const pct = calcPctMember(recs, totalPosible);
                     const racha = calcRacha(recs);
                     return { id: m.id, name: m.name, church: m.churchName||'-', total: recs.length, pct, racha };
-                }).sort((a,b) => b.total - a.total);
+                }).sort((a,b) => b.pct - a.pct || b.total - a.total);
                 const topMember = memberStats[0];
                 const bottomMember = memberStats[memberStats.length-1];
                 const avgAtt = selectedMembers.length > 0 ? (totalRecords/selectedMembers.length).toFixed(1) : 0;
@@ -7378,11 +7405,67 @@
                 if (pct >= 50) return 'Regular';
                 return 'Necesita atencion';
             }
-            // pct individual: cuantas actividades DISTINTAS asistio sobre total de actividades ocurridas
+            // Reglas de actividades: cuántas ocurrencias posibles hay en un mes dado
+            // monthVal = 'YYYY-MM' o '' para todos los registros
+            function calcTotalPosibleByActivity(activityId, activityName, monthVal, allRecords) {
+                const name = (activityName || '').toLowerCase();
+
+                // Actividades con calendario fijo
+                const isFixed = ['dominical','consagracion especial','consagración especial','servicio','oracion de 5','oración de 5'].some(k => name.includes(k));
+
+                if (!monthVal) {
+                    // Sin filtro de mes: contar dias unicos con al menos un registro del grupo
+                    const days = new Set(allRecords.filter(r => r.activityId === activityId).map(r => r.date));
+                    return Math.max(1, days.size);
+                }
+
+                const [yr, mo] = monthVal.split('-').map(Number);
+                const daysInMonth = new Date(yr, mo, 0).getDate();
+
+                // Dominical: contar domingos del mes
+                if (name.includes('dominical')) {
+                    let sundays = 0;
+                    for (let d=1; d<=daysInMonth; d++) { if (new Date(yr,mo-1,d).getDay()===0) sundays++; }
+                    return sundays;
+                }
+                // Consagración especial de 8: cada día del mes
+                if (name.includes('consagracion especial') || name.includes('consagración especial')) {
+                    return daysInMonth;
+                }
+                // Servicio: jueves + domingos
+                if (name.includes('servicio')) {
+                    let count = 0;
+                    for (let d=1; d<=daysInMonth; d++) {
+                        const day = new Date(yr,mo-1,d).getDay();
+                        if (day===0 || day===4) count++;
+                    }
+                    return count;
+                }
+                // Oración de 5 de la mañana: cada día del mes
+                if (name.includes('oracion de 5') || name.includes('oración de 5')) {
+                    return daysInMonth;
+                }
+                // Actividades sin fecha fija (ensayo local, estatal, zona, actividad especial):
+                // contar dias únicos con al menos 1 registro de cualquier miembro
+                const days = new Set(allRecords.filter(r => r.activityId === activityId).map(r => r.date));
+                return Math.max(1, days.size);
+            }
+
+            // Calcula totalPosible sumando las posibles ocurrencias de CADA actividad en el periodo
+            function calcTotalPosible(actividadesIds, monthVal, allRecords) {
+                let total = 0;
+                actividadesIds.forEach(actId => {
+                    const rec = allRecords.find(r => r.activityId === actId);
+                    const actName = rec ? (rec.activityName || '') : (state.activities.find(a=>a.id===actId)?.name || '');
+                    total += calcTotalPosibleByActivity(actId, actName, monthVal, allRecords);
+                });
+                return total || 1;
+            }
+
+            // pct individual: asistencias del miembro sobre total posible calculado por reglas
             function calcPctMember(memberRecords, totalPosible) {
                 if (!totalPosible) return 0;
-                const uniqActs = new Set(memberRecords.map(r => r.activityId)).size;
-                return Math.min(100, Math.round(uniqActs / totalPosible * 100));
+                return Math.min(100, Math.round(memberRecords.length / totalPosible * 100));
             }
 
             // ── Barra de progreso ─────────────────────────────────────────────
@@ -7411,15 +7494,15 @@
 
                 // totalPosible = actividades distintas que ocurrieron en el periodo
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
-                const totalPosible = actividadesIds.length;
+                const totalPosible = calcTotalPosible(actividadesIds, monthVal, filteredRecs);
 
-                // stats por miembro con pct correcto
+                // stats por miembro con pct correcto segun reglas de actividad
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
                     const pct = calcPctMember(recs, totalPosible);
                     const racha = calcRacha(recs);
                     return { id:m.id, name:m.name, voice:m.voice||'-', church:m.churchName||'-', total:recs.length, pct, racha };
-                }).sort((a,b) => b.pct - a.pct);
+                }).sort((a,b) => b.pct - a.pct || b.total - a.total);
 
                 const pctGeneral = selectedMembers.length && totalPosible
                     ? Math.round(memberStats.reduce((s,m)=>s+m.pct,0) / selectedMembers.length)
@@ -7614,7 +7697,7 @@
                 const GREEN=[22,163,74], YELLOW=[202,138,4], ROSE=[220,38,38];
 
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
-                const totalPosible   = actividadesIds.length;
+                const totalPosible = calcTotalPosible(actividadesIds, monthVal, filteredRecs);
 
                 let firstPage = true;
                 selectedMembers.forEach(member => {
@@ -7630,7 +7713,7 @@
                     const ultimoReg = sorted.length ? sorted[sorted.length-1].date : '-';
                     const semCol = semaforoColor(pct);
                     const semLbl = semaforoLabel(pct);
-                    const uniqActsAsistidas = new Set(memberRecords.map(r=>r.activityId)).size;
+                    const uniqActsAsistidas = memberRecords.length; // asistencias reales vs posibles calculadas
 
                     // ── HEADER con badge ─────────────────────────────────
                     pdfHeader(doc, member.name, (member.voice||'') + (member.churchName ? '  |  '+member.churchName : '') + (monthLbl?'  |  '+monthLbl:''));
