@@ -3769,54 +3769,40 @@
                 const navAux   = document.getElementById('nav-auxiliares');
                 const navPagos = document.getElementById('nav-pagos');
 
+                // Obtener TODOS los nav items que pueden ser afectados
+                const navActivities = document.getElementById('nav-activities');
+                const navRecords    = document.getElementById('nav-records');
+                const navReports    = document.getElementById('nav-reports');
+                const navUniforms   = document.getElementById('nav-uniforms');
+                const navMembers    = document.getElementById('nav-members');
+                const navQr         = document.getElementById('nav-qr');
+
+                // Resetear TODOS a visible antes de aplicar restricciones por rol
+                // Esto evita que ocultar items en un rol afecte a otros al cambiar sesión
+                [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs,
+                 navAux, navPagos, navActivities, navRecords, navReports, navUniforms,
+                 navMembers, navQr].forEach(n => { if (n) n.style.display = ''; });
+
                 if (isAuxiliar()) {
-                    // Auxiliar: solo dashboard, integrantes, QR, registro manual
-                    const hideAll = [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navAux, navPagos];
-                    hideAll.forEach(n => { if (n) n.style.display = 'none'; });
-                    const navActivities = document.getElementById('nav-activities');
-                    const navRecords    = document.getElementById('nav-records');
-                    const navReports    = document.getElementById('nav-reports');
-                    const navUniforms   = document.getElementById('nav-uniforms');
-                    if (navActivities) navActivities.style.display = 'none';
-                    if (navRecords)    navRecords.style.display    = 'none';
-                    if (navReports)    navReports.style.display    = 'none';
-                    if (navUniforms)   navUniforms.style.display   = 'none';
+                    // Auxiliar: solo dashboard, integrantes y QR
+                    [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs,
+                     navAux, navPagos, navActivities, navRecords, navReports, navUniforms]
+                        .forEach(n => { if (n) n.style.display = 'none'; });
                 } else if (isDirector()) {
-                    // Director de iglesia: ve su coro + gestiona auxiliares
-                    if (navChurches)   navChurches.style.display   = 'none';
-                    if (navDirectors)  navDirectors.style.display  = 'none';
-                    if (navAdminLabel) navAdminLabel.style.display = 'none';
-                    if (navSettings)   navSettings.style.display   = 'none';
-                    if (navStateDirs)  navStateDirs.style.display  = 'none';
-                    if (navAux)        navAux.style.display        = '';
-                    if (navPagos)      navPagos.style.display      = 'none';
+                    // Director local: ve su coro completo, gestiona auxiliares
+                    [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navPagos]
+                        .forEach(n => { if (n) n.style.display = 'none'; });
+                    if (navAux) navAux.style.display = '';
                 } else if (isStateDirector()) {
-                    // Director estatal
-                    if (navChurches)   navChurches.style.display   = 'none';
-                    if (navDirectors)  navDirectors.style.display  = 'none';
-                    if (navAdminLabel) navAdminLabel.style.display = 'none';
-                    if (navSettings)   navSettings.style.display   = 'none';
-                    if (navStateDirs)  navStateDirs.style.display  = 'none';
-                    if (navPagos)      navPagos.style.display      = 'none';
-                    if (navAux)        navAux.style.display        = 'none';
+                    // Director estatal: ve todo lo de su estado, sin admin
+                    [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navPagos, navAux]
+                        .forEach(n => { if (n) n.style.display = 'none'; });
                 } else if (isDiacono()) {
-                    // Diacono coordinador: solo lectura — mismo scope que director estatal
-                    if (navChurches)   navChurches.style.display   = 'none';
-                    if (navDirectors)  navDirectors.style.display  = 'none';
-                    if (navAdminLabel) navAdminLabel.style.display = 'none';
-                    if (navSettings)   navSettings.style.display   = 'none';
-                    if (navStateDirs)  navStateDirs.style.display  = 'none';
-                    if (navPagos)      navPagos.style.display      = 'none';
-                    if (navAux)        navAux.style.display        = 'none';
+                    // Diacono coordinador: solo lectura del estado, sin admin
+                    [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navPagos, navAux]
+                        .forEach(n => { if (n) n.style.display = 'none'; });
                 } else {
-                    // Super admin: ve todo
-                    if (navChurches)   navChurches.style.display   = '';
-                    if (navDirectors)  navDirectors.style.display  = '';
-                    if (navAdminLabel) navAdminLabel.style.display = '';
-                    if (navSettings)   navSettings.style.display   = '';
-                    if (navStateDirs)  navStateDirs.style.display  = '';
-                    if (navPagos)      navPagos.style.display      = '';
-                    if (navAux)        navAux.style.display        = '';
+                    // Super admin: ve todo (ya reseteado arriba, nada que ocultar)
                 }
 
                 // Deshabilitar edición en integrantes para director estatal (solo lectura)
