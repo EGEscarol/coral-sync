@@ -1536,6 +1536,11 @@
             }
 
             /* PRINT for QR */
+            @keyframes coral-bounce {
+                0%, 60%, 100% { transform: translateY(0); }
+                30% { transform: translateY(-6px); }
+            }
+
             @media print {
                 body * {
                     visibility: hidden;
@@ -8845,5 +8850,322 @@
         })();
 
                 </script>
+    <!-- ═══════════════════════════════════════════════════════
+         CORAL IA — Chat flotante con Gemini
+         ═══════════════════════════════════════════════════════ -->
+
+    <!-- Botón flotante -->
+    <button id="coral-ia-btn" onclick="toggleCoralIA()" title="Pregunta a Coral IA"
+        style="display:none;position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1b263b,#4b090e);color:white;border:none;cursor:pointer;z-index:8000;box-shadow:0 4px 20px rgba(27,38,59,0.45);display:none;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.2s;"
+        onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(27,38,59,0.55)'"
+        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(27,38,59,0.45)'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="white"/><circle cx="12" cy="10" r="1" fill="white"/><circle cx="15" cy="10" r="1" fill="white"/></svg>
+    </button>
+
+    <!-- Panel del chat -->
+    <div id="coral-ia-panel" style="display:none;position:fixed;bottom:90px;right:24px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 120px);background:white;border-radius:20px;box-shadow:0 8px 40px rgba(27,38,59,0.25);z-index:8001;flex-direction:column;overflow:hidden;border:1px solid rgba(27,38,59,0.1);">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#1b263b,#4b090e);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:700;font-size:0.95rem;font-family:'Inter',sans-serif;">Coral IA</div>
+                    <div style="color:rgba(255,255,255,0.6);font-size:0.72rem;font-family:'Inter',sans-serif;">Asistente de CoralSync</div>
+                </div>
+            </div>
+            <button onclick="toggleCoralIA()" style="background:rgba(255,255,255,0.1);border:none;color:white;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">✕</button>
+        </div>
+
+        <!-- Mensajes -->
+        <div id="coral-ia-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#f8f9fb;">
+            <div class="coral-msg coral-msg-ai" style="background:white;border-radius:14px 14px 14px 4px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);max-width:90%;align-self:flex-start;">
+                <div style="font-size:0.83rem;color:#1b263b;font-family:'Inter',sans-serif;line-height:1.5;">
+                    ¡Hola! Soy <strong>Coral IA</strong>, tu asistente de CoralSync. Puedo responder preguntas sobre los datos de tu coro.<br><br>
+                    Puedes preguntarme cosas como:<br>
+                    • <em>¿Quién tiene mejor asistencia este mes?</em><br>
+                    • <em>¿Cuántos integrantes no han asistido al Dominical?</em><br>
+                    • <em>¿Qué actividad tiene menor participación?</em>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div style="padding:12px 14px;border-top:1px solid #eef0f4;background:white;flex-shrink:0;display:flex;gap:8px;align-items:flex-end;">
+            <textarea id="coral-ia-input" placeholder="Escribe tu pregunta..." rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoralIA();}"
+                oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
+                style="flex:1;border:2px solid #e5e7eb;border-radius:12px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;resize:none;line-height:1.4;max-height:100px;overflow-y:auto;transition:border-color 0.2s;"
+                onfocus="this.style.borderColor='#1b263b'"
+                onblur="this.style.borderColor='#e5e7eb'"></textarea>
+            <button onclick="sendCoralIA()" id="coral-ia-send"
+                style="width:38px;height:38px;border-radius:50%;background:#1b263b;color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.2s;"
+                onmouseover="this.style.background='#4b090e'"
+                onmouseout="this.style.background='#1b263b'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+    // =======================================================
+    // CORAL IA - Gemini Integration
+    // =======================================================
+    const GEMINI_API_KEY = 'AIzaSyCPPFYa-ng-Qhak_qdg6ulnJKWo63-3ybE';
+    const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY;
+
+    let coralIAOpen = false;
+    let coralIAHistory = []; // historial de la conversación
+
+    function toggleCoralIA() {
+        const panel = document.getElementById('coral-ia-panel');
+        const btn   = document.getElementById('coral-ia-btn');
+        coralIAOpen = !coralIAOpen;
+        panel.style.display = coralIAOpen ? 'flex' : 'none';
+        if (coralIAOpen) {
+            document.getElementById('coral-ia-input').focus();
+            // Scroll al fondo
+            const msgs = document.getElementById('coral-ia-messages');
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+    }
+
+    // Mostrar/ocultar botón según sesión
+    function updateCoralIAVisibility() {
+        const btn = document.getElementById('coral-ia-btn');
+        if (!btn) return;
+        // Mostrar solo cuando hay sesión activa en el panel admin
+        const viewAdmin = document.getElementById('view-admin');
+        const visible = viewAdmin && viewAdmin.classList.contains('active');
+        btn.style.display = visible ? 'flex' : 'none';
+    }
+
+    // Construir contexto de datos según el rol activo
+    function buildCoralIAContext() {
+        if (typeof state === 'undefined' || !state) return '';
+        try {
+            const today = new Date().toLocaleDateString('es-MX');
+            const monthNow = new Date().toISOString().slice(0,7);
+
+            // Filtrar datos según rol
+            let members, records, churches;
+            if (typeof visibleMembers === 'function') members = visibleMembers();
+            else members = state.members || [];
+            if (typeof visibleRecords === 'function') records = visibleRecords();
+            else records = state.records || [];
+            if (typeof visibleChurches === 'function') churches = visibleChurches();
+            else churches = state.churches || [];
+
+            const activities = state.activities || [];
+
+            // Resumen general
+            const totalRecords = records.length;
+            const thisMonthRecords = records.filter(r => r.date && r.date.includes('/' + (new Date().getMonth()+1) + '/'));
+            const recordsThisMonth = records.filter(r => {
+                if (!r.ts) return false;
+                const d = new Date(r.ts);
+                return d.getFullYear() === new Date().getFullYear() && d.getMonth() === new Date().getMonth();
+            });
+
+            // Stats por integrante
+            const memberStats = members.map(m => {
+                const recs = records.filter(r => r.memberId === m.id);
+                const recsMonth = recordsThisMonth.filter(r => r.memberId === m.id);
+                return {
+                    nombre: m.name,
+                    voz: m.voice || 'Sin asignar',
+                    iglesia: m.churchName || churches.find(c=>c.id===m.churchId)?.name || '-',
+                    totalAsistencias: recs.length,
+                    asistenciasMesActual: recsMonth.length,
+                    actividadesAsistidas: [...new Set(recs.map(r=>r.activityId))].length
+                };
+            }).sort((a,b) => b.totalAsistencias - a.totalAsistencias);
+
+            // Stats por actividad
+            const actStats = activities.map(a => {
+                const recs = records.filter(r => r.activityId === a.id);
+                const recsMonth = recordsThisMonth.filter(r => r.activityId === a.id);
+                const uniqueMembers = [...new Set(recs.map(r=>r.memberId))].length;
+                return {
+                    actividad: a.name,
+                    totalRegistros: recs.length,
+                    registrosMesActual: recsMonth.length,
+                    integrantesDistintos: uniqueMembers
+                };
+            }).sort((a,b) => b.totalRegistros - a.totalRegistros);
+
+            // Integrantes sin asistencia este mes
+            const sinAsistenciaMes = members.filter(m =>
+                !recordsThisMonth.some(r => r.memberId === m.id)
+            ).map(m => m.name);
+
+            // Integrantes con mayor y menor asistencia
+            const top5 = memberStats.slice(0,5);
+            const bottom5 = [...memberStats].sort((a,b)=>a.totalAsistencias-b.totalAsistencias).slice(0,5);
+
+            // Uniformes
+            const uniformStats = members.map(m => {
+                const unis = typeof getChurchUniformsWithState === 'function'
+                    ? getChurchUniformsWithState(m.churchId) : [];
+                const completos = unis.filter(u => m.uniforms && m.uniforms[u.id]).length;
+                return { nombre: m.name, uniformesCompletos: completos, totalUniformes: unis.length };
+            });
+            const conUniformeCompleto = uniformStats.filter(m => m.totalUniformes > 0 && m.uniformesCompletos === m.totalUniformes).length;
+
+            // Rol del usuario
+            let rolUsuario = 'Super Administrador';
+            if (typeof isDirector === 'function' && isDirector()) rolUsuario = 'Director Local';
+            else if (typeof isStateDirector === 'function' && isStateDirector()) rolUsuario = 'Director Estatal';
+            else if (typeof isDiacono === 'function' && isDiacono()) rolUsuario = 'Diacono Coordinador';
+
+            const ctx = `
+CONTEXTO DE DATOS DE CORALSYNC
+Fecha actual: ${today}
+Usuario: ${typeof currentSession !== 'undefined' && currentSession ? currentSession.name : 'Admin'} (${rolUsuario})
+
+=== RESUMEN GENERAL ===
+- Iglesias activas: ${churches.length}
+- Total integrantes: ${members.length}
+- Total actividades: ${activities.length}
+- Total registros de asistencia: ${totalRecords}
+- Registros del mes actual: ${recordsThisMonth.length}
+- Integrantes sin asistencia este mes: ${sinAsistenciaMes.length} (${sinAsistenciaMes.slice(0,10).join(', ')}${sinAsistenciaMes.length>10?'...':''})
+- Integrantes con uniforme completo: ${conUniformeCompleto} de ${members.length}
+
+=== ACTIVIDADES ===
+${actStats.map(a=>`- ${a.actividad}: ${a.totalRegistros} registros totales, ${a.registrosMesActual} este mes, ${a.integrantesDistintos} integrantes distintos`).join('\n')}
+')}
+
+=== TOP 5 MAYOR ASISTENCIA ===
+${top5.map((m,i)=>`${i+1}. ${m.nombre} (${m.iglesia}) - ${m.totalAsistencias} registros totales, ${m.asistenciasMesActual} este mes`).join('\n')}
+')}
+
+=== TOP 5 MENOR ASISTENCIA ===
+${bottom5.map((m,i)=>`${i+1}. ${m.nombre} (${m.iglesia}) - ${m.totalAsistencias} registros totales, ${m.asistenciasMesActual} este mes`).join('\n')}
+')}
+
+=== TODOS LOS INTEGRANTES ===
+${memberStats.map(m=>`- ${m.nombre} | ${m.voz} | ${m.iglesia} | ${m.totalAsistencias} asist. totales | ${m.asistenciasMesActual} este mes`).join('\n')}
+')}
+`;
+            return ctx;
+        } catch(e) {
+            console.error('CoralIA context error:', e);
+            return 'Error al obtener datos del sistema.';
+        }
+    }
+
+    function addCoralMessage(text, role) {
+        const msgs = document.getElementById('coral-ia-messages');
+        const div = document.createElement('div');
+        div.style.cssText = role === 'user'
+            ? 'background:#1b263b;color:white;border-radius:14px 14px 4px 14px;padding:10px 14px;max-width:85%;align-self:flex-end;font-size:0.83rem;font-family:Inter,sans-serif;line-height:1.5;'
+            : 'background:white;border-radius:14px 14px 14px 4px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);max-width:90%;align-self:flex-start;font-size:0.83rem;color:#1b263b;font-family:Inter,sans-serif;line-height:1.6;';
+        // Convertir markdown básico a HTML
+        const html = text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/^#{1,3}\s(.+)$/gm, '<strong>$1</strong>')
+            .replace(/^[-*]\s(.+)$/gm, '- $1')
+            .replace(/\n/g, '<br>');
+        div.innerHTML = html;
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+        return div;
+    }
+
+    function addCoralTyping() {
+        const msgs = document.getElementById('coral-ia-messages');
+        const div = document.createElement('div');
+        div.id = 'coral-typing';
+        div.style.cssText = 'background:white;border-radius:14px 14px 14px 4px;padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.07);max-width:80px;align-self:flex-start;display:flex;gap:5px;align-items:center;';
+        div.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:coral-bounce 1.2s infinite 0s;display:inline-block;"></span>' +
+            '<span style="width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:coral-bounce 1.2s infinite 0.2s;display:inline-block;"></span>' +
+            '<span style="width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:coral-bounce 1.2s infinite 0.4s;display:inline-block;"></span>';
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    async function sendCoralIA() {
+        const input = document.getElementById('coral-ia-input');
+        const question = (input.value || '').trim();
+        if (!question) return;
+
+        // Mostrar mensaje del usuario
+        addCoralMessage(question, 'user');
+        coralIAHistory.push({ role: 'user', parts: [{ text: question }] });
+        input.value = '';
+        input.style.height = 'auto';
+
+        // Deshabilitar envío mientras espera
+        const sendBtn = document.getElementById('coral-ia-send');
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.5';
+
+        // Indicador de escritura
+        addCoralTyping();
+
+        try {
+            const context = buildCoralIAContext();
+            const systemPrompt = `Eres Coral IA, un asistente inteligente integrado en CoralSync, un sistema de gestión de coros de iglesia.
+Tu función es responder preguntas sobre los datos del coro de manera clara, amigable y útil en español.
+Responde de forma concisa pero completa. Usa emojis ocasionalmente para hacer la respuesta más amigable.
+Cuando des listas de integrantes, máximo muestra 10, luego indica cuántos más hay.
+Si la pregunta no tiene que ver con los datos del coro, responde amablemente que solo puedes ayudar con información de CoralSync.
+
+DATOS ACTUALES DEL SISTEMA:
+${context}`;
+
+            // Construir mensajes con historial
+            const messages = [
+                { role: 'user', parts: [{ text: systemPrompt + '\n\nPregunta: ' + question }] }
+            ];
+            // Para mensajes subsecuentes, usar historial completo
+            const body = coralIAHistory.length <= 2
+                ? { contents: messages }
+                : {
+                    contents: [
+                        { role: 'user', parts: [{ text: systemPrompt }] },
+                        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para responder preguntas sobre los datos de CoralSync.' }] },
+                        ...coralIAHistory.slice(-8) // últimos 4 intercambios
+                    ]
+                };
+
+            const res = await fetch(GEMINI_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text
+                || 'Lo siento, no pude obtener una respuesta. Intenta de nuevo.';
+
+            // Quitar typing y mostrar respuesta
+            document.getElementById('coral-typing')?.remove();
+            addCoralMessage(reply, 'ai');
+            coralIAHistory.push({ role: 'model', parts: [{ text: reply }] });
+
+            // Limitar historial
+            if (coralIAHistory.length > 20) coralIAHistory = coralIAHistory.slice(-16);
+
+        } catch(e) {
+            document.getElementById('coral-typing')?.remove();
+            addCoralMessage('Error al conectar con Coral IA. Verifica tu conexión e intenta de nuevo.', 'ai');
+            console.error('CoralIA error:', e);
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.style.opacity = '1';
+        }
+    }
+
+    // Mostrar botón cuando el usuario inicia sesión
+    document.addEventListener('DOMContentLoaded', () => {
+        setInterval(updateCoralIAVisibility, 1000);
+    });
+    </script>
+
     </body>
 </html>
