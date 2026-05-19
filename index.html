@@ -1300,35 +1300,29 @@
             }
 
             /* ========== RESPONSIVE MOBILE ========== */
+            /* ═══════════════════════════════════════════════════════
+               RESPONSIVE — TABLET Y MÓVIL (≤768px)
+               ═══════════════════════════════════════════════════════ */
             @media (max-width: 768px) {
-                /* Prevent horizontal scroll globally */
-                body {
-                    overflow-x: hidden;
-                }
 
-                /* Sidebar móvil */
+                /* ── Global ─────────────────────────────────────── */
+                *, *::before, *::after { box-sizing: border-box; }
+                body { overflow-x: hidden; }
+
+                /* ── Sidebar ────────────────────────────────────── */
                 .cs-sidebar {
                     transform: translateX(-100%);
                     width: 240px;
+                    transition: transform 0.25s ease;
                 }
-                .cs-sidebar.open {
-                    transform: translateX(0);
-                }
-                .cs-overlay.open {
-                    display: block;
-                }
-                .cs-hamburger {
-                    display: flex;
-                }
-                .cs-content {
-                    margin-left: 0;
-                }
-                .cs-topbar {
-                    padding: 12px 16px 12px 60px;
-                }
-                .cs-page {
-                    padding: 16px 14px;
-                }
+                .cs-sidebar.open { transform: translateX(0); }
+                .cs-overlay.open { display: block; }
+                .cs-hamburger { display: flex; }
+                .cs-content { margin-left: 0; }
+                .cs-topbar { padding: 12px 16px 12px 60px; }
+                .cs-page { padding: 14px 12px; }
+
+                /* ── Dashboard stats ─────────────────────────────── */
                 .cs-stats-grid {
                     grid-template-columns: repeat(2, 1fr);
                     gap: 10px;
@@ -1337,147 +1331,208 @@
                     grid-template-columns: repeat(2, 1fr);
                     gap: 10px;
                 }
-                /* Header del panel admin oculto en móvil (reemplazado por sidebar) */
+                .cs-quick-card { padding: 18px 12px; }
+                .cs-quick-card svg { width: 22px; height: 22px; }
+
+                /* ── Cards ──────────────────────────────────────── */
+                .card { padding: 16px 13px; border-radius: 14px; }
+                .card-title { font-size: 0.95rem; }
                 #view-admin .app-header { display: none; }
+                .main-container { padding: 14px 12px; }
 
-                /* Main container */
-                .main-container {
-                    padding: 16px 12px;
-                }
+                /* ── Filter bars — stack en columna ─────────────── */
+                #records-filter-bar,
+                #records-filter-bar > div,
+                #records-filter-bar > div[style*="flex:1"],
+                .report-filter-wrap { flex-direction: column !important; }
 
-                /* Nav tabs — scrollable row on mobile */
-                .nav-tabs {
-                    display: flex;
-                    flex-wrap: nowrap;
-                    overflow-x: auto;
+                #records-filter-bar { gap: 10px !important; }
+                #records-filter-bar > div { min-width: 0 !important; width: 100% !important; }
+                #records-filter-bar select,
+                #records-filter-bar button { width: 100% !important; }
+
+                /* ── Registro manual ─────────────────────────────── */
+                #dashboard-manual, #records-manual-card { padding: 14px; }
+                #dash-activity-chips, #manual-activity-chips {
                     gap: 6px;
-                    padding-bottom: 4px;
-                    -webkit-overflow-scrolling: touch;
-                    scrollbar-width: none;
                 }
-                .nav-tabs::-webkit-scrollbar {
-                    display: none;
-                }
-                .nav-tab {
-                    flex-shrink: 0;
-                    padding: 8px 14px;
+                #dash-activity-chips button, #manual-activity-chips button {
+                    padding: 6px 12px;
                     font-size: 0.78rem;
-                    white-space: nowrap;
+                }
+                #dash-member-dropdown, #manual-member-dropdown {
+                    max-height: 180px;
                 }
 
-                /* Cards */
-                .card {
-                    padding: 18px 14px;
+                /* ── Integrantes — member cards ─────────────────── */
+                #member-list {
+                    grid-template-columns: 1fr !important;
                 }
+                .member-card { padding: 12px; }
 
-                /* Forms */
-                .form-row {
-                    flex-direction: column;
-                    gap: 10px;
-                }
+                /* ── Formularios de alta ────────────────────────── */
+                .form-row { flex-direction: column; gap: 10px; }
                 .form-group {
-                    min-width: 0;
-                    width: 100%;
-                }
-                .form-group[style*="min-width:auto"] {
                     min-width: 0 !important;
-                }
-                .form-group[style*="min-width:140px"] {
-                    min-width: 0 !important;
-                }
-                .btn-accent {
-                    width: 100%;
-                    text-align: center;
-                }
-
-                /* Table — horizontal scroll */
-                .table-wrap {
-                    overflow-x: auto;
-                    -webkit-overflow-scrolling: touch;
-                }
-                table {
-                    min-width: 500px;
-                }
-                th,
-                td {
-                    padding: 9px 10px;
-                    font-size: 0.78rem;
-                }
-
-                /* Stats row */
-                .stats-row {
-                    gap: 10px;
-                }
-                .stat-card {
-                    padding: 14px 10px;
-                    min-width: 80px;
-                }
-                .stat-card .num {
-                    font-size: 1.6rem;
-                }
-                .stat-card .lbl {
-                    font-size: 0.65rem;
-                }
-
-                /* QR grid */
-                .qr-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 12px;
-                }
-                .qr-card {
-                    padding: 14px 10px;
-                }
-
-                /* Login card */
-                .login-card {
-                    padding: 32px 20px;
-                }
-                .login-card h2 {
-                    font-size: 1.2rem;
-                }
-
-                /* Member / Scanner view */
-                .public-wrap {
-                    padding: 16px 12px;
-                }
-                #scanner-box {
                     width: 100% !important;
                 }
+                /* Forzar columna en divs flex con min-width inline */
+                [style*="display:flex"][style*="flex-wrap:wrap"] {
+                    flex-direction: column;
+                }
+                /* Excepciones: chips de actividad, filtros de voz, badges */
+                #dash-activity-chips,
+                #manual-activity-chips,
+                .cs-stats-grid,
+                .cs-quick-grid,
+                .item-row,
+                .stats-row,
+                .qr-grid { flex-direction: row !important; flex-wrap: wrap !important; }
 
-                /* Item rows */
-                .item-row {
-                    padding: 10px 12px;
-                    gap: 8px;
+                /* ── Agregar integrante ──────────────────────────── */
+                #add-member-form > div,
+                #add-member-form-records > div { width: 100% !important; min-width: 0 !important; }
+                #add-member-form input,
+                #add-member-form select,
+                #add-member-form button { width: 100% !important; }
+
+                /* ── Tabla de registros ─────────────────────────── */
+                .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                table { min-width: 520px; font-size: 0.78rem; }
+                th, td { padding: 8px 10px; font-size: 0.77rem; }
+
+                /* ── Stats ──────────────────────────────────────── */
+                .stats-row { gap: 8px; flex-wrap: wrap; }
+                .stat-card { padding: 12px 10px; min-width: 70px; flex: 1; }
+                .stat-card .num { font-size: 1.5rem; }
+                .stat-card .lbl { font-size: 0.63rem; }
+
+                /* ── QR ─────────────────────────────────────────── */
+                .qr-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+                .qr-card { padding: 12px 8px; }
+                .qr-card canvas, .qr-card img { width: 80px !important; height: 80px !important; }
+
+                /* ── Nav tabs ───────────────────────────────────── */
+                .nav-tabs {
+                    display: flex; flex-wrap: nowrap; overflow-x: auto;
+                    gap: 6px; padding-bottom: 4px;
+                    -webkit-overflow-scrolling: touch; scrollbar-width: none;
                 }
-                .item-row .item-name {
-                    font-size: 0.84rem;
+                .nav-tabs::-webkit-scrollbar { display: none; }
+                .nav-tab { flex-shrink: 0; padding: 7px 13px; font-size: 0.76rem; white-space: nowrap; }
+
+                /* ── Reportes — lista de integrantes ────────────── */
+                #report-member-list {
+                    grid-template-columns: repeat(2, 1fr) !important;
+                    max-height: 280px;
                 }
-                code {
-                    font-size: 0.65rem;
-                    word-break: break-all;
+                #report-member-list > div { padding: 10px; }
+                #report-member-list .item-name { font-size: 0.75rem; }
+
+                /* Filtros de reportes en columna */
+                #report-church-wrap, #report-month-wrap { width: 100% !important; }
+                .report-filter-bar {
+                    flex-direction: column !important;
+                    gap: 10px !important;
+                }
+                .report-filter-bar > div { min-width: 0 !important; width: 100% !important; }
+
+                /* Botones de acción de reportes */
+                #report-action-btns { flex-direction: column !important; gap: 8px !important; }
+                #report-action-btns button { width: 100% !important; justify-content: center !important; }
+
+                /* ── Uniformes ──────────────────────────────────── */
+                #uniform-matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                #measures-grid { grid-template-columns: 1fr !important; }
+
+                /* ── Pagos ──────────────────────────────────────── */
+                #pagos-list .item-row { flex-direction: column; align-items: flex-start; }
+
+                /* ── Modales ─────────────────────────────────────── */
+                #measures-modal > div {
+                    width: 96% !important;
+                    max-width: none !important;
+                    padding: 20px 16px !important;
+                }
+                #measures-modal-fields {
+                    grid-template-columns: 1fr !important;
+                }
+                .admin-page { max-width: 100%; }
+
+                /* ── Actividades ─────────────────────────────────── */
+                #activities-list .item-row { flex-wrap: wrap; }
+                #activities-list .item-row > div:first-child { flex: 1; min-width: 0; }
+
+                /* ── Item rows ───────────────────────────────────── */
+                .item-row { padding: 10px 12px; gap: 8px; flex-wrap: nowrap; }
+                .item-row .item-name { font-size: 0.82rem; }
+                code { font-size: 0.63rem; word-break: break-all; }
+
+                /* ── Login ───────────────────────────────────────── */
+                .login-card { padding: 28px 18px; }
+                .login-card h2 { font-size: 1.1rem; }
+
+                /* ── Scanner público ─────────────────────────────── */
+                .public-wrap { padding: 14px 12px; }
+                #scanner-box { width: 100% !important; }
+
+                /* ── Director local: botones de acción ──────────── */
+                .app-header button { padding: 6px 10px; font-size: 0.72rem; }
+
+                /* ── Auxiliares / Dir. Estatales forms ──────────── */
+                #new-statedir-form,
+                #new-aux-form,
+                #new-diacono-form { flex-direction: column !important; }
+                #new-statedir-form > div,
+                #new-aux-form > div,
+                #new-diacono-form > div { width: 100% !important; min-width: 0 !important; }
+            }
+
+            /* ═══════════════════════════════════════════════════════
+               RESPONSIVE — SOLO MÓVIL PEQUEÑO (≤480px)
+               ═══════════════════════════════════════════════════════ */
+            @media (max-width: 480px) {
+                .cs-page { padding: 12px 10px; }
+                .card { padding: 14px 11px; }
+                .cs-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+                .cs-quick-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+                /* Registro manual: buscador full width */
+                #dash-member-search, #manual-member-search {
+                    font-size: 0.88rem;
                 }
 
-                /* Buttons in header */
-                .app-header button {
-                    padding: 6px 10px;
-                    font-size: 0.72rem;
+                /* Chips de actividad más compactos */
+                #dash-activity-chips button, #manual-activity-chips button {
+                    padding: 5px 10px;
+                    font-size: 0.74rem;
                 }
+
+                /* Reportes: 1 columna */
+                #report-member-list {
+                    grid-template-columns: 1fr !important;
+                }
+
+                /* QR: 2 columnas ajustadas */
+                .qr-grid { grid-template-columns: repeat(2, 1fr); }
+                .qr-card canvas, .qr-card img { width: 72px !important; height: 72px !important; }
+
+                /* Tabla */
+                th, td { padding: 7px 8px; font-size: 0.74rem; }
+
+                /* Stats */
+                .stat-card .num { font-size: 1.3rem; }
+                .stat-card .lbl { font-size: 0.6rem; }
+
+                /* Botones */
+                .btn-solid, .btn-accent { font-size: 0.82rem; }
             }
 
             @media (max-width: 400px) {
-                .header-titles h1 {
-                    font-size: 0.88rem;
-                }
-                .nav-tab {
-                    padding: 7px 10px;
-                    font-size: 0.72rem;
-                }
-                .qr-grid {
-                    grid-template-columns: 1fr 1fr;
-                }
-                .stat-card .num {
-                    font-size: 1.4rem;
-                }
+                .header-titles h1 { font-size: 0.88rem; }
+                .nav-tab { padding: 7px 10px; font-size: 0.72rem; }
+                .qr-grid { grid-template-columns: 1fr 1fr; }
+                .stat-card .num { font-size: 1.4rem; }
             }
 
             /* PRINT for QR */
@@ -2431,7 +2486,7 @@
                         </div>
 
                         <!-- FILTROS -->
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px;background:var(--gray-100);border-radius:14px;">
+                        <div class="report-filter-bar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px;background:var(--gray-100);border-radius:14px;">
                             <div id="report-church-wrap" style="flex:1;min-width:150px;">
                                 <label style="display:flex;align-items:center;gap:5px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);margin-bottom:6px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -2477,7 +2532,7 @@
                         <!-- CONTADOR Y BOTONES -->
                         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:16px;border-top:1px solid var(--gray-200);">
                             <p id="report-selected-count" style="font-size:0.88rem;color:var(--gray-500);">0 integrantes seleccionados</p>
-                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                            <div id="report-action-btns" style="display:flex;gap:10px;flex-wrap:wrap;">
                                 <button onclick="exportPDFCoro()" style="padding:11px 22px;border:2px solid var(--primary);background:white;color:var(--primary);border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;display:flex;align-items:center;gap:7px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                     Reporte General del Coro
