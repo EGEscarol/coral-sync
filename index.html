@@ -7563,7 +7563,14 @@
                 }
                 // Oración de 5 de la mañana: cada día del mes
                 if (name.includes('oracion de 5') || name.includes('oración de 5')) {
-                    return daysInMonth;
+                    // 4 veces por semana — contar cuántos días lunes, martes, miércoles y jueves tiene el mes
+                    // (o cualquier 4 días fijos; usamos lun-jue como los 4 días de la semana laboral)
+                    let count = 0;
+                    for (let d=1; d<=daysInMonth; d++) {
+                        const day = new Date(yr,mo-1,d).getDay(); // 0=dom,1=lun,...,6=sab
+                        if (day >= 1 && day <= 4) count++; // lunes a jueves
+                    }
+                    return count;
                 }
                 // Actividades sin fecha fija (ensayo local, estatal, zona, actividad especial):
                 // contar dias únicos con al menos 1 registro de cualquier miembro
