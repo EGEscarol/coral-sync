@@ -7492,37 +7492,45 @@
                 const NAVY=[27,38,59], WHITE=[255,255,255], LGRAY=[245,246,248], GRAY=[110,110,110];
                 const GREEN=[22,163,74], YELLOW=[202,138,4], ROSE=[220,38,38];
 
-                // totalPosible = actividades distintas que ocurrieron en el periodo
+                // Stats por actividad (cada una con su propio calculo)
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
-                const totalPosible = calcTotalPosible(actividadesIds, monthVal, filteredRecs);
 
-                // stats por miembro con pct correcto segun reglas de actividad
+                // Para ranking general: pct promedio ponderado por actividad
+                const actividadStats = actividadesIds.map(actId => {
+                    const aObj = state.activities.find(a=>a.id===actId)
+                        || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
+                    const actName = aObj.name;
+                    const posible = calcTotalPosibleByActivity(actId, actName, monthVal, filteredRecs);
+                    return { actId, actName, posible };
+                });
+
+                // pct de cada miembro: promedio de sus pct por actividad
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
-                    const pct = calcPctMember(recs, totalPosible);
+                    const pcts = actividadStats.map(({actId, posible}) => {
+                        const cnt = recs.filter(r=>r.activityId===actId).length;
+                        return posible>0 ? Math.min(100, Math.round(cnt/posible*100)) : 0;
+                    });
+                    const pct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
                     const racha = calcRacha(recs);
                     return { id:m.id, name:m.name, voice:m.voice||'-', church:m.churchName||'-', total:recs.length, pct, racha };
                 }).sort((a,b) => b.pct - a.pct || b.total - a.total);
 
-                const pctGeneral = selectedMembers.length && totalPosible
-                    ? Math.round(memberStats.reduce((s,m)=>s+m.pct,0) / selectedMembers.length)
-                    : 0;
                 const sinAsistencia = memberStats.filter(m => m.total === 0);
                 const excelentes    = memberStats.filter(m => m.pct >= 80).length;
                 const regulares     = memberStats.filter(m => m.pct >= 50 && m.pct < 80).length;
-                const atencion      = memberStats.filter(m => m.pct < 50).length;
+                const atencion      = memberStats.filter(m => m.pct < 50 && m.total > 0).length;
 
                 // ── ENCABEZADO ──────────────────────────────────────────
                 pdfHeader(doc, 'Reporte del Coro', groupLabel + (monthLbl ? '  |  ' + monthLbl : ''));
                 let y = 40;
 
-                // ── TARJETAS PRINCIPALES ─────────────────────────────────
-                const cw=44, ch=26, gap=3;
+                // ── TARJETAS PRINCIPALES (sin % global) ──────────────────
+                const cw=59, ch=24, gap=3;
                 const mainCards = [
-                    { label:'Integrantes',     value: selectedMembers.length, color: NAVY },
-                    { label:'Actividades',      value: totalPosible,           color: [46,100,160] },
-                    { label:'Asistencia gral.', value: pctGeneral+'%',         color: semaforoColor(pctGeneral) },
-                    { label:'Sin asistencia',   value: sinAsistencia.length,   color: sinAsistencia.length>0?ROSE:GRAY },
+                    { label:'Integrantes',    value: selectedMembers.length,    color: NAVY },
+                    { label:'Actividades',    value: actividadesIds.length,     color: [46,100,160] },
+                    { label:'Sin asistencia', value: sinAsistencia.length,      color: sinAsistencia.length>0?ROSE:GRAY },
                 ];
                 mainCards.forEach((c,i) => {
                     const cx = 14 + i*(cw+gap);
@@ -7530,11 +7538,39 @@
                     doc.roundedRect(cx, y, cw, ch, 3, 3, 'F');
                     doc.setFont('helvetica','bold'); doc.setFontSize(16);
                     doc.setTextColor(...WHITE);
-                    doc.text(String(c.value), cx+cw/2, y+14, {align:'center'});
-                    doc.setFontSize(6); doc.setFont('helvetica','normal');
-                    doc.text(c.label.toUpperCase(), cx+cw/2, y+22, {align:'center'});
+                    doc.text(String(c.value), cx+cw/2, y+13, {align:'center'});
+                    doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+                    doc.text(c.label.toUpperCase(), cx+cw/2, y+21, {align:'center'});
                 });
                 y += ch + 8;
+
+                // ── TARJETAS DE % POR ACTIVIDAD ──────────────────────────
+                y = sectionTitle(doc, 'Asistencia por Actividad', y);
+                const tcw=58, tch=32, tgap=4, perRow=3;
+                actividadStats.forEach((act, i) => {
+                    const col = i % perRow;
+                    if (col===0 && i>0) y += tch + tgap;
+                    if (y + tch > 268) { doc.addPage(); y=20; }
+                    const cx = 14 + col*(tcw+tgap);
+                    // pct grupal de esta actividad = promedio de pct individuales
+                    const pcts = selectedMembers.map(m => {
+                        const cnt = filteredRecs.filter(r=>r.memberId===m.id && r.activityId===act.actId).length;
+                        return act.posible>0 ? Math.min(100, Math.round(cnt/act.posible*100)) : 0;
+                    });
+                    const actPctGrupal = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
+                    const asistentes = selectedMembers.filter(m => filteredRecs.some(r=>r.memberId===m.id && r.activityId===act.actId)).length;
+                    const scol = semaforoColor(actPctGrupal);
+                    doc.setFillColor(...LGRAY); doc.roundedRect(cx, y, tcw, tch, 3,3,'F');
+                    doc.setFillColor(...scol); doc.roundedRect(cx, y, tcw, 4, 2,2,'F'); doc.rect(cx, y+2, tcw, 2,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...NAVY);
+                    const shortName = act.actName.length>22 ? act.actName.substring(0,20)+'..' : act.actName;
+                    doc.text(shortName, cx+tcw/2, y+10, {align:'center'});
+                    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...scol);
+                    doc.text(actPctGrupal+'%', cx+tcw/2, y+22, {align:'center'});
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+                    doc.text(asistentes+' de '+selectedMembers.length+' integr. | '+act.posible+' oport.', cx+tcw/2, y+29, {align:'center'});
+                });
+                if (actividadStats.length > 0) y += tch + 10;
 
                 // ── SEMAFORO RESUMEN ─────────────────────────────────────
                 const semW = 59, semH = 18;
@@ -7566,8 +7602,12 @@
                     drawnVoice = true;
                     const vRecs = filteredRecs.filter(r=>mems.some(m=>m.id===r.memberId));
                     const vPct = Math.round(mems.reduce((s,m)=>{
-                        const r=filteredRecs.filter(x=>x.memberId===m.id);
-                        return s+calcPctMember(r,totalPosible);
+                        const recs=filteredRecs.filter(x=>x.memberId===m.id);
+                        const pcts=actividadStats.map(({actId,posible})=>{
+                            const cnt=recs.filter(r=>r.activityId===actId).length;
+                            return posible>0?Math.min(100,Math.round(cnt/posible*100)):0;
+                        });
+                        return s+(pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):0);
                     },0)/mems.length);
                     const cx = 14+i*(vw+3);
                     const vc = voiceColors[v];
@@ -7596,7 +7636,7 @@
                 doc.text('Integrante',        18,  y+5.5);
                 doc.text('Asistencia',        101, y+5.5, {align:'center'});
                 doc.text('%',                 134, y+5.5, {align:'center'});
-                doc.text('No. Asistencias',   154, y+5.5, {align:'center'});
+                doc.text('Asistencias',        154, y+5.5, {align:'center'});
                 doc.text('Estado',            181, y+5.5, {align:'center'});
                 y += 10;
 
@@ -7617,7 +7657,7 @@
                     doc.text(m.pct+'%', 134, y+6, {align:'center'});
                     // No. de asistencias
                     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    doc.text(m.total+' / '+totalPosible, 154, y+6, {align:'center'});
+                    doc.text(String(m.total), 154, y+6, {align:'center'});
                     // Estado badge
                     const lbl = semaforoLabel(m.pct);
                     const lblCol = semaforoColor(m.pct);
@@ -7894,7 +7934,7 @@
                             doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 8, 2,2,'F');
                             doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NAVY);
                             doc.text(mes, 18, y+5.5);
-                            drawProgressBar(doc, 70, y+2.5, 100, 3.5, barPct, [...semaforoColor(barPct*pct/100)]);
+                            drawProgressBar(doc, 70, y+2.5, 100, 3.5, barPct, semaforoColor(barPct));
                             doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
                             doc.text(String(val), 188, y+5.5, {align:'right'});
                             y += 10;
