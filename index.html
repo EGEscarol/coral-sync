@@ -7814,96 +7814,73 @@
                     firstPage = false;
 
                     const memberRecords = filteredRecs.filter(r=>r.memberId===member.id);
-                    const pct  = calcPctMember(memberRecords, totalPosible);
-                    const racha= calcRacha(memberRecords);
                     const horaP= calcHoraPromedio(memberRecords);
                     const sorted=[...memberRecords].sort((a,b)=>(a.ts||0)-(b.ts||0));
                     const primerReg = sorted.length ? sorted[0].date : '-';
                     const ultimoReg = sorted.length ? sorted[sorted.length-1].date : '-';
-                    const semCol = semaforoColor(pct);
-                    const semLbl = semaforoLabel(pct);
-                    const uniqActsAsistidas = memberRecords.length; // asistencias reales vs posibles calculadas
 
                     // ── HEADER con badge ─────────────────────────────────
                     pdfHeader(doc, member.name, (member.voice||'') + (member.churchName ? '  |  '+member.churchName : '') + (monthLbl?'  |  '+monthLbl:''));
                     let y = 40;
 
-                    // Badge de estado grande
-                    doc.setFillColor(...semCol.map(c=>Math.round(c*0.12+238*0.88)));
-                    doc.roundedRect(14, y, 182, 14, 4,4,'F');
-                    doc.setFillColor(...semCol); doc.roundedRect(14,y,5,14,2,2,'F'); doc.rect(14+3,y,2,14,'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...semCol);
-                    doc.text(semLbl, 26, y+5.5);
+                    // Resumen de asistencias totales
+                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 12, 3,3,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
+                    doc.text('Total de asistencias registradas: ' + memberRecords.length, 18, y+7.5);
                     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-                    const badgeTxt = pct>=80?'Asistencia sobresaliente. Sigue asi!':pct>=50?'Asistencia regular. Hay oportunidad de mejora.':'Se recomienda seguimiento personal.';
-                    doc.text(badgeTxt, 26, y+11);
-                    y += 20;
-
-                    // ── 4 TARJETAS ──────────────────────────────────────
-                    const cw=44, ch=24, gap=3;
-                    [
-                        {label:'Actividades asistidas', value:uniqActsAsistidas+' / '+totalPosible, col:NAVY},
-                        {label:'Porcentaje',            value:pct+'%',                              col:semCol},
-                        {label:'Racha actual',          value:racha.actual+' actividades',          col:racha.actual>=3?[46,125,82]:GRAY},
-                        {label:'Racha maxima',          value:racha.max+' actividades',             col:NAVY},
-                    ].forEach((c,i) => {
-                        const cx=14+i*(cw+gap);
-                        doc.setFillColor(...c.col); doc.roundedRect(cx,y,cw,ch,3,3,'F');
-                        doc.setFont('helvetica','bold'); doc.setFontSize(i===0?10:14);
-                        doc.setTextColor(...WHITE);
-                        doc.text(String(c.value), cx+cw/2, y+(i===0?11:13), {align:'center'});
-                        doc.setFont('helvetica','normal'); doc.setFontSize(6);
-                        doc.text(c.label.toUpperCase(), cx+cw/2, y+21, {align:'center'});
-                    });
-                    y += ch + 8;
-
-                    // Barra de porcentaje grande
-                    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-                    doc.text('Porcentaje de asistencia', 14, y);
-                    doc.text(pct+'%', 196, y, {align:'right'});
-                    y += 3;
-                    drawProgressBar(doc, 14, y, 182, 6, pct, semCol);
-                    y += 12;
+                    doc.text((monthLbl ? monthLbl : 'Todos los periodos'), 185, y+7.5, {align:'right'});
+                    y += 18;
 
                     // ── INFO RAPIDA ──────────────────────────────────────
                     doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 14, 3,3,'F');
                     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-                    doc.text('Primera asistencia: '+primerReg,  18, y+5.5);
-                    doc.text('Ultima asistencia:  '+ultimoReg,  18, y+11);
-                    doc.text('Hora promedio: '+horaP, 120, y+5.5);
+                    doc.text('Primera asistencia: '+primerReg, 18, y+5.5);
+                    doc.text('Ultima asistencia: '+ultimoReg,  18, y+11);
+                    doc.text('Hora promedio: '+horaP,          120, y+5.5);
                     y += 20;
 
-                    // ── ACTIVIDADES: CHECK O CRUZ ────────────────────────
-                    y = sectionTitle(doc, 'Actividades del Periodo', y);
+                    // ── TARJETAS DE PORCENTAJE POR ACTIVIDAD ─────────────
+                    y = sectionTitle(doc, 'Asistencia por Actividad', y);
 
-                    actividadesIds.forEach(actId => {
-                        if (y > 265) { doc.addPage(); y=20; }
-                        const aObj = state.activities.find(a=>a.id===actId)||{name:filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
-                        const asistio = memberRecords.some(r=>r.activityId===actId);
-                        const rowH = 9;
-                        doc.setFillColor(...(asistio?[232,248,237]:[255,235,235]));
-                        doc.roundedRect(14, y, 182, rowH, 2,2,'F');
-                        // icono check o cruz
-                        doc.setFont('helvetica','bold'); doc.setFontSize(10);
-                        doc.setTextColor(...(asistio?GREEN:ROSE));
-                        doc.text(asistio?'v':'x', 22, y+6.5);
-                        // nombre actividad
-                        doc.setFont('helvetica', asistio?'bold':'normal');
-                        doc.setFontSize(8.5); doc.setTextColor(...NAVY);
-                        const aName = aObj.name.length>45?aObj.name.substring(0,43)+'...':aObj.name;
-                        doc.text(aName, 30, y+6.5);
-                        // veces si asistio
-                        if (asistio) {
-                            const veces = memberRecords.filter(r=>r.activityId===actId).length;
-                            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-                            doc.text(veces+(veces>1?' veces':' vez'), 188, y+6.5, {align:'right'});
-                        } else {
-                            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(200,100,100);
-                            doc.text('No asistio', 188, y+6.5, {align:'right'});
-                        }
-                        y += rowH+2;
+                    // Calcular pct por actividad individual
+                    const actCards = actividadesIds.map(actId => {
+                        const aObj = state.activities.find(a=>a.id===actId)
+                            || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName || actId};
+                        const actName = aObj.name;
+                        const posible = calcTotalPosibleByActivity(actId, actName, monthVal, filteredRecs);
+                        const cnt = memberRecords.filter(r=>r.activityId===actId).length;
+                        const actPct = posible > 0 ? Math.min(100, Math.round(cnt/posible*100)) : 0;
+                        return { actName, posible, cnt, actPct };
                     });
-                    y += 4;
+
+                    // Dibujar tarjetas en filas de 3
+                    const tcw=58, tch=32, tgap=4;
+                    const perRow=3;
+                    actCards.forEach((ac, i) => {
+                        const col = i % perRow;
+                        const row = Math.floor(i / perRow);
+                        if (col === 0 && row > 0) y += tch + tgap;
+                        if (y + tch > 268) { doc.addPage(); y=20; }
+                        const cx = 14 + col*(tcw+tgap);
+                        const scol = semaforoColor(ac.actPct);
+                        // Fondo con borde de color arriba
+                        doc.setFillColor(...LGRAY); doc.roundedRect(cx, y, tcw, tch, 3,3,'F');
+                        doc.setFillColor(...scol); doc.roundedRect(cx, y, tcw, 4, 2,2,'F'); doc.rect(cx, y+2, tcw, 2,'F');
+                        // Nombre actividad
+                        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...NAVY);
+                        const shortName = ac.actName.length>22 ? ac.actName.substring(0,20)+'..' : ac.actName;
+                        doc.text(shortName, cx+tcw/2, y+10, {align:'center'});
+                        // Porcentaje grande
+                        doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...scol);
+                        doc.text(ac.actPct+'%', cx+tcw/2, y+22, {align:'center'});
+                        // Conteo debajo
+                        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+                        doc.text(ac.cnt+' / '+ac.posible, cx+tcw/2, y+29, {align:'center'});
+                    });
+                    // Avanzar y tras la última fila de tarjetas
+                    const lastRow = Math.floor((actCards.length-1) / perRow);
+                    if (actCards.length > 0) y += tch + 10;
+                    else y += 6;
 
                     // ── TENDENCIA MENSUAL ────────────────────────────────
                     const mesRowsM = calcComparativaMensual(memberRecords);
@@ -7928,8 +7905,8 @@
                     // ── INTERPRETACION ───────────────────────────────────
                     if (y > 235) { doc.addPage(); y=20; }
                     pdfInterpretacionIndividual(doc, y, {
-                        nombre:member.name, pct, total:uniqActsAsistidas,
-                        racha, actFav: (() => {
+                        nombre:member.name, pct:0, total:memberRecords.length,
+                        racha:{actual:0,max:0}, actFav: (() => {
                             const byA={};
                             memberRecords.forEach(r=>{if(!byA[r.activityId])byA[r.activityId]={name:r.activityName||r.activityId,count:0};byA[r.activityId].count++;});
                             return Object.values(byA).sort((a,b)=>b.count-a.count)[0];
