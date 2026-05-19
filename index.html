@@ -99,6 +99,13 @@
             };
 
             // Guardar credenciales en Firebase
+            window._fbSaveGeminiKey = async function(key, model) {
+                try {
+                    await setDoc(CFG_REF, { geminiKey: key, geminiModel: model || 'gemini-1.5-flash-latest' }, { merge: true });
+                    return true;
+                } catch(e) { return false; }
+            };
+
             window._fbSaveCredentials = async function(username, password) {
                 try {
                     await setDoc(CFG_REF, { adminUser: username, adminPass: password }, { merge: true });
@@ -2735,6 +2742,30 @@
 
             <!-- PAGE: SETTINGS -->
                 <div id="page-settings" class="admin-page" style="display:none;">
+
+                    <!-- Coral IA: Gemini API Key -->
+                    <div class="card" id="gemini-config-card" style="margin-bottom:20px;border-left:4px solid #4b090e;">
+                        <div class="card-title" style="margin-bottom:14px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:#4b090e;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Coral IA — API Key de Gemini
+                        </div>
+                        <p style="font-size:0.84rem;color:var(--gray-500);margin-bottom:16px;">La key se guarda en Firebase y se distribuye automaticamente a todos los directores cuando inician sesion. Solo el Super Admin puede configurarla.</p>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:2;min-width:200px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">API Key de Google AI Studio</label>
+                                <input type="password" id="settings-gemini-key" placeholder="AIza..." autocomplete="off"
+                                    style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <div style="flex:1;min-width:180px;">
+                                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);margin-bottom:5px;">Modelo</label>
+                                <input type="text" id="settings-gemini-model" placeholder="gemini-1.5-flash-latest"
+                                    style="width:100%;padding:9px 12px;border:2px solid var(--gray-300);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                            </div>
+                            <button onclick="saveGeminiKeyToFirebase()" style="padding:10px 22px;background:#1b263b;color:white;border:none;border-radius:50px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;flex-shrink:0;">Guardar</button>
+                        </div>
+                        <div id="gemini-key-status" style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);"></div>
+                    </div>
+
                     <div class="card" style="border-left:4px solid var(--accent);">
                         <div class="card-title" style="margin-bottom:20px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:8px;color:var(--accent);"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -3614,6 +3645,11 @@
                         // Primera vez: subir los defaults a Firebase
                         await window._fbSaveCredentials(ADMIN_USERNAME, ADMIN_PASSWORD);
                     }
+                    // Cargar Gemini key para todos los roles
+                    if (cfg && cfg.geminiKey) {
+                        localStorage.setItem('coral_gemini_key', cfg.geminiKey);
+                        localStorage.setItem('coral_gemini_model', cfg.geminiModel || 'gemini-1.5-flash-latest');
+                    }
                 } catch(e) {
                     console.error('Error cargando credenciales:', e);
                 }
@@ -4086,6 +4122,15 @@
                 if (page === 'reports') renderReportsTab();
                 if (page === 'directors') { renderDirectors(); renderAuxiliares(); }
                 if (page === 'statedirectors') renderStateDirectors();
+                if (page === 'settings') {
+                    const modelInput = document.getElementById('settings-gemini-model');
+                    if (modelInput && !modelInput.value) modelInput.value = localStorage.getItem('coral_gemini_model') || 'gemini-1.5-flash-latest';
+                    const existingKey = localStorage.getItem('coral_gemini_key');
+                    const keyInput = document.getElementById('settings-gemini-key');
+                    if (keyInput && existingKey) keyInput.placeholder = 'Key activa (•••••' + existingKey.slice(-4) + ') — pega una nueva para cambiarla';
+                    const geminiCard = document.getElementById('gemini-config-card');
+                    if (geminiCard) geminiCard.style.display = (typeof isSuperAdmin==='function' && isSuperAdmin()) ? '' : 'none';
+                }
                 if (page === 'pagos') renderPagos();
                 if (page === 'auxiliares') renderAuxiliares();
                 if (page === 'uniforms') renderUniformsTab();
@@ -8876,7 +8921,12 @@
                     <div style="color:rgba(255,255,255,0.6);font-size:0.72rem;font-family:'Inter',sans-serif;">Asistente de CoralSync</div>
                 </div>
             </div>
-            <button onclick="toggleCoralIA()" style="background:rgba(255,255,255,0.1);border:none;color:white;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">✕</button>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button onclick="clearCoralIAKey()" title="Configurar API key" style="background:rgba(255,255,255,0.1);border:none;color:white;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <button onclick="toggleCoralIA()" style="background:rgba(255,255,255,0.1);border:none;color:white;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">✕</button>
+            </div>
         </div>
 
         <!-- Mensajes -->
@@ -8913,11 +8963,80 @@
     // =======================================================
     // CORAL IA - Gemini Integration
     // =======================================================
-    const GEMINI_API_KEY = 'AIzaSyD_KPfwmaTrwj_Srf0cEzrV1Y9B_xXm1qY';
-    const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + GEMINI_API_KEY;
+    // API key guardada en localStorage (nunca en el codigo fuente)
+    function getGeminiKey() { return localStorage.getItem('coral_gemini_key') || ''; }
+    function getGeminiUrl() {
+        const model = localStorage.getItem('coral_gemini_model') || 'gemini-1.5-flash-latest';
+        return 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + getGeminiKey();
+    }
 
     let coralIAOpen = false;
     let coralIAHistory = []; // historial de la conversación
+
+    function showCoralIAConfig() {
+        const msgs = document.getElementById('coral-ia-messages');
+        // Add config message if not already shown
+        if (document.getElementById('coral-ia-config-form')) return;
+        const div = document.createElement('div');
+        div.id = 'coral-ia-config-form';
+        div.style.cssText = 'background:white;border-radius:14px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,0.1);align-self:stretch;font-family:Inter,sans-serif;';
+        div.innerHTML = '<div style="font-size:0.85rem;font-weight:700;color:#1b263b;margin-bottom:8px;">Configura Coral IA</div>' +
+            '<div style="font-size:0.78rem;color:#6b7280;margin-bottom:12px;">Pega tu API key de Google AI Studio. Se guarda solo en este dispositivo y nunca se sube a ningun servidor.</div>' +
+            '<input id="coral-key-input" type="password" placeholder="AIza..." style="width:100%;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-size:0.85rem;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:10px;">' +
+            '<div style="font-size:0.75rem;color:#6b7280;margin-bottom:10px;">Obtenla en: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#1b263b;font-weight:600;">aistudio.google.com/apikey</a></div>' +
+            '<div style="display:flex;gap:8px;">' +
+            '<input id="coral-model-input" type="text" placeholder="Modelo (ej: gemini-1.5-flash-latest)" style="flex:1;padding:8px 10px;border:2px solid #e5e7eb;border-radius:10px;font-size:0.78rem;font-family:Inter,sans-serif;outline:none;">' +
+            '<button onclick="saveCoralIAKey()" style="padding:8px 16px;background:#1b263b;color:white;border:none;border-radius:10px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.82rem;font-weight:700;">Guardar</button>' +
+            '</div>';
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+        // Pre-fill if exists
+        const existing = localStorage.getItem('coral_gemini_key');
+        if (existing) document.getElementById('coral-key-input').value = existing;
+        const existingModel = localStorage.getItem('coral_gemini_model');
+        if (existingModel) document.getElementById('coral-model-input').value = existingModel;
+    }
+
+    function saveCoralIAKey() {
+        const key = (document.getElementById('coral-key-input')?.value || '').trim();
+        const model = (document.getElementById('coral-model-input')?.value || '').trim();
+        if (!key) { alert('Pega tu API key primero.'); return; }
+        localStorage.setItem('coral_gemini_key', key);
+        if (model) localStorage.setItem('coral_gemini_model', model);
+        document.getElementById('coral-ia-config-form')?.remove();
+        const msgs = document.getElementById('coral-ia-messages');
+        const ok = document.createElement('div');
+        ok.style.cssText = 'background:#d1fae5;color:#065f46;border-radius:12px;padding:10px 14px;font-size:0.82rem;font-family:Inter,sans-serif;align-self:flex-start;';
+        ok.textContent = 'API key guardada. Ya puedes hacer preguntas.';
+        msgs.appendChild(ok);
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    async function saveGeminiKeyToFirebase() {
+        const key   = (document.getElementById('settings-gemini-key')?.value || '').trim();
+        const model = (document.getElementById('settings-gemini-model')?.value || '').trim() || 'gemini-1.5-flash-latest';
+        const statusEl = document.getElementById('gemini-key-status');
+        if (!key) { if(typeof showToast==='function') showToast('Ingresa la API key primero.'); return; }
+        if (statusEl) { statusEl.textContent = 'Guardando...'; statusEl.style.color = '#6b7280'; }
+        const ok = window._fbSaveGeminiKey ? await window._fbSaveGeminiKey(key, model) : false;
+        if (ok) {
+            localStorage.setItem('coral_gemini_key', key);
+            localStorage.setItem('coral_gemini_model', model);
+            if (statusEl) { statusEl.textContent = 'Guardada. Todos los directores la recibiran al iniciar sesion.'; statusEl.style.color = '#16a34a'; }
+            if(typeof showToast==='function') showToast('API key de Coral IA guardada');
+            const keyInput = document.getElementById('settings-gemini-key');
+            if (keyInput) { keyInput.value = ''; keyInput.placeholder = 'Key activa (•••••' + key.slice(-4) + ') — pega una nueva para cambiarla'; }
+        } else {
+            if (statusEl) { statusEl.textContent = 'Error al guardar. Verifica tu conexion a Firebase.'; statusEl.style.color = '#dc2626'; }
+        }
+    }
+
+    function clearCoralIAKey() {
+        localStorage.removeItem('coral_gemini_key');
+        localStorage.removeItem('coral_gemini_model');
+        coralIAHistory = [];
+        showCoralIAConfig();
+    }
 
     function toggleCoralIA() {
         const panel = document.getElementById('coral-ia-panel');
@@ -8925,8 +9044,11 @@
         coralIAOpen = !coralIAOpen;
         panel.style.display = coralIAOpen ? 'flex' : 'none';
         if (coralIAOpen) {
-            document.getElementById('coral-ia-input').focus();
-            // Scroll al fondo
+            if (!getGeminiKey()) {
+                setTimeout(showCoralIAConfig, 100);
+            } else {
+                document.getElementById('coral-ia-input').focus();
+            }
             const msgs = document.getElementById('coral-ia-messages');
             msgs.scrollTop = msgs.scrollHeight;
         }
@@ -9099,6 +9221,12 @@ ${memberStats.map(m=>`- ${m.nombre} | ${m.voz} | ${m.iglesia} | ${m.totalAsisten
         input.value = '';
         input.style.height = 'auto';
 
+        // Verificar que hay key configurada
+        if (!getGeminiKey()) {
+            showCoralIAConfig();
+            return;
+        }
+
         // Deshabilitar envío mientras espera
         const sendBtn = document.getElementById('coral-ia-send');
         sendBtn.disabled = true;
@@ -9124,7 +9252,7 @@ ${context}`;
                 generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
             };
 
-            const res = await fetch(GEMINI_URL, {
+            const res = await fetch(getGeminiUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
