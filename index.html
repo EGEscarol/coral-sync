@@ -9118,20 +9118,11 @@ Si la pregunta no tiene que ver con los datos del coro, responde amablemente que
 DATOS ACTUALES DEL SISTEMA:
 ${context}`;
 
-            // Construir mensajes con historial
-            const messages = [
-                { role: 'user', parts: [{ text: systemPrompt + '\n\nPregunta: ' + question }] }
-            ];
-            // Para mensajes subsecuentes, usar historial completo
-            const body = coralIAHistory.length <= 2
-                ? { contents: messages }
-                : {
-                    contents: [
-                        { role: 'user', parts: [{ text: systemPrompt }] },
-                        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para responder preguntas sobre los datos de CoralSync.' }] },
-                        ...coralIAHistory.slice(-8) // últimos 4 intercambios
-                    ]
-                };
+            // Construir body con contexto completo en cada mensaje
+            const body = {
+                contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+                generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+            };
 
             const res = await fetch(GEMINI_URL, {
                 method: 'POST',
@@ -9140,11 +9131,30 @@ ${context}`;
             });
 
             const data = await res.json();
-            const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text
-                || 'Lo siento, no pude obtener una respuesta. Intenta de nuevo.';
+
+            // Verificar error de la API
+            if (data.error) {
+                document.getElementById('coral-typing')?.remove();
+                const errMsg = data.error.message || 'Error de la API';
+                const errCode = data.error.code || res.status;
+                addCoralMessage('Error ' + errCode + ': ' + errMsg, 'ai');
+                console.error('Gemini API error:', data.error);
+                return;
+            }
+
+            const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
             // Quitar typing y mostrar respuesta
             document.getElementById('coral-typing')?.remove();
+
+            if (!reply) {
+                // Mostrar respuesta raw para diagnóstico
+                console.warn('Gemini respuesta inesperada:', JSON.stringify(data).substring(0, 300));
+                const reason = data?.candidates?.[0]?.finishReason || 'respuesta vacia';
+                addCoralMessage('No obtuve respuesta de Coral IA (' + reason + '). Intenta de nuevo.', 'ai');
+                return;
+            }
+
             addCoralMessage(reply, 'ai');
             coralIAHistory.push({ role: 'model', parts: [{ text: reply }] });
 
@@ -9153,7 +9163,8 @@ ${context}`;
 
         } catch(e) {
             document.getElementById('coral-typing')?.remove();
-            addCoralMessage('Error al conectar con Coral IA. Verifica tu conexión e intenta de nuevo.', 'ai');
+            const msg = e.message || 'Error desconocido';
+            addCoralMessage('Error de conexion: ' + msg + '. Verifica tu internet e intenta de nuevo.', 'ai');
             console.error('CoralIA error:', e);
         } finally {
             sendBtn.disabled = false;
