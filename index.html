@@ -9126,47 +9126,134 @@
     function buildCoralIAContext() {
         if (typeof state === 'undefined' || !state) return '';
         try {
-            const today = new Date().toLocaleDateString('es-MX');
-            let members = typeof visibleMembers==='function' ? visibleMembers() : (state.members||[]);
-            let records = typeof visibleRecords==='function' ? visibleRecords() : (state.records||[]);
-            let churches = typeof visibleChurches==='function' ? visibleChurches() : (state.churches||[]);
+            const now = new Date();
+            const today = now.toLocaleDateString('es-MX');
+            const todayISO = now.toISOString().slice(0,10);
+
+            let members  = typeof visibleMembers  ==='function' ? visibleMembers()  : (state.members  ||[]);
+            let records  = typeof visibleRecords  ==='function' ? visibleRecords()  : (state.records  ||[]);
+            let churches = typeof visibleChurches ==='function' ? visibleChurches() : (state.churches ||[]);
             const activities = state.activities || [];
-            const recordsThisMonth = records.filter(r => {
+
+            // Helpers
+            const memberName = id => (members.find(m=>m.id===id)||{}).name || id;
+            const actName    = id => (activities.find(a=>a.id===id)||{}).name || id;
+
+            // Filtros temporales
+            const recToday = records.filter(r => r.date === today);
+            const recMonth = records.filter(r => {
                 if (!r.ts) return false;
                 const d = new Date(r.ts);
-                return d.getFullYear()===new Date().getFullYear() && d.getMonth()===new Date().getMonth();
+                return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
             });
-            const memberStats = members.map(m => {
-                const recs = records.filter(r => r.memberId===m.id);
-                const recsMonth = recordsThisMonth.filter(r => r.memberId===m.id);
-                return { nombre:m.name, voz:m.voice||'Sin asignar', iglesia:m.churchName||(churches.find(c=>c.id===m.churchId)||{}).name||'-', totalAsistencias:recs.length, asistenciasMesActual:recsMonth.length };
-            }).sort((a,b)=>b.totalAsistencias-a.totalAsistencias);
-            const actStats = activities.map(a => {
-                const recs = records.filter(r=>r.activityId===a.id);
-                const recsMonth = recordsThisMonth.filter(r=>r.activityId===a.id);
-                return { actividad:a.name, totalRegistros:recs.length, registrosMesActual:recsMonth.length, integrantesDistintos:[...new Set(recs.map(r=>r.memberId))].length };
-            }).sort((a,b)=>b.totalRegistros-a.totalRegistros);
-            const sinAsistenciaMes = members.filter(m=>!recordsThisMonth.some(r=>r.memberId===m.id)).map(m=>m.name);
-            const churchGroups = churches.map(c=>{ const mems=members.filter(m=>m.churchId===c.id); return '- '+c.name+' ('+(c.state||'')+') : '+mems.length+' integrantes'; }).join('\n');
+            // Ultimos 7 dias
+            const rec7days = records.filter(r => {
+                if (!r.ts) return false;
+                return (now.getTime() - r.ts) <= 7*24*60*60*1000;
+            });
+
+            // === REGISTROS DE HOY (detallados) ===
+            const todayByAct = {};
+            recToday.forEach(r => {
+                if (!todayByAct[r.activityId]) todayByAct[r.activityId] = [];
+                todayByAct[r.activityId].push(r.memberName || memberName(r.memberId));
+            });
+            const todayLines = Object.entries(todayByAct).map(([actId, names]) =>
+                '  ' + actName(actId) + ' (' + names.length + '): ' + names.join(', ')
+            );
+
+            // === REGISTROS ULTIMOS 7 DIAS ===
+            const days7ByDate = {};
+            rec7days.forEach(r => {
+                if (!days7ByDate[r.date]) days7ByDate[r.date] = {};
+                if (!days7ByDate[r.date][r.activityId]) days7ByDate[r.date][r.activityId] = 0;
+                days7ByDate[r.date][r.activityId]++;
+            });
+            const days7Lines = Object.entries(days7ByDate)
+                .sort((a,b) => b[0].localeCompare(a[0]))
+                .map(([date, acts]) =>
+                    '  ' + date + ': ' + Object.entries(acts)
+                        .map(([actId, cnt]) => actName(actId) + '=' + cnt)
+                        .join(', ')
+                );
+
+            // === STATS POR ACTIVIDAD (mes actual) ===
+            const actMonthStats = activities.map(a => {
+                const recs = recMonth.filter(r=>r.activityId===a.id);
+                const uniq = [...new Set(recs.map(r=>r.memberId))];
+                // Por fecha
+                const byDate = {};
+                recs.forEach(r => { byDate[r.date] = (byDate[r.date]||0)+1; });
+                const lastDate = Object.keys(byDate).sort().pop() || 'ninguna';
+                return {
+                    nombre: a.name,
+                    registrosMes: recs.length,
+                    integrantesDistintos: uniq.length,
+                    ultimaFecha: lastDate,
+                    registrosHoy: recToday.filter(r=>r.activityId===a.id).length
+                };
+            }).sort((a,b)=>b.registrosMes-a.registrosMes);
+
+            // === STATS POR INTEGRANTE (mes actual) ===
+            const memberMonthStats = members.map(m => {
+                const recs = recMonth.filter(r=>r.memberId===m.id);
+                const hoy  = recToday.filter(r=>r.memberId===m.id);
+                const acts = [...new Set(recs.map(r=>r.activityName||actName(r.activityId)))];
+                return {
+                    nombre: m.name,
+                    iglesia: m.churchName || (churches.find(c=>c.id===m.churchId)||{}).name || '-',
+                    voz: m.voice || '-',
+                    registrosMes: recs.length,
+                    registrosHoy: hoy.length,
+                    actividadesAsistidas: acts
+                };
+            }).sort((a,b)=>b.registrosMes-a.registrosMes);
+
+            const sinAsistenciaMes = memberMonthStats.filter(m=>m.registrosMes===0);
+            const sinAsistenciaHoy = memberMonthStats.filter(m=>m.registrosHoy===0);
+
+            // === IGLESIAS ===
+            const churchLines = churches.map(c => {
+                const mems = members.filter(m=>m.churchId===c.id);
+                const recsHoy = recToday.filter(r=>mems.some(m=>m.id===r.memberId));
+                return '- '+c.name+' ('+(c.state||'')+') : '+mems.length+' integrantes, '+recsHoy.length+' registros hoy';
+            });
+
             let rolUsuario = 'Super Administrador';
             if (typeof isDirector==='function'&&isDirector()) rolUsuario='Director Local';
             else if (typeof isStateDirector==='function'&&isStateDirector()) rolUsuario='Director Estatal';
             else if (typeof isDiacono==='function'&&isDiacono()) rolUsuario='Diacono Coordinador';
-            return [
-                'DATOS DE CORALSYNC | Fecha: '+today,
-                'Usuario: '+(typeof currentSession!=='undefined'&&currentSession?currentSession.name:'Admin')+' ('+rolUsuario+')',
-                '=== IGLESIAS ===', churchGroups,
-                '=== RESUMEN ===',
-                '- Iglesias: '+churches.length+' | Integrantes: '+members.length+' | Actividades: '+activities.length,
-                '- Registros totales: '+records.length+' | Este mes: '+recordsThisMonth.length,
-                '- Sin asistencia este mes: '+sinAsistenciaMes.length+' ('+sinAsistenciaMes.slice(0,8).join(', ')+(sinAsistenciaMes.length>8?'...':'')+')',
-                '=== ACTIVIDADES ===',
-                actStats.map(a=>'- '+a.actividad+': '+a.totalRegistros+' totales, '+a.registrosMesActual+' este mes, '+a.integrantesDistintos+' integrantes').join('\n'),
-                '=== TOP 5 ASISTENCIA ===',
-                memberStats.slice(0,5).map((m,i)=>(i+1)+'. '+m.nombre+' ('+m.iglesia+') - '+m.totalAsistencias+' totales, '+m.asistenciasMesActual+' este mes').join('\n'),
-                '=== TODOS LOS INTEGRANTES ===',
-                memberStats.map(m=>'- '+m.nombre+' | '+m.voz+' | '+m.iglesia+' | '+m.totalAsistencias+' asist. | '+m.asistenciasMesActual+' este mes').join('\n'),
-            ].join('\n');
+
+            const lines = [
+                '=== SISTEMA: CoralSync | Fecha hoy: '+today+' | Usuario: '+(typeof currentSession!=='undefined'&&currentSession?currentSession.name:'Admin')+' ('+rolUsuario+')',
+                '',
+                '=== IGLESIAS (integrantes y actividad de hoy) ===',
+                ...churchLines,
+                '',
+                '=== REGISTROS DE HOY ('+recToday.length+' en total) ===',
+                todayLines.length ? todayLines.join('\n') : '  Ninguno registrado hoy aun.',
+                '',
+                '=== INTEGRANTES SIN REGISTRO HOY ===',
+                sinAsistenciaHoy.length+' integrantes: '+sinAsistenciaHoy.map(m=>m.nombre).slice(0,20).join(', ')+(sinAsistenciaHoy.length>20?'...':''),
+                '',
+                '=== ACTIVIDAD ULTIMOS 7 DIAS ===',
+                days7Lines.join('\n') || '  Sin registros en los ultimos 7 dias.',
+                '',
+                '=== ACTIVIDADES DEL MES ('+recMonth.length+' registros) ===',
+                actMonthStats.map(a=>
+                    '- '+a.nombre+': '+a.registrosMes+' registros, '+a.integrantesDistintos+' integrantes distintos, ultima fecha: '+a.ultimaFecha+', hoy: '+a.registrosHoy
+                ).join('\n'),
+                '',
+                '=== SIN ASISTENCIA ESTE MES ('+sinAsistenciaMes.length+') ===',
+                sinAsistenciaMes.map(m=>m.nombre+' ('+m.iglesia+')').slice(0,20).join(', ')+(sinAsistenciaMes.length>20?'...':''),
+                '',
+                '=== TODOS LOS INTEGRANTES (nombre | voz | iglesia | registros mes | actividades asistidas) ===',
+                memberMonthStats.map(m=>
+                    '- '+m.nombre+' | '+m.voz+' | '+m.iglesia+' | '+m.registrosMes+' reg. mes | hoy: '+m.registrosHoy+' | acts: '+m.actividadesAsistidas.join(', ')
+                ).join('\n'),
+            ];
+
+            return lines.join('\n');
         } catch(e) { console.error('CoralIA context error:', e); return 'Error al obtener datos.'; }
     }
 
