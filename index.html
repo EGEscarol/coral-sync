@@ -9142,36 +9142,41 @@
             else if (typeof isStateDirector === 'function' && isStateDirector()) rolUsuario = 'Director Estatal';
             else if (typeof isDiacono === 'function' && isDiacono()) rolUsuario = 'Diacono Coordinador';
 
-            const ctx = `
-CONTEXTO DE DATOS DE CORALSYNC
-Fecha actual: ${today}
-Usuario: ${typeof currentSession !== 'undefined' && currentSession ? currentSession.name : 'Admin'} (${rolUsuario})
+            // Integrantes agrupados por iglesia (datos exactos)
+            const churchGroups = churches.map(c => {
+                const mems = members.filter(m => m.churchId === c.id);
+                return `- ${c.name} (${c.state||''}): ${mems.length} integrantes`;
+            }).join('\n');
 
-=== RESUMEN GENERAL ===
-- Iglesias activas: ${churches.length}
-- Total integrantes: ${members.length}
-- Total actividades: ${activities.length}
-- Total registros de asistencia: ${totalRecords}
-- Registros del mes actual: ${recordsThisMonth.length}
-- Integrantes sin asistencia este mes: ${sinAsistenciaMes.length} (${sinAsistenciaMes.slice(0,10).join(', ')}${sinAsistenciaMes.length>10?'...':''})
-- Integrantes con uniforme completo: ${conUniformeCompleto} de ${members.length}
-
-=== ACTIVIDADES ===
-${actStats.map(a=>`- ${a.actividad}: ${a.totalRegistros} registros totales, ${a.registrosMesActual} este mes, ${a.integrantesDistintos} integrantes distintos`).join('\n')}
-')}
-
-=== TOP 5 MAYOR ASISTENCIA ===
-${top5.map((m,i)=>`${i+1}. ${m.nombre} (${m.iglesia}) - ${m.totalAsistencias} registros totales, ${m.asistenciasMesActual} este mes`).join('\n')}
-')}
-
-=== TOP 5 MENOR ASISTENCIA ===
-${bottom5.map((m,i)=>`${i+1}. ${m.nombre} (${m.iglesia}) - ${m.totalAsistencias} registros totales, ${m.asistenciasMesActual} este mes`).join('\n')}
-')}
-
-=== TODOS LOS INTEGRANTES ===
-${memberStats.map(m=>`- ${m.nombre} | ${m.voz} | ${m.iglesia} | ${m.totalAsistencias} asist. totales | ${m.asistenciasMesActual} este mes`).join('\n')}
-')}
-`;
+            const ctx = [
+                'CONTEXTO DE DATOS DE CORALSYNC',
+                'Fecha actual: ' + today,
+                'Usuario: ' + (typeof currentSession !== 'undefined' && currentSession ? currentSession.name : 'Admin') + ' (' + rolUsuario + ')',
+                '',
+                '=== IGLESIAS Y SUS INTEGRANTES (datos exactos) ===',
+                churchGroups,
+                '',
+                '=== RESUMEN GENERAL ===',
+                '- Total iglesias: ' + churches.length,
+                '- Total integrantes: ' + members.length,
+                '- Total actividades: ' + activities.length,
+                '- Total registros de asistencia: ' + totalRecords,
+                '- Registros del mes actual: ' + recordsThisMonth.length,
+                '- Integrantes sin asistencia este mes: ' + sinAsistenciaMes.length + ' (' + sinAsistenciaMes.slice(0,10).join(', ') + (sinAsistenciaMes.length>10?'...':'') + ')',
+                '- Integrantes con uniforme completo: ' + conUniformeCompleto + ' de ' + members.length,
+                '',
+                '=== ACTIVIDADES ===',
+                actStats.map(a => '- ' + a.actividad + ': ' + a.totalRegistros + ' registros totales, ' + a.registrosMesActual + ' este mes, ' + a.integrantesDistintos + ' integrantes distintos').join('\n'),
+                '',
+                '=== TOP 5 MAYOR ASISTENCIA ===',
+                top5.map((m,i) => (i+1) + '. ' + m.nombre + ' (' + m.iglesia + ') - ' + m.totalAsistencias + ' registros totales, ' + m.asistenciasMesActual + ' este mes').join('\n'),
+                '',
+                '=== TOP 5 MENOR ASISTENCIA ===',
+                bottom5.map((m,i) => (i+1) + '. ' + m.nombre + ' (' + m.iglesia + ') - ' + m.totalAsistencias + ' registros totales, ' + m.asistenciasMesActual + ' este mes').join('\n'),
+                '',
+                '=== TODOS LOS INTEGRANTES (nombre | voz | iglesia | asistencias totales | asistencias este mes) ===',
+                memberStats.map(m => '- ' + m.nombre + ' | ' + m.voz + ' | ' + m.iglesia + ' | ' + m.totalAsistencias + ' asist. totales | ' + m.asistenciasMesActual + ' este mes').join('\n'),
+            ].join('\n');
             return ctx;
         } catch(e) {
             console.error('CoralIA context error:', e);
