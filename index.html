@@ -9240,17 +9240,26 @@
                 days7Lines.join('\n') || '  Sin registros en los ultimos 7 dias.',
                 '',
                 '=== ACTIVIDADES DEL MES ('+recMonth.length+' registros) ===',
-                actMonthStats.map(a=>
-                    '- '+a.nombre+': '+a.registrosMes+' registros, '+a.integrantesDistintos+' integrantes distintos, ultima fecha: '+a.ultimaFecha+', hoy: '+a.registrosHoy
-                ).join('\n'),
+                actMonthStats.map(a=>{
+                    const recsAct = recMonth.filter(r=>r.activityId===a.nombre||r.activityName===a.nombre||(activities.find(x=>x.name===a.nombre)||{}).id===r.activityId);
+                    const byDate = {};
+                    recMonth.filter(r=>(activities.find(x=>x.id===r.activityId)||{}).name===a.nombre).forEach(r=>{byDate[r.date]=(byDate[r.date]||0)+1;});
+                    const dateDetail = Object.entries(byDate).sort((x,y)=>x[0].localeCompare(y[0])).map(([d,c])=>d+'('+c+')').join(', ');
+                    return '- '+a.nombre+': '+a.registrosMes+' registros, '+a.integrantesDistintos+' integrantes, ultima:'+a.ultimaFecha+', hoy:'+a.registrosHoy+' | fechas: '+dateDetail;
+                }).join('\n'),
                 '',
                 '=== SIN ASISTENCIA ESTE MES ('+sinAsistenciaMes.length+') ===',
                 sinAsistenciaMes.map(m=>m.nombre+' ('+m.iglesia+')').slice(0,20).join(', ')+(sinAsistenciaMes.length>20?'...':''),
                 '',
-                '=== TODOS LOS INTEGRANTES (nombre | voz | iglesia | registros mes | actividades asistidas) ===',
-                memberMonthStats.map(m=>
-                    '- '+m.nombre+' | '+m.voz+' | '+m.iglesia+' | '+m.registrosMes+' reg. mes | hoy: '+m.registrosHoy+' | acts: '+m.actividadesAsistidas.join(', ')
-                ).join('\n'),
+                '=== DETALLE POR INTEGRANTE (nombre | iglesia | registros mes | hoy | desglose por actividad) ===',
+                members.map(m => {
+                    const recsM = recMonth.filter(r=>r.memberId===m.id);
+                    const recsH = recToday.filter(r=>r.memberId===m.id);
+                    const byAct = {};
+                    recsM.forEach(r=>{ const n=r.activityName||actName(r.activityId); byAct[n]=(byAct[n]||0)+1; });
+                    const desglose = Object.entries(byAct).map(([n,c])=>n+':'+c).join(', ') || 'ninguna';
+                    return '- '+m.name+' | '+(m.churchName||(churches.find(c=>c.id===m.churchId)||{}).name||'-')+' | mes:'+recsM.length+' | hoy:'+recsH.length+' | '+desglose;
+                }).join('\n'),
             ];
 
             return lines.join('\n');
@@ -9317,7 +9326,147 @@
         addCoralTyping();
         try {
             const context = buildCoralIAContext();
-            const systemPrompt = 'Eres Tempo, el asistente inteligente de CoralSync. Responde preguntas sobre los datos del coro en espanol de manera clara y amigable.\n\nDATOS:\n' + context;
+            const TEORIA_MUSICAL = `
+=== TEORIA MUSICAL PARA COROS A CAPPELLA (sin instrumentos) ===
+
+--- FIGURAS MUSICALES Y SUS VALORES ---
+El valor de las figuras indica cuanto tiempo dura cada nota.
+- Redonda (o): dura 4 tiempos. Es la figura mas larga. Se ve como un ovalo vacio.
+- Blanca (d): dura 2 tiempos. Ovalo vacio con plica (palito). Vale la mitad de la redonda.
+- Negra: dura 1 tiempo. Ovalo relleno con plica. Es la unidad basica del pulso.
+- Corchea: dura 1/2 tiempo. Negra con corchete (banderita). Dos corcheas = una negra.
+- Semicorchea: dura 1/4 de tiempo. Dos corchetes. Cuatro semicorcheas = una negra.
+- Silencio: pausa equivalente a cada figura. El coro calla durante ese valor.
+- Puntillo: aumenta la mitad del valor de la figura. Negra con puntillo = 1.5 tiempos.
+- Ligadura de prolongacion: une dos notas del mismo tono, se canta sin cortar la vocal.
+
+--- EL COMPAS ---
+El compas es la division regular del tiempo en grupos de pulsos.
+- La indicacion de compas aparece al inicio como dos numeros (ej: 3/4).
+  * Numero de arriba: cuantos tiempos hay en cada compas.
+  * Numero de abajo: que figura vale un tiempo (4 = negra, 8 = corchea, 2 = blanca).
+- Compas 4/4: 4 tiempos de negra. El mas comun. Fuerte-debil-semifuerte-debil.
+- Compas 3/4: 3 tiempos de negra. Tipico del vals. Fuerte-debil-debil.
+- Compas 2/4: 2 tiempos de negra. Marcha. Fuerte-debil.
+- Compas 6/8: 6 tiempos de corchea, se agrupa en 2 grupos de 3. Fuerte-debil-debil-semifuerte-debil-debil.
+- Las barras de compas son las lineas verticales que dividen la partitura.
+- Doble barra: fin de seccion. Doble barra con puntos: repeticion.
+
+--- LA CLAVE ---
+La clave indica en que registro estan escritas las notas.
+- Clave de Sol (en 2a linea): para voces agudas. Soprano y Alto la usan.
+- Clave de Fa (en 4a linea): para voces graves. Tenor y Bajo la usan.
+- El Tenor a veces usa clave de Sol con un 8 abajo, indicando que suena una octava mas grave.
+
+--- EL PENTAGRAMA Y LAS NOTAS ---
+El pentagrama tiene 5 lineas y 4 espacios. Las notas en orden ascendente: Do Re Mi Fa Sol La Si Do.
+- Las notas se escriben en las lineas y espacios del pentagrama.
+- Lineas adicionales: cuando la nota esta fuera del pentagrama se agregan lineas pequenas.
+- En clave de Sol: la nota en la 2a linea es Sol. Las demas se cuentan a partir de ahi.
+- En clave de Fa: la nota en la 4a linea es Fa. Las demas se cuentan a partir de ahi.
+
+--- ARMADURA (SOSTENIDOS Y BEMOLES) ---
+La armadura aparece al inicio de cada linea, despues de la clave.
+- Indica que notas estan alteradas en toda la pieza.
+- Sostenido (#): sube la nota medio tono.
+- Bemol (b): baja la nota medio tono.
+- Natural: cancela un sostenido o bemol.
+- 1 bemol = Fa Mayor / Re menor. 2 bemoles = Sib Mayor / Sol menor.
+- 1 sostenido = Sol Mayor / Mi menor. 2 sostenidos = Re Mayor / Si menor.
+- Armadura de 2 bemoles (como en la partitura de ejemplo): tonalidad de Sib Mayor o Sol menor.
+
+--- TONOS Y SEMITONOS ---
+- Semitono: la distancia mas pequena entre dos notas. Do a Do# es un semitono.
+- Tono: dos semitonos. Do a Re es un tono.
+- La escala mayor tiene la formula: T-T-S-T-T-T-S (tono-semitono).
+- Escala de Do Mayor: Do Re Mi Fa Sol La Si Do (sin alteraciones).
+
+--- DINAMICA (volumen) ---
+- pp (pianissimo): muy suave.
+- p (piano): suave.
+- mp (mezzo piano): medio suave.
+- mf (mezzo forte): medio fuerte.
+- f (forte): fuerte.
+- ff (fortissimo): muy fuerte.
+- Crescendo (<): aumentar gradualmente el volumen.
+- Decrescendo o Diminuendo (>): disminuir gradualmente el volumen.
+
+--- TEMPO (velocidad) ---
+- El tempo indica la velocidad de la pieza, generalmente en BPM (pulsos por minuto).
+- Largo: muy lento (~40-60 BPM).
+- Adagio: lento (~66-76 BPM).
+- Andante: paso a paso (~76-108 BPM), "al caminar".
+- Moderato: moderado (~108-120 BPM).
+- Allegro: rapido (~120-168 BPM).
+- Presto: muy rapido (+168 BPM).
+- El metrono marca el tempo. Ejemplo: negra=60 significa 60 negras por minuto.
+
+--- ARTICULACION ---
+- Legato: notas unidas, fluidas. En el coro se traduce en cantar con vocal continua.
+- Staccato (punto sobre la nota): nota corta y separada.
+- Acento (>): enfatizar esa nota.
+- Tenuto (raya sobre la nota): sostener el valor completo de la nota.
+- En coros a cappella el legato es fundamental para la homogeneidad del sonido.
+
+--- SIGNOS DE REPETICION ---
+- Barras de repeticion (||: y :||): repetir el fragmento entre esas barras.
+- D.C. (Da Capo): volver al inicio.
+- D.S. (Dal Segno): volver al signo %.
+- Coda: seccion final marcada con el signo de coda (circulo con cruz).
+- Fine: fin de la pieza.
+- 1a y 2a vez: casillas de primera y segunda vez al repetir.
+
+--- ESTRUCTURA DE UNA PARTITURA CORAL ---
+- Estrofa: versos del himno que cambian letra pero mantienen la melodia.
+- Coro o Estribillo: seccion que se repite igual despues de cada estrofa.
+- Solo: un integrante canta solo, el resto calla o hace fondo.
+- A cappella: sin acompanamiento instrumental, solo voces.
+- Unisono: todos cantan la misma nota al mismo tiempo.
+- Canon: voces que entran en momentos distintos con la misma melodia (ej: Frere Jacques).
+
+--- LAS VOCES DEL CORO (SATB) ---
+El coro clasico tiene 4 voces principales (de agudo a grave):
+- S - SOPRANO: la voz mas aguda femenina. Rango aprox. Do4 a La5.
+  Lleva generalmente la melodia principal.
+- A - ALTO (Contralto): voz grave femenina. Rango aprox. Fa3 a Re5.
+  Hace armonia por debajo de la Soprano.
+- T - TENOR: voz aguda masculina. Rango aprox. Do3 a La4.
+  Frecuentemente lleva armonia o melodia secundaria.
+- B - BAJO: voz grave masculina. Rango aprox. Mi2 a Mi4.
+  Sostiene la base armonica, fundamental para la afinacion del grupo.
+- En la partitura: Soprano y Alto en la clave de Sol (pentagrama superior).
+  Tenor y Bajo en la clave de Fa (pentagrama inferior).
+
+--- AFINACION Y ARMONIA A CAPPELLA ---
+- Sin instrumento de referencia, el coro debe mantenerse afinado entre si.
+- El Bajo es clave: si el Bajo afina, el resto del coro puede construir sobre el.
+- Intervalos armonicos comunes en coros:
+  * Tercera (Do-Mi): muy consonante, agradable.
+  * Quinta (Do-Sol): muy estable.
+  * Octava (Do-Do): perfecta consonancia.
+  * Sexta (Do-La): suave y dulce.
+- Disonancia: intervalos que generan tension (segunda, septima). Se usan con cuidado.
+- El acorde perfecto mayor (Do-Mi-Sol) es el mas estable y comun en himnos.
+- El acorde perfecto menor (Do-Mib-Sol) tiene caracter mas melancolico.
+
+--- LECTURA DE PARTITURA CORAL ---
+Para leer una partitura coral a cappella:
+1. Identificar la clave (Sol o Fa) para saber en que registro se canta.
+2. Ver la armadura para saber las notas alteradas.
+3. Ver el compas para saber cuantos tiempos por compas.
+4. Ver el tempo para saber la velocidad.
+5. Leer la voz propia primero, luego escuchar como encaja con las otras.
+6. Prestar atencion a la dinamica para cantar con la intensidad correcta.
+7. Seguir los signos de repeticion para no perderse en la estructura.
+
+--- CONTEXTO DE LA COMUNIDAD ---
+En esta comunidad religiosa se canta a cappella (solo voces, sin instrumentos).
+Las partituras siguen el formato SATB (Soprano, Alto, Tenor, Bajo).
+Los himnos tienen estrofas con letra variada y un coro/estribillo que se repite.
+El tempo tipico de los himnos es moderado (negra=60-80 BPM).
+La armonia debe ser consonante y el texto claro para la congregacion.
+`;
+            const systemPrompt = 'Eres Tempo, el asistente inteligente de CoralSync. Puedes responder dos tipos de preguntas:\n1. Preguntas sobre los DATOS del coro (asistencias, integrantes, actividades).\n2. Preguntas sobre TEORIA MUSICAL orientada a coros a cappella con voces SATB.\nResponde siempre en espanol, de manera clara y amigable.\n\n' + TEORIA_MUSICAL + '\n\nDATOS DEL CORO:\n' + context;
             const body = {
                 contents: [
                     { role:'user', parts:[{ text: systemPrompt }] },
