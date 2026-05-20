@@ -36,8 +36,11 @@
             const DIAC_REF = doc(db, "coralsync", "diaconos");
 
             window._fbSaveAuxiliares = async function(data) {
-                try { await setDoc(AUX_REF, { auxiliares: data }, { merge: false }); return true; }
-                catch(e) { console.error(e); return false; }
+                try {
+                    // merge:true evita sobreescribir otros campos accidentalmente
+                    await setDoc(AUX_REF, { auxiliares: data }, { merge: true });
+                    return true;
+                } catch(e) { console.error('[CoralSync] saveAuxiliares error:', e); return false; }
             };
             window._fbLoadAuxiliares = async function() {
                 try {
@@ -47,7 +50,7 @@
             };
 
             window._fbSaveDiaconos = async function(data) {
-                try { await setDoc(DIAC_REF, { diaconos: data }, { merge: false }); return true; }
+                try { await setDoc(DIAC_REF, { diaconos: data }, { merge: true }); return true; }
                 catch(e) { console.error(e); return false; }
             };
             window._fbLoadDiaconos = async function() {
@@ -131,14 +134,33 @@
             // Guardar en coralsync/data — documento único, sin guards que bloqueen
             // Agregar un registro de asistencia de forma atómica (sin sobreescribir otros registros)
             window._fbAddRecord = async function(record) {
-                try {
-                    await updateDoc(DOC_REF, { records: arrayUnion(record) });
-                    return true;
-                } catch(e) {
-                    // Si el documento no existe aún, usar setDoc como fallback
-                    console.warn("[CoralSync] arrayUnion failed, falling back:", e.message);
-                    return false;
+                // Intentar hasta 3 veces con arrayUnion (atomic, nunca pierde registros de otros)
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        await updateDoc(DOC_REF, { records: arrayUnion(record) });
+                        return true;
+                    } catch(e) {
+                        if (attempt < 3) {
+                            await new Promise(r => setTimeout(r, 500 * attempt));
+                        } else {
+                            // Último intento: setDoc con merge:true para no perder otros campos
+                            try {
+                                const snap = await getDoc(DOC_REF);
+                                const existing = snap.exists() ? (snap.data().records || []) : [];
+                                // Solo agregar si no está duplicado
+                                const isDup = existing.some(r => r.id === record.id);
+                                if (!isDup) {
+                                    await setDoc(DOC_REF, { records: [...existing, record] }, { merge: true });
+                                }
+                                return true;
+                            } catch(e2) {
+                                console.error("[CoralSync] _fbAddRecord failed all attempts:", e2.message);
+                                return false;
+                            }
+                        }
+                    }
                 }
+                return false;
             };
 
             window._fbSave = async function(state) {
@@ -3711,6 +3733,26 @@
                 }
             }
 
+            // Enviar registros pendientes que no pudieron guardarse antes
+            async function flushPendingRecords() {
+                if (!window._fbAddRecord) return;
+                try {
+                    const pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                    if (!pending.length) return;
+                    console.log('[CoralSync] Flushing', pending.length, 'pending records...');
+                    let remaining = [];
+                    for (const record of pending) {
+                        const ok = await window._fbAddRecord(record);
+                        if (!ok) remaining.push(record);
+                    }
+                    localStorage.setItem('cva_pending_records', JSON.stringify(remaining));
+                    if (!remaining.length) {
+                        console.log('[CoralSync] All pending records synced.');
+                        setSyncBadge("✓ Sincronizado", "ok");
+                    }
+                } catch(e) {}
+            }
+
             async function loadFromCloud() {
                 window._isLoadingFromCloud = true;
                 try {
@@ -3724,6 +3766,7 @@
                             localStorage.setItem("cva_cache", JSON.stringify(state));
                             setSyncBadge("✓ Sincronizado", "ok");
                             window._isLoadingFromCloud = false;
+                            setTimeout(flushPendingRecords, 1000);
                             return;
                         }
                     }
@@ -5122,18 +5165,33 @@
                 state.records.push(record);
                 // Guardar en localStorage inmediatamente
                 localStorage.setItem("cva_cache", JSON.stringify(state));
-                // Enviar a Firebase de forma atómica (arrayUnion) para soportar escrituras simultáneas
+                // Enviar a Firebase atomicamente (arrayUnion)
+                // IMPORTANTE: nunca usar save() como fallback — sobreescribiría registros de otros
                 if (window._fbAddRecord) {
+                    setSyncBadge("Guardando...", "warn");
                     window._fbAddRecord(record).then(ok => {
-                        if (!ok) {
-                            // Falló el atomic update — hacer save completo como respaldo
-                            save();
-                        } else {
+                        if (ok) {
                             setSyncBadge("✓ Sincronizado", "ok");
+                        } else {
+                            // Guardar en cola pendiente para reintento posterior
+                            let pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                            pending.push(record);
+                            localStorage.setItem('cva_pending_records', JSON.stringify(pending));
+                            setSyncBadge("⚠ Pendiente de sync", "warn");
                         }
-                    }).catch(() => save());
+                    }).catch(e => {
+                        console.error("addRecord Firebase error:", e);
+                        let pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                        pending.push(record);
+                        localStorage.setItem('cva_pending_records', JSON.stringify(pending));
+                        setSyncBadge("⚠ Pendiente de sync", "warn");
+                    });
                 } else {
-                    save();
+                    // Firebase no cargó aún — encolar
+                    let pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                    pending.push(record);
+                    localStorage.setItem('cva_pending_records', JSON.stringify(pending));
+                    setSyncBadge("⚠ Sin conexión Firebase", "warn");
                 }
                 return true;
             }
@@ -6760,15 +6818,23 @@
 
             async function loadAuxiliaresFromFirebase() {
                 try {
+                    if (!window._fbLoadAuxiliares) {
+                        const cache = localStorage.getItem('cva_auxiliares');
+                        if (cache) auxiliares = JSON.parse(cache);
+                        return;
+                    }
                     const data = await window._fbLoadAuxiliares();
-                    if (data && data.length) {
+                    // Firebase es la fuente de verdad — usar siempre aunque esté vacío
+                    if (Array.isArray(data)) {
                         auxiliares = data;
                         localStorage.setItem('cva_auxiliares', JSON.stringify(auxiliares));
                     } else {
+                        // Error de red — usar caché local como fallback
                         const cache = localStorage.getItem('cva_auxiliares');
                         if (cache) auxiliares = JSON.parse(cache);
                     }
                 } catch(e) {
+                    console.warn('loadAuxiliaresFromFirebase error:', e);
                     const cache = localStorage.getItem('cva_auxiliares');
                     if (cache) auxiliares = JSON.parse(cache);
                 }
