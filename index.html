@@ -9473,7 +9473,7 @@ La armonia debe ser consonante y el texto claro para la congregacion.
                     { role:'model', parts:[{ text:'Entendido, listo para responder sobre CoralSync.' }] },
                     { role:'user', parts:[{ text: question }] }
                 ],
-                generationConfig: { temperature:0.7, maxOutputTokens:1024 }
+                generationConfig: { temperature:0.7, maxOutputTokens:2048 }
             };
             const res = await fetch(getGeminiUrl(), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
             const data = await res.json();
