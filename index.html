@@ -4100,6 +4100,12 @@
                 stopCamera();
                 document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
                 document.getElementById("view-member").classList.add("active");
+                // Ocultar Tempo al cerrar sesion
+                const coralPanel = document.getElementById("coral-ia-panel");
+                const coralBtn   = document.getElementById("coral-ia-btn");
+                if (coralPanel) coralPanel.style.display = "none";
+                if (coralBtn)   coralBtn.style.display   = "none";
+                if (typeof coralIAOpen !== "undefined") coralIAOpen = false;
             }
 
             function showAdminLogin() {
