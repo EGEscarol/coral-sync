@@ -4106,6 +4106,10 @@
                 if (coralPanel) coralPanel.style.display = "none";
                 if (coralBtn)   coralBtn.style.display   = "none";
                 if (typeof coralIAOpen !== "undefined") coralIAOpen = false;
+                // Limpiar historial y mensajes del chat al cambiar de sesion
+                if (typeof coralIAHistory !== "undefined") coralIAHistory = [];
+                const coralMsgs = document.getElementById("coral-ia-messages");
+                if (coralMsgs) coralMsgs.innerHTML = "";
             }
 
             function showAdminLogin() {
