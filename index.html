@@ -7929,345 +7929,216 @@
                 if (!s.selectedMembers.length) { showToast('Selecciona al menos un integrante.'); return; }
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-                const { selectedIds, selectedMembers, groupLabel, monthLbl, monthVal,
-                    totalRecords, filteredRecs, groupRecs, mesRows, mesPico } = s;
+                const { selectedIds, selectedMembers, groupLabel, monthLbl, monthVal, filteredRecs } = s;
 
-                const NAVY=[27,38,59], WHITE=[255,255,255], LGRAY=[245,246,248], GRAY=[110,110,110];
+                // Paleta alineada con el nuevo diseño
+                const NAVY=[26,58,92], COPPER=[200,132,42], WHITE=[255,255,255];
+                const LGRAY=[244,246,249], GRAY=[100,116,139], BORDER=[226,232,240];
                 const GREEN=[22,163,74], YELLOW=[202,138,4], ROSE=[220,38,38];
 
-                // Stats por actividad (cada una con su propio calculo)
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
 
-                // Para ranking general: pct promedio ponderado por actividad
-                const actividadStats = actividadesIds.map(actId => {
-                    const aObj = state.activities.find(a=>a.id===actId)
-                        || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
-                    const actName = aObj.name;
-                    const posible = calcTotalPosibleByActivity(actId, actName, monthVal, filteredRecs);
-                    return { actId, actName, posible };
-                });
-
-                // pct de cada miembro: promedio de sus pct por actividad
+                // Stats por integrante (solo cantidades)
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
-                    const pcts = actividadStats.map(({actId, posible}) => {
-                        const cnt = recs.filter(r=>r.activityId===actId).length;
-                        return posible>0 ? Math.min(100, Math.round(cnt/posible*100)) : 0;
-                    });
-                    const pct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
-                    const racha = calcRacha(recs);
-                    return { id:m.id, name:m.name, voice:m.voice||'-', church:m.churchName||'-', total:recs.length, pct, racha };
-                }).sort((a,b) => b.pct - a.pct || b.total - a.total);
+                    const byAct = {};
+                    actividadesIds.forEach(id => { byAct[id] = recs.filter(r=>r.activityId===id).length; });
+                    return { id:m.id, name:m.name, voice:m.voice||'-', church:m.churchName||'-', total:recs.length, byAct };
+                }).sort((a,b) => b.total - a.total);
 
                 const sinAsistencia = memberStats.filter(m => m.total === 0);
-                const excelentes    = memberStats.filter(m => m.pct >= 80).length;
-                const regulares     = memberStats.filter(m => m.pct >= 50 && m.pct < 80).length;
-                const atencion      = memberStats.filter(m => m.pct < 50 && m.total > 0).length;
 
-                // ── ENCABEZADO ──────────────────────────────────────────
-                pdfHeader(doc, 'Reporte del Coro', groupLabel + (monthLbl ? '  |  ' + monthLbl : ''));
-                let y = 40;
+                pdfHeader(doc, 'Reporte del Coro', groupLabel + (monthLbl ? '  |  '+monthLbl : ''));
+                let y = 42;
 
-                // ── TARJETAS PRINCIPALES (sin % global) ──────────────────
-                const cw=59, ch=24, gap=3;
-                const mainCards = [
-                    { label:'Integrantes',    value: selectedMembers.length,    color: NAVY },
-                    { label:'Actividades',    value: actividadesIds.length,     color: [46,100,160] },
-                    { label:'Sin asistencia', value: sinAsistencia.length,      color: sinAsistencia.length>0?ROSE:GRAY },
-                ];
-                mainCards.forEach((c,i) => {
+                // ── TARJETAS RESUMEN ──────────────────────────────────────
+                const cw = 59, ch = 22, gap = 3;
+                [
+                    { label:'Integrantes', value: selectedMembers.length, bg: NAVY },
+                    { label:'Actividades', value: actividadesIds.length,  bg: [36,80,130] },
+                    { label:'Sin asistencia', value: sinAsistencia.length, bg: sinAsistencia.length > 0 ? ROSE : [80,120,80] },
+                ].forEach((c,i) => {
                     const cx = 14 + i*(cw+gap);
-                    doc.setFillColor(...c.color);
-                    doc.roundedRect(cx, y, cw, ch, 3, 3, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(16);
-                    doc.setTextColor(...WHITE);
+                    doc.setFillColor(...c.bg); doc.roundedRect(cx, y, cw, ch, 4,4,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(...WHITE);
                     doc.text(String(c.value), cx+cw/2, y+13, {align:'center'});
                     doc.setFontSize(6.5); doc.setFont('helvetica','normal');
-                    doc.text(c.label.toUpperCase(), cx+cw/2, y+21, {align:'center'});
+                    doc.text(c.label.toUpperCase(), cx+cw/2, y+20, {align:'center'});
                 });
-                y += ch + 8;
+                y += ch + 10;
 
-                // ── TARJETAS DE % POR ACTIVIDAD ──────────────────────────
-                y = sectionTitle(doc, 'Asistencia por Actividad', y);
-                const tcw=58, tch=32, tgap=4, perRow=3;
-                actividadStats.forEach((act, i) => {
+                // ── ASISTENCIAS POR ACTIVIDAD ─────────────────────────────
+                y = sectionTitle(doc, 'Asistencias por Actividad', y);
+                const tcw=58, tch=30, tgap=4, perRow=3;
+                actividadesIds.forEach((actId, i) => {
                     const col = i % perRow;
                     if (col===0 && i>0) y += tch + tgap;
                     if (y + tch > 268) { doc.addPage(); y=20; }
                     const cx = 14 + col*(tcw+tgap);
-                    // pct grupal de esta actividad = promedio de pct individuales
-                    const pcts = selectedMembers.map(m => {
-                        const cnt = filteredRecs.filter(r=>r.memberId===m.id && r.activityId===act.actId).length;
-                        return act.posible>0 ? Math.min(100, Math.round(cnt/act.posible*100)) : 0;
-                    });
-                    const actPctGrupal = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
-                    const asistentes = selectedMembers.filter(m => filteredRecs.some(r=>r.memberId===m.id && r.activityId===act.actId)).length;
-                    const scol = semaforoColor(actPctGrupal);
+                    const aObj = state.activities.find(a=>a.id===actId) || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
+                    const actName = aObj.name;
+                    const totalAct = filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId)).length;
+                    const asistentes = selectedMembers.filter(m=>filteredRecs.some(r=>r.memberId===m.id&&r.activityId===actId)).length;
+
+                    // Card con borde izquierdo de color cobre
                     doc.setFillColor(...LGRAY); doc.roundedRect(cx, y, tcw, tch, 3,3,'F');
-                    doc.setFillColor(...scol); doc.roundedRect(cx, y, tcw, 4, 2,2,'F'); doc.rect(cx, y+2, tcw, 2,'F');
+                    doc.setFillColor(...COPPER); doc.roundedRect(cx, y, 3.5, tch, 2,2,'F');
+
+                    const shortName = actName.length>20 ? actName.substring(0,18)+'..' : actName;
                     doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...NAVY);
-                    const shortName = act.actName.length>22 ? act.actName.substring(0,20)+'..' : act.actName;
-                    doc.text(shortName, cx+tcw/2, y+10, {align:'center'});
-                    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...scol);
-                    doc.text(actPctGrupal+'%', cx+tcw/2, y+22, {align:'center'});
-                    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-                    doc.text(asistentes+' de '+selectedMembers.length+' integr. | '+act.posible+' oport.', cx+tcw/2, y+29, {align:'center'});
-                });
-                if (actividadStats.length > 0) y += tch + 10;
+                    doc.text(shortName, cx+tcw/2+1, y+8, {align:'center'});
 
-                // ── SEMAFORO RESUMEN ─────────────────────────────────────
-                const semW = 59, semH = 18;
-                [[excelentes,'Excelente (80%+)',GREEN],[regulares,'Regular (50-79%)',YELLOW],[atencion,'Necesita atencion (<50%)',ROSE]].forEach(([n,lbl,col],i) => {
-                    const sx = 14 + i*(semW+3);
-                    doc.setFillColor(...col.map(c=>Math.round(c*0.15+240*0.85)));
-                    doc.roundedRect(sx, y, semW, semH, 3, 3, 'F');
-                    doc.setFillColor(...col);
-                    doc.roundedRect(sx, y, 6, semH, 2, 2, 'F');
-                    doc.rect(sx+4, y, 2, semH, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(13);
-                    doc.setTextColor(...col);
-                    doc.text(String(n), sx+12, y+11, {});
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7);
-                    doc.setTextColor(...NAVY);
-                    doc.text(lbl, sx+12, y+16, {});
-                });
-                y += semH + 10;
+                    // Número grande de registros totales
+                    doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(...NAVY);
+                    doc.text(String(totalAct), cx+tcw/2+1, y+21, {align:'center'});
 
-                // ── ASISTENCIA POR VOZ ───────────────────────────────────
-                y = sectionTitle(doc, 'Asistencia por Seccion de Voz', y);
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(...GRAY);
+                    doc.text('registros  |  '+asistentes+' integr.', cx+tcw/2+1, y+27.5, {align:'center'});
+                });
+                if (actividadesIds.length > 0) y += tch + 12;
+
+                // ── VOCES ─────────────────────────────────────────────────
                 const voces = ['Soprano','Contralto','Tenor','Bajo'];
                 const voiceColors = {Soprano:[74,144,196],Contralto:[180,130,10],Tenor:[45,139,85],Bajo:[184,64,73]};
-                const vw=43, vh=30, barH=4;
-                let drawnVoice = false;
-                voces.forEach((v,i) => {
-                    const mems = selectedMembers.filter(m=>m.voice===v);
-                    if (!mems.length) return;
-                    drawnVoice = true;
-                    const vRecs = filteredRecs.filter(r=>mems.some(m=>m.id===r.memberId));
-                    const vPct = Math.round(mems.reduce((s,m)=>{
-                        const recs=filteredRecs.filter(x=>x.memberId===m.id);
-                        const pcts=actividadStats.map(({actId,posible})=>{
-                            const cnt=recs.filter(r=>r.activityId===actId).length;
-                            return posible>0?Math.min(100,Math.round(cnt/posible*100)):0;
-                        });
-                        return s+(pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):0);
-                    },0)/mems.length);
-                    const cx = 14+i*(vw+3);
-                    const vc = voiceColors[v];
-                    doc.setFillColor(...LGRAY); doc.roundedRect(cx,y,vw,vh,3,3,'F');
-                    // barra superior de color
-                    doc.setFillColor(...vc); doc.roundedRect(cx,y,vw,4,2,2,'F'); doc.rect(cx,y+2,vw,2,'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    doc.text(v, cx+vw/2, y+10, {align:'center'});
-                    // barra de progreso
-                    drawProgressBar(doc, cx+4, y+13, vw-8, barH, vPct, semaforoColor(vPct));
-                    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...semaforoColor(vPct));
-                    doc.text(vPct+'%', cx+vw/2, y+24, {align:'center'});
-                    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-                    doc.text(mems.length+' integr.', cx+vw/2, y+29, {align:'center'});
-                });
-                if (!drawnVoice) { doc.setFontSize(8); doc.setTextColor(...GRAY); doc.text('Sin voces asignadas.',14,y+10); }
-                y += vh + 12;
+                const vw=43, vh=24;
+                let hasVoices = false;
+                const voiceData = voces.map(v => ({ v, mems: selectedMembers.filter(m=>m.voice===v) })).filter(x=>x.mems.length>0);
+                if (voiceData.length) {
+                    if (y + vh + 20 > 268) { doc.addPage(); y=20; }
+                    y = sectionTitle(doc, 'Integrantes por Voz', y);
+                    voiceData.forEach(({v, mems}, i) => {
+                        const cx = 14+i*(vw+3);
+                        const vc = voiceColors[v] || NAVY;
+                        const totalVoce = filteredRecs.filter(r=>mems.some(m=>m.id===r.memberId)).length;
+                        doc.setFillColor(...LGRAY); doc.roundedRect(cx,y,vw,vh,3,3,'F');
+                        doc.setFillColor(...vc); doc.roundedRect(cx,y,vw,4,2,2,'F'); doc.rect(cx,y+2,vw,2,'F');
+                        doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                        doc.text(v, cx+vw/2, y+10, {align:'center'});
+                        doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...vc);
+                        doc.text(String(totalVoce), cx+vw/2, y+19, {align:'center'});
+                        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+                        doc.text(mems.length+' integr.', cx+vw/2, y+23.5, {align:'center'});
+                    });
+                    y += vh + 12;
+                }
 
-                // ── RANKING ──────────────────────────────────────────────
-                if (y > 195) { doc.addPage(); y=20; }
-                y = sectionTitle(doc, 'Ranking de Asistencia', y);
+                // ── RANKING GENERAL ───────────────────────────────────────
+                if (y > 200) { doc.addPage(); y=20; }
+                y = sectionTitle(doc, 'Ranking de Asistencias', y);
 
-                // Columnas: Integrante(18-74) | Barra(76-126) | %(128-140) | No.Asistencias(142-164) | Estado(166-196)
-                doc.setFillColor(...NAVY); doc.rect(14, y, 182, 8, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
-                doc.text('Integrante',        18,  y+5.5);
-                doc.text('Asistencia',        101, y+5.5, {align:'center'});
-                doc.text('%',                 134, y+5.5, {align:'center'});
-                doc.text('Asistencias',        154, y+5.5, {align:'center'});
-                doc.text('Estado',            181, y+5.5, {align:'center'});
-                y += 10;
+                doc.setFillColor(...NAVY); doc.roundedRect(14, y, 182, 8, 2,2,'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+                doc.text('#', 17, y+5.5);
+                doc.text('Integrante', 23, y+5.5);
+                doc.text('Voz', 110, y+5.5);
+                doc.text('Asistencias', 155, y+5.5, {align:'center'});
+                y += 9;
 
                 memberStats.forEach((m,i) => {
-                    if (y > 265) { doc.addPage(); y=20; }
-                    const rowH = 9;
-                    const bg = i%2===0 ? WHITE : LGRAY;
-                    doc.setFillColor(...bg); doc.rect(14, y, 182, rowH, 'F');
+                    if (y > 268) { doc.addPage(); y=20; }
+                    const rowH = 8;
+                    doc.setFillColor(...(i%2===0 ? WHITE : LGRAY)); doc.rect(14, y, 182, rowH, 'F');
+
+                    // Número de posición
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+                    doc.setTextColor(...(i<3 ? COPPER : GRAY));
+                    doc.text(String(i+1), 17, y+5.5);
+
                     // Nombre
-                    doc.setFont('helvetica', m.pct>=80?'bold':'normal');
-                    doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    const nameStr = m.name.length>28 ? m.name.substring(0,26)+'...' : m.name;
-                    doc.text(nameStr, 18, y+6);
-                    // Barra de progreso (sin número dentro)
-                    drawProgressBar(doc, 76, y+2.8, 50, 3.5, m.pct, semaforoColor(m.pct));
-                    // % a la derecha de la barra
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...semaforoColor(m.pct));
-                    doc.text(m.pct+'%', 134, y+6, {align:'center'});
-                    // No. de asistencias
-                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    doc.text(String(m.total), 154, y+6, {align:'center'});
-                    // Estado badge
-                    const lbl = semaforoLabel(m.pct);
-                    const lblCol = semaforoColor(m.pct);
-                    doc.setFillColor(...lblCol.map(c=>Math.round(c*0.15+240*0.85)));
-                    doc.roundedRect(163, y+1.5, 30, 5.5, 1.5, 1.5, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...lblCol);
-                    doc.text(lbl, 178, y+5.5, {align:'center'});
+                    doc.setFont('helvetica', i<3?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                    const nStr = m.name.length>30 ? m.name.substring(0,28)+'..' : m.name;
+                    doc.text(nStr, 23, y+5.5);
+
+                    // Voz
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+                    doc.text(m.voice||'-', 110, y+5.5);
+
+                    // Total asistencias con barra visual
+                    const maxTotal = memberStats[0].total || 1;
+                    const barW = Math.max(1, Math.round((m.total/maxTotal)*40));
+                    doc.setFillColor(...COPPER.map(c=>Math.round(c*0.3+215*0.7)));
+                    doc.roundedRect(132, y+2.5, 40, 3, 1,1,'F');
+                    doc.setFillColor(...COPPER);
+                    doc.roundedRect(132, y+2.5, barW, 3, 1,1,'F');
+
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
+                    doc.text(String(m.total), 177, y+5.5, {align:'center'});
+
+                    doc.setDrawColor(...BORDER); doc.line(14,y+rowH,196,y+rowH);
                     y += rowH;
                 });
-                y += 6;
+                y += 8;
 
                 // ── RANKING POR ACTIVIDAD ─────────────────────────────────
                 doc.addPage(); y = 20;
-                y = sectionTitle(doc, 'Ranking por Actividad', y);
+                y = sectionTitle(doc, 'Detalle por Actividad', y);
 
                 actividadesIds.forEach(actId => {
-                    const aObj = state.activities.find(a=>a.id===actId)
-                        || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName || actId};
+                    const aObj = state.activities.find(a=>a.id===actId)||{name:filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
                     const actName = aObj.name;
-                    const actRecs = filteredRecs.filter(r => r.activityId===actId && selectedIds.includes(r.memberId));
-                    const posible = calcTotalPosibleByActivity(actId, actName, monthVal, filteredRecs);
+                    const actRecs = filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId));
+                    const actStats2 = selectedMembers.map(m => ({
+                        name:m.name, voice:m.voice||'', cnt: actRecs.filter(r=>r.memberId===m.id).length
+                    })).sort((a,b)=>b.cnt-a.cnt);
+                    const asistentes = actStats2.filter(m=>m.cnt>0).length;
+                    const totalActRecs = actRecs.length;
 
-                    // Stats de cada miembro para esta actividad
-                    const actStats = selectedMembers.map(m => {
-                        const cnt = actRecs.filter(r => r.memberId===m.id).length;
-                        const pct = posible > 0 ? Math.min(100, Math.round(cnt/posible*100)) : 0;
-                        return { name:m.name, voice:m.voice||'', cnt, pct };
-                    }).sort((a,b) => b.pct - a.pct || b.cnt - a.cnt);
+                    const blockH = 12 + 8 + actStats2.length * 7.5 + 8;
+                    if (y + blockH > 265) { doc.addPage(); y=20; }
 
-                    const asistentes = actStats.filter(m => m.cnt > 0).length;
-                    const pctGrupal  = selectedMembers.length ? Math.round(asistentes/selectedMembers.length*100) : 0;
-
-                    // Espacio mínimo: encabezado + header tabla + filas
-                    const blockH = 10 + 8 + Math.min(actStats.length, 5) * 8 + 8;
-                    if (y + blockH > 265) { doc.addPage(); y = 20; }
-
-                    // ── Encabezado de la actividad ──
-                    const semCol = semaforoColor(pctGrupal);
-                    doc.setFillColor(...semCol.map(c=>Math.round(c*0.12+238*0.88)));
-                    doc.roundedRect(14, y, 182, 10, 2, 2, 'F');
-                    doc.setFillColor(...semCol);
-                    doc.roundedRect(14, y, 4, 10, 1.5, 1.5, 'F');
-                    doc.rect(14+2, y, 2, 10, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
-                    const aTitle = actName.length>40 ? actName.substring(0,38)+'...' : actName;
+                    // Header actividad
+                    doc.setFillColor(...NAVY); doc.roundedRect(14, y, 182, 10, 3,3,'F');
+                    doc.setFillColor(...COPPER); doc.roundedRect(14, y, 5, 10, 2,2,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...WHITE);
+                    const aTitle = actName.length>38 ? actName.substring(0,36)+'..' : actName;
                     doc.text(aTitle, 22, y+6.5);
-                    // stats rápidas a la derecha
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-                    doc.text(asistentes+' de '+selectedMembers.length+' asistentes', 165, y+4.5, {align:'right'});
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...semCol);
-                    doc.text(pctGrupal+'% cobertura  |  '+posible+' ocurrencias posibles', 165, y+8.5, {align:'right'});
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(200,220,240);
+                    doc.text(asistentes+' asistentes  |  '+totalActRecs+' registros', 193, y+6.5, {align:'right'});
                     y += 12;
 
-                    // ── Header tabla ──
-                    doc.setFillColor(...NAVY); doc.rect(14, y, 182, 7, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-                    doc.text('Integrante',     18,  y+5);
-                    doc.text('Asistencia',     101, y+5, {align:'center'});
-                    doc.text('%',              134, y+5, {align:'center'});
-                    doc.text('No. Asistencias',154, y+5, {align:'center'});
-                    doc.text('Estado',         181, y+5, {align:'center'});
+                    // Subheader tabla
+                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 7, 1,1,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+                    doc.text('Integrante', 18, y+5);
+                    doc.text('Voz', 110, y+5);
+                    doc.text('Asistencias', 170, y+5, {align:'center'});
                     y += 8;
 
-                    // ── Filas ──
-                    actStats.forEach((m, i) => {
-                        if (y > 265) { doc.addPage(); y=20; }
-                        const rowH = 8;
-                        const bg = m.cnt > 0
-                            ? (i%2===0 ? WHITE : LGRAY)
-                            : [255, 245, 245];
-                        doc.setFillColor(...bg); doc.rect(14, y, 182, rowH, 'F');
-
-                        // Nombre + voz
-                        doc.setFont('helvetica', m.pct>=80?'bold':'normal');
-                        doc.setFontSize(7.5); doc.setTextColor(...NAVY);
-                        const nStr = m.name.length>28 ? m.name.substring(0,26)+'..' : m.name;
-                        doc.text(nStr, 18, y+5.5);
-                        if (m.voice) {
-                            doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-                            doc.text(m.voice, 76, y+5.5);
-                        }
-
-                        // Barra (solo si asistió)
-                        if (m.cnt > 0) {
-                            drawProgressBar(doc, 84, y+2.5, 42, 3, m.pct, semaforoColor(m.pct));
-                        } else {
-                            doc.setFillColor(230,230,230); doc.roundedRect(84, y+2.5, 42, 3, 1.5,1.5,'F');
-                        }
-
-                        // %
-                        doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-                        doc.setTextColor(...(m.cnt>0 ? semaforoColor(m.pct) : [180,180,180]));
-                        doc.text(m.pct+'%', 134, y+5.5, {align:'center'});
-
-                        // No. Asistencias
-                        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                        doc.setTextColor(...(m.cnt>0 ? NAVY : [180,180,180]));
-                        doc.text(m.cnt+' / '+posible, 154, y+5.5, {align:'center'});
-
-                        // Estado badge
-                        if (m.cnt > 0) {
-                            const lbl = semaforoLabel(m.pct);
-                            const lblCol = semaforoColor(m.pct);
-                            doc.setFillColor(...lblCol.map(c=>Math.round(c*0.15+240*0.85)));
-                            doc.roundedRect(163, y+1.5, 30, 5, 1.5,1.5,'F');
-                            doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(...lblCol);
-                            doc.text(lbl, 178, y+5.5, {align:'center'});
-                        } else {
-                            doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(180,180,180);
-                            doc.text('No asistio', 178, y+5.5, {align:'center'});
-                        }
-
-                        // Línea divisora
-                        doc.setDrawColor(220,220,220); doc.line(14,y+rowH,196,y+rowH);
-                        y += rowH;
+                    actStats2.forEach((m,i) => {
+                        if (y > 268) { doc.addPage(); y=20; }
+                        doc.setFillColor(...(m.cnt>0 ? (i%2===0?WHITE:LGRAY) : [255,248,248]));
+                        doc.rect(14, y, 182, 7.5, 'F');
+                        doc.setFont('helvetica', m.cnt>0?'normal':'normal'); doc.setFontSize(7.5);
+                        doc.setTextColor(...(m.cnt>0?NAVY:GRAY));
+                        doc.text(m.name.length>30?m.name.substring(0,28)+'..':m.name, 18, y+5);
+                        doc.setTextColor(...GRAY); doc.setFontSize(7);
+                        doc.text(m.voice||'-', 110, y+5);
+                        // Cantidad
+                        doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                        doc.setTextColor(...(m.cnt>0?COPPER:GRAY));
+                        doc.text(m.cnt>0?String(m.cnt):'—', 170, y+5, {align:'center'});
+                        doc.setDrawColor(...BORDER); doc.line(14,y+7.5,196,y+7.5);
+                        y += 7.5;
                     });
-                    y += 8;
+                    y += 10;
                 });
-                y += 4;
 
                 // ── AUSENTES ─────────────────────────────────────────────
                 if (sinAsistencia.length) {
-                    if (y > 230) { doc.addPage(); y=20; }
+                    if (y > 235) { doc.addPage(); y=20; }
                     y = sectionTitle(doc, 'Sin Asistencia en el Periodo', y);
-                    doc.setFillColor(255,235,235); doc.roundedRect(14, y, 182, 8+sinAsistencia.length*7, 3,3,'F');
-                    doc.setFillColor(...ROSE); doc.roundedRect(14, y, 4, 8+sinAsistencia.length*7, 2,2,'F'); doc.rect(14+2, y, 2, 8+sinAsistencia.length*7,'F');
+                    doc.setFillColor(255,241,241); doc.roundedRect(14, y, 182, 8+sinAsistencia.length*7, 3,3,'F');
+                    doc.setFillColor(...ROSE); doc.roundedRect(14, y, 4, 8+sinAsistencia.length*7, 2,2,'F');
                     y += 6;
                     sinAsistencia.forEach(m => {
                         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                        doc.text(m.name + (m.voice ? '  (' + m.voice + ')' : ''), 22, y);
+                        doc.text(m.name + (m.voice ? '  ('+m.voice+')' : ''), 22, y);
                         doc.setTextColor(...GRAY); doc.setFontSize(7);
                         doc.text(m.church, 130, y);
                         y += 7;
                     });
                     y += 6;
                 }
-
-                // ── ACTIVIDADES ───────────────────────────────────────────
-                if (y > 220) { doc.addPage(); y=20; }
-                y = sectionTitle(doc, 'Participacion por Actividad', y);
-                actividadesIds.forEach(actId => {
-                    if (y > 265) { doc.addPage(); y=20; }
-                    const aObj = state.activities.find(a=>a.id===actId)||{name:filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
-                    const recs = filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId));
-                    const uniq = [...new Set(recs.map(r=>r.memberId))].length;
-                    const pct  = selectedMembers.length ? Math.round(uniq/selectedMembers.length*100) : 0;
-                    const rowH = 10;
-                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, rowH, 2,2,'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    const aName = aObj.name.length>40 ? aObj.name.substring(0,38)+'...' : aObj.name;
-                    doc.text(aName, 18, y+6.5);
-                    drawProgressBar(doc, 110, y+3.5, 50, 3.5, pct, semaforoColor(pct));
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...semaforoColor(pct));
-                    doc.text(pct+'%', 168, y+6.5, {align:'center'});
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-                    doc.text(uniq+' de '+selectedMembers.length, 188, y+6.5, {align:'right'});
-                    y += rowH+2;
-                });
-                y += 6;
-
-                // ── NOTA ─────────────────────────────────────────────────
-                if (y > 255) { doc.addPage(); y=20; }
-                doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 14, 3,3,'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
-                doc.text('Como leer este reporte:', 18, y+5.5);
-                doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-                doc.text('Verde (Excelente): asistio al 80% o mas de actividades.  Amarillo (Regular): 50-79%.  Rojo: menos del 50%.', 18, y+10.5);
 
                 pdfFooter(doc);
                 const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g,'-');
@@ -8276,7 +8147,7 @@
             }
 
             // ============================================================
-            // REPORTE INDIVIDUAL  —  Estilo dashboard por integrante
+            // REPORTE INDIVIDUAL
             // ============================================================
             function exportPDFMembers() {
                 const s = getReportSetup();
@@ -8285,11 +8156,10 @@
                 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
                 const { selectedIds, selectedMembers, groupLabel, monthVal, monthLbl, filteredRecs } = s;
 
-                const NAVY=[27,38,59], WHITE=[255,255,255], LGRAY=[245,246,248], GRAY=[110,110,110];
-                const GREEN=[22,163,74], YELLOW=[202,138,4], ROSE=[220,38,38];
+                const NAVY=[26,58,92], COPPER=[200,132,42], WHITE=[255,255,255];
+                const LGRAY=[244,246,249], GRAY=[100,116,139], BORDER=[226,232,240];
 
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
-                const totalPosible = calcTotalPosible(actividadesIds, monthVal, filteredRecs);
 
                 let firstPage = true;
                 selectedMembers.forEach(member => {
@@ -8297,107 +8167,90 @@
                     firstPage = false;
 
                     const memberRecords = filteredRecs.filter(r=>r.memberId===member.id);
-                    const horaP= calcHoraPromedio(memberRecords);
-                    const sorted=[...memberRecords].sort((a,b)=>(a.ts||0)-(b.ts||0));
-                    const primerReg = sorted.length ? sorted[0].date : '-';
-                    const ultimoReg = sorted.length ? sorted[sorted.length-1].date : '-';
+                    const horaP = calcHoraPromedio(memberRecords);
+                    const sorted = [...memberRecords].sort((a,b)=>(a.ts||0)-(b.ts||0));
+                    const primerReg = sorted.length ? sorted[0].date : '—';
+                    const ultimoReg = sorted.length ? sorted[sorted.length-1].date : '—';
 
-                    // ── HEADER con badge ─────────────────────────────────
-                    pdfHeader(doc, member.name, (member.voice||'') + (member.churchName ? '  |  '+member.churchName : '') + (monthLbl?'  |  '+monthLbl:''));
-                    let y = 40;
+                    pdfHeader(doc, member.name,
+                        (member.voice||'') + (member.churchName ? '  |  '+member.churchName : '') + (monthLbl?'  |  '+monthLbl:''));
+                    let y = 42;
 
-                    // Resumen de asistencias totales
-                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 12, 3,3,'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
-                    doc.text('Total de asistencias registradas: ' + memberRecords.length, 18, y+7.5);
-                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-                    doc.text((monthLbl ? monthLbl : 'Todos los periodos'), 185, y+7.5, {align:'right'});
-                    y += 18;
+                    // ── BANNER RESUMEN ────────────────────────────────────
+                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 22, 4,4,'F');
+                    doc.setFillColor(...COPPER); doc.roundedRect(14, y, 5, 22, 3,3,'F');
 
-                    // ── INFO RAPIDA ──────────────────────────────────────
-                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 14, 3,3,'F');
-                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-                    doc.text('Primera asistencia: '+primerReg, 18, y+5.5);
-                    doc.text('Ultima asistencia: '+ultimoReg,  18, y+11);
-                    doc.text('Hora promedio: '+horaP,          120, y+5.5);
-                    y += 20;
+                    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(...NAVY);
+                    doc.text(String(memberRecords.length), 40, y+14, {align:'center'});
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+                    doc.text('ASISTENCIAS TOTALES', 40, y+20, {align:'center'});
 
-                    // ── TARJETAS DE PORCENTAJE POR ACTIVIDAD ─────────────
-                    y = sectionTitle(doc, 'Asistencia por Actividad', y);
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                    doc.text('Primera: '+primerReg, 65, y+8);
+                    doc.text('Ultima: '+ultimoReg, 65, y+14);
+                    doc.text('Hora promedio: '+horaP, 65, y+20);
 
-                    // Calcular pct por actividad individual
-                    const actCards = actividadesIds.map(actId => {
-                        const aObj = state.activities.find(a=>a.id===actId)
-                            || {name: filteredRecs.find(r=>r.activityId===actId)?.activityName || actId};
-                        const actName = aObj.name;
-                        const posible = calcTotalPosibleByActivity(actId, actName, monthVal, filteredRecs);
-                        const cnt = memberRecords.filter(r=>r.activityId===actId).length;
-                        const actPct = posible > 0 ? Math.min(100, Math.round(cnt/posible*100)) : 0;
-                        return { actName, posible, cnt, actPct };
-                    });
+                    y += 28;
 
-                    // Dibujar tarjetas en filas de 3
-                    const tcw=58, tch=32, tgap=4;
-                    const perRow=3;
-                    actCards.forEach((ac, i) => {
+                    // ── TARJETAS POR ACTIVIDAD ────────────────────────────
+                    y = sectionTitle(doc, 'Asistencias por Actividad', y);
+
+                    const tcw=58, tch=30, tgap=4, perRow=3;
+                    actividadesIds.forEach((actId, i) => {
                         const col = i % perRow;
                         const row = Math.floor(i / perRow);
-                        if (col === 0 && row > 0) y += tch + tgap;
+                        if (col===0 && row>0) y += tch + tgap;
                         if (y + tch > 268) { doc.addPage(); y=20; }
                         const cx = 14 + col*(tcw+tgap);
-                        const scol = semaforoColor(ac.actPct);
-                        // Fondo con borde de color arriba
+                        const aObj = state.activities.find(a=>a.id===actId) || {name:filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
+                        const cnt = memberRecords.filter(r=>r.activityId===actId).length;
+                        const shortName = aObj.name.length>20 ? aObj.name.substring(0,18)+'..' : aObj.name;
+
+                        // Card con borde izquierdo cobre
                         doc.setFillColor(...LGRAY); doc.roundedRect(cx, y, tcw, tch, 3,3,'F');
-                        doc.setFillColor(...scol); doc.roundedRect(cx, y, tcw, 4, 2,2,'F'); doc.rect(cx, y+2, tcw, 2,'F');
-                        // Nombre actividad
+                        doc.setFillColor(...(cnt>0 ? COPPER : [200,200,200]));
+                        doc.roundedRect(cx, y, 3.5, tch, 2,2,'F');
+
                         doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...NAVY);
-                        const shortName = ac.actName.length>22 ? ac.actName.substring(0,20)+'..' : ac.actName;
-                        doc.text(shortName, cx+tcw/2, y+10, {align:'center'});
-                        // Porcentaje grande
-                        doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...scol);
-                        doc.text(ac.actPct+'%', cx+tcw/2, y+22, {align:'center'});
-                        // Conteo debajo
+                        doc.text(shortName, cx+tcw/2+1, y+9, {align:'center'});
+
+                        // Número grande de asistencias
+                        doc.setFont('helvetica','bold'); doc.setFontSize(16);
+                        doc.setTextColor(...(cnt>0 ? NAVY : GRAY));
+                        doc.text(String(cnt), cx+tcw/2+1, y+21, {align:'center'});
+
                         doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-                        doc.text(ac.cnt+' / '+ac.posible, cx+tcw/2, y+29, {align:'center'});
+                        doc.text(cnt===0?'Sin asistencias':(cnt===1?'vez':'veces'), cx+tcw/2+1, y+27, {align:'center'});
                     });
-                    // Avanzar y tras la última fila de tarjetas
-                    const lastRow = Math.floor((actCards.length-1) / perRow);
-                    if (actCards.length > 0) y += tch + 10;
+
+                    const lastRow = Math.floor((actividadesIds.length-1) / perRow);
+                    if (actividadesIds.length > 0) y += tch + 12;
                     else y += 6;
 
-                    // ── TENDENCIA MENSUAL ────────────────────────────────
+                    // ── TENDENCIA MENSUAL ─────────────────────────────────
                     const mesRowsM = calcComparativaMensual(memberRecords);
                     if (mesRowsM.length > 0) {
                         if (y > 225) { doc.addPage(); y=20; }
-                        y = sectionTitle(doc, 'Asistencia por Mes', y);
-                        const maxVal = Math.max(...mesRowsM.map(r=>r[1]));
+                        y = sectionTitle(doc, 'Asistencias por Mes', y);
+                        const maxVal = Math.max(...mesRowsM.map(r=>r[1]), 1);
                         mesRowsM.forEach(([mes, val]) => {
                             if (y > 265) { doc.addPage(); y=20; }
-                            const barPct = maxVal>0 ? val/maxVal*100 : 0;
+                            const barPct = maxVal>0 ? (val/maxVal)*100 : 0;
                             doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 8, 2,2,'F');
                             doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NAVY);
                             doc.text(mes, 18, y+5.5);
-                            drawProgressBar(doc, 70, y+2.5, 100, 3.5, barPct, semaforoColor(barPct));
+                            // Barra cobre
+                            doc.setFillColor(...BORDER); doc.roundedRect(65, y+2.5, 100, 3.5, 1.5,1.5,'F');
+                            if (barPct>0) {
+                                doc.setFillColor(...COPPER);
+                                doc.roundedRect(65, y+2.5, Math.max(1,barPct), 3.5, 1.5,1.5,'F');
+                            }
                             doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                            doc.text(String(val), 188, y+5.5, {align:'right'});
+                            doc.text(String(val), 193, y+5.5, {align:'right'});
                             y += 10;
                         });
                         y += 4;
                     }
-
-                    // ── INTERPRETACION ───────────────────────────────────
-                    if (y > 235) { doc.addPage(); y=20; }
-                    pdfInterpretacionIndividual(doc, y, {
-                        nombre:member.name, pct:0, total:memberRecords.length,
-                        racha:{actual:0,max:0}, actFav: (() => {
-                            const byA={};
-                            memberRecords.forEach(r=>{if(!byA[r.activityId])byA[r.activityId]={name:r.activityName||r.activityId,count:0};byA[r.activityId].count++;});
-                            return Object.values(byA).sort((a,b)=>b.count-a.count)[0];
-                        })(),
-                        mesRowsM,
-                        coroAvg: (s.totalRecords/(selectedMembers.length||1)).toFixed(1),
-                        actRowsM:[]
-                    });
                 });
 
                 pdfFooter(doc);
@@ -8406,7 +8259,7 @@
                 showToast('Reporte de '+selectedMembers.length+' integrante'+(selectedMembers.length!==1?'s':'')+' generado');
             }
 
-            // Alias compatibilidad
+                        // Alias compatibilidad
             function exportPDFGroup() { exportPDFCoro(); }
 
             // ---- Helpers PDF ----
