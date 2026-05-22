@@ -1720,20 +1720,19 @@
             top:30%;right:10%;animation:floatOrb 12s ease-in-out infinite 3s;">
         </div>
 
-        <!-- Logo con fondo de profundidad -->
-        <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;">
-            <!-- Halo de profundidad detrás del logo -->
+        <!-- Logo con sombra de profundidad -->
+        <div style="position:relative;z-index:1;">
+            <!-- Elipse de sombra debajo del logo -->
             <div style="
                 position:absolute;
-                width:130%;
-                height:130%;
+                bottom:-18px;
+                left:50%;
+                transform:translateX(-50%);
+                width:70%;
+                height:30px;
+                background:rgba(26,58,92,0.13);
                 border-radius:50%;
-                background:radial-gradient(ellipse at center,
-                    rgba(26,58,92,0.09) 0%,
-                    rgba(200,132,42,0.05) 40%,
-                    transparent 70%);
-                filter:blur(20px);
-                transform:translateY(8px);
+                filter:blur(18px);
                 pointer-events:none;
             "></div>
             <div id="splash-logo" style="
