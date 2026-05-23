@@ -1873,7 +1873,7 @@
                     <div class="cs-nav-item" id="nav-activities" data-page="activities" onclick="showPage('activities')">
                         <span class="cs-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Actividades
                     </div>
-                    <div class="cs-nav-item" data-page="qr" onclick="showPage('qr')">
+                    <div class="cs-nav-item" id="nav-qr" data-page="qr" onclick="showPage('qr')">
                         <span class="cs-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg></span> Códigos QR
                     </div>
                     <div class="cs-nav-item" id="nav-records" data-page="records" onclick="showPage('records')">
@@ -4170,8 +4170,10 @@
                         .forEach(n => { if (n) n.style.display = 'none'; });
                 } else if (isDiacono()) {
                     [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navPagos,
-                     navAux, navDiaconos, navQr, navUniforms]
+                     navAux, navDiaconos, navQr]
                         .forEach(n => { if (n) n.style.display = 'none'; });
+                    // Diacono SÍ puede ver uniformes (solo lectura)
+                    if (navUniforms) navUniforms.style.display = '';
                 } else {
                     // Super admin: ve todo
                 }
@@ -4311,7 +4313,7 @@
                 // Guard: la página de directores estatales es exclusiva del superadmin
                 if (page === 'diaconos' && !isSuperAdmin()) { showPage('dashboard'); return; }
                 if (page === 'qr' && isDiacono()) { showPage('dashboard'); return; }
-                if (page === 'uniforms' && isDiacono()) { showPage('dashboard'); return; }
+                // Diacono puede ver uniformes como dashboard de solo lectura
                 if (page === 'statedirectors' && !isSuperAdmin()) {
                     showToast('Acceso restringido al Super Administrador.');
                     showPage('dashboard');
@@ -4354,6 +4356,7 @@
                 if (page === 'directors') { renderDirectors(); renderAuxiliares(); }
                 if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'diaconos') renderDiaconos();
+                if (page === 'uniforms') { if (isDiacono()) renderUniformesDiacono(); }
                 if (page === 'settings') {
                     const modelInput = document.getElementById('settings-gemini-model');
                     if (modelInput && !modelInput.value) modelInput.value = localStorage.getItem('coral_gemini_model') || 'gemini-1.5-flash-latest';
@@ -5465,6 +5468,111 @@
                     if (el) el.value = '';
                 });
                 renderRecords();
+            }
+
+            // ── DASHBOARD DE UNIFORMES PARA DIACONOS ─────────────────────────────────
+            function renderUniformesDiacono() {
+                const page = document.getElementById('page-uniforms');
+                if (!page) return;
+                const churches = visibleChurches();
+                const members  = visibleMembers();
+
+                // Get uniforms per church
+                let html = `<div style="margin-bottom:20px;">
+                    <div style="font-family:'Outfit',sans-serif;font-size:1.2rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;margin-bottom:4px;">Uniformes del Coro</div>
+                    <div style="font-size:0.83rem;color:var(--gray-500);">Vista de solo lectura</div>
+                </div>`;
+
+                // Resumen general
+                let totalCompleto = 0, totalIncompleto = 0, totalSinData = 0;
+
+                const churchBlocks = churches.map(church => {
+                    const churchMembers = members.filter(m => m.churchId === church.id);
+                    if (!churchMembers.length) return null;
+                    const unis = typeof getChurchUniformsWithState === 'function'
+                        ? getChurchUniformsWithState(church.id)
+                        : (state.uniformTypes || []).filter(u => !u.churchId || u.churchId === church.id);
+
+                    let completo = 0, incompleto = 0, sinData = 0;
+                    churchMembers.forEach(m => {
+                        if (!unis.length) { sinData++; return; }
+                        const done = unis.filter(u => m.uniforms && m.uniforms[u.id]).length;
+                        if (done === unis.length) completo++;
+                        else if (done > 0) incompleto++;
+                        else sinData++;
+                    });
+                    totalCompleto += completo;
+                    totalIncompleto += incompleto;
+                    totalSinData += sinData;
+
+                    const pctCompleto = churchMembers.length ? Math.round(completo/churchMembers.length*100) : 0;
+
+                    return { church, churchMembers, completo, incompleto, sinData, pctCompleto, unis };
+                }).filter(Boolean);
+
+                // Tarjetas resumen general
+                html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
+                    <div style="background:white;border-radius:var(--radius-xl);padding:18px;border:1px solid var(--border);box-shadow:var(--shadow-sm);text-align:center;">
+                        <div style="width:36px;height:36px;border-radius:var(--radius-md);background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+                            <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#16a34a' stroke-width='2'><polyline points='20 6 9 17 4 12'/></svg>
+                        </div>
+                        <div style="font-family:'Outfit',sans-serif;font-size:1.6rem;font-weight:800;color:#16a34a;line-height:1;">${totalCompleto}</div>
+                        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-top:3px;">Completo</div>
+                    </div>
+                    <div style="background:white;border-radius:var(--radius-xl);padding:18px;border:1px solid var(--border);box-shadow:var(--shadow-sm);text-align:center;">
+                        <div style="width:36px;height:36px;border-radius:var(--radius-md);background:#fef9c3;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+                            <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#ca8a04' stroke-width='2'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>
+                        </div>
+                        <div style="font-family:'Outfit',sans-serif;font-size:1.6rem;font-weight:800;color:#ca8a04;line-height:1;">${totalIncompleto}</div>
+                        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-top:3px;">Incompleto</div>
+                    </div>
+                    <div style="background:white;border-radius:var(--radius-xl);padding:18px;border:1px solid var(--border);box-shadow:var(--shadow-sm);text-align:center;">
+                        <div style="width:36px;height:36px;border-radius:var(--radius-md);background:#fee2e2;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+                            <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#dc2626' stroke-width='2'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>
+                        </div>
+                        <div style="font-family:'Outfit',sans-serif;font-size:1.6rem;font-weight:800;color:#dc2626;line-height:1;">${totalSinData}</div>
+                        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-top:3px;">Sin uniforme</div>
+                    </div>
+                </div>`;
+
+                // Por iglesia
+                html += `<div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gray-500);margin-bottom:12px;">POR IGLESIA</div>`;
+                html += `<div style="display:flex;flex-direction:column;gap:10px;">`;
+
+                churchBlocks.forEach(({ church, churchMembers, completo, incompleto, sinData, pctCompleto }) => {
+                    html += `<div style="background:white;border-radius:var(--radius-xl);padding:18px 20px;border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                            <div>
+                                <div style="font-family:'Outfit',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text-primary);">${church.name}</div>
+                                <div style="font-size:0.75rem;color:var(--gray-500);">${church.state||''} · ${churchMembers.length} integrante${churchMembers.length!==1?'s':''}</div>
+                            </div>
+                            <div style="font-size:0.8rem;font-weight:700;color:${pctCompleto>=80?'#16a34a':pctCompleto>=50?'#ca8a04':'#dc2626'};">${pctCompleto}% completo</div>
+                        </div>
+                        <div style="height:6px;border-radius:3px;background:var(--gray-200);overflow:hidden;margin-bottom:12px;">
+                            <div style="height:100%;border-radius:3px;background:${pctCompleto>=80?'#16a34a':pctCompleto>=50?'#ca8a04':'#dc2626'};width:${pctCompleto}%;"></div>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <div style="display:flex;align-items:center;gap:6px;background:#dcfce7;border:1px solid #bbf7d0;border-radius:var(--radius-full);padding:4px 12px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+                                <span style="font-size:0.78rem;font-weight:700;color:#16a34a;">${completo}</span>
+                                <span style="font-size:0.72rem;color:var(--gray-600);">Completo</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;background:#fef9c3;border:1px solid #fef08a;border-radius:var(--radius-full);padding:4px 12px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#ca8a04;display:inline-block;"></span>
+                                <span style="font-size:0.78rem;font-weight:700;color:#ca8a04;">${incompleto}</span>
+                                <span style="font-size:0.72rem;color:var(--gray-600);">Incompleto</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;background:#fee2e2;border:1px solid #fecaca;border-radius:var(--radius-full);padding:4px 12px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span>
+                                <span style="font-size:0.78rem;font-weight:700;color:#dc2626;">${sinData}</span>
+                                <span style="font-size:0.72rem;color:var(--gray-600);">Sin uniforme</span>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+
+                html += '</div>';
+                page.innerHTML = html;
             }
 
             // ── DASHBOARD DE REGISTROS PARA DIACONOS ─────────────────────────────────
