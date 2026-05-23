@@ -5081,6 +5081,7 @@
                 document.getElementById("activities-count").textContent = state.activities.length;
                 // Ocultar form de agregar actividad si es director
                 const addForm = document.getElementById("activity-add-form");
+                if (addForm) addForm.style.display = isDiacono() ? 'none' : '';
                 if (addForm) addForm.style.display = (isDirector() || isStateDirector()) ? 'none' : '';
                 if (!state.activities.length) {
                     list.innerHTML =
@@ -7694,11 +7695,13 @@
                     const el = document.getElementById(id);
                     if (el) el.style.display = isAuxiliar() ? 'none' : '';
                 });
-                // Diacono: ocultar QR y uniformes del dashboard
+                // Diacono: ocultar QR, uniformes y registro manual del dashboard
                 const qrCard = document.getElementById('qcard-qr');
                 const uniCard = document.getElementById('qcard-uniforms');
+                const manualDashCard = document.getElementById('dashboard-manual');
                 if (qrCard)  qrCard.style.display  = isDiacono() ? 'none' : '';
                 if (uniCard) uniCard.style.display  = isDiacono() ? 'none' : '';
+                if (manualDashCard) manualDashCard.style.display = isDiacono() ? 'none' : '';
 
                 // Actualizar selectores del registro manual del dashboard
                 updateDashManualSelects();
