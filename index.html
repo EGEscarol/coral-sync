@@ -1955,7 +1955,7 @@
                                 <div class="cs-quick-name">Integrantes</div>
                                 <div class="cs-quick-desc">Ver miembros del coro</div>
                             </div>
-                            <div class="cs-quick-card" onclick="showPage('qr')">
+                            <div id="qcard-qr" class="cs-quick-card" onclick="showPage('qr')">
                                 <div class="cs-quick-icon" style="background:#F0FDF4;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg></div>
                                 <div class="cs-quick-name">Códigos QR</div>
                                 <div class="cs-quick-desc">Ver e imprimir códigos</div>
@@ -5551,16 +5551,21 @@
                         if (!churchRecs.length) return;
                         const uniqC = [...new Set(churchRecs.map(r=>r.memberId))].length;
                         const pctBar = churchMembers.length ? Math.round(uniqC/churchMembers.length*100) : 0;
+                        // Número de sesiones únicas (días distintos en que esta iglesia asistió a esta actividad)
+                        const sesiones = [...new Set(churchRecs.map(r=>r.date))].length;
 
-                        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--gray-50);border-radius:var(--radius-md);">
+                        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--gray-50);border-radius:var(--radius-md);">
                             <div style="flex:1;min-width:0;">
-                                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${church.name}</div>
-                                <div style="margin-top:4px;height:4px;border-radius:2px;background:var(--gray-200);overflow:hidden;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${church.name}</div>
+                                    <div style="flex-shrink:0;margin-left:8px;background:rgba(200,132,42,0.12);border:1px solid rgba(200,132,42,0.3);border-radius:var(--radius-full);padding:1px 10px;font-size:0.7rem;font-weight:700;color:var(--accent-dark);">${sesiones} sesión${sesiones!==1?'es':''}</div>
+                                </div>
+                                <div style="height:4px;border-radius:2px;background:var(--gray-200);overflow:hidden;">
                                     <div style="height:100%;border-radius:2px;background:var(--accent);width:${pctBar}%;"></div>
                                 </div>
                             </div>
-                            <div style="flex-shrink:0;text-align:right;">
-                                <div style="font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;color:var(--primary);">${uniqC}</div>
+                            <div style="flex-shrink:0;text-align:right;margin-left:12px;">
+                                <div style="font-family:'Outfit',sans-serif;font-weight:800;font-size:1.1rem;color:var(--primary);">${uniqC}</div>
                                 <div style="font-size:0.65rem;color:var(--gray-400);">de ${churchMembers.length}</div>
                             </div>
                         </div>`;
@@ -7575,12 +7580,17 @@
                     dbOldest.textContent = '';
                 }
 
-                // Ocultar cards que el auxiliar no puede usar
+                // Ocultar cards segun rol
                 const auxCards = ['qcard-reports','qcard-uniforms','qcard-records','qcard-activities'];
                 auxCards.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = isAuxiliar() ? 'none' : '';
                 });
+                // Diacono: ocultar QR y uniformes del dashboard
+                const qrCard = document.getElementById('qcard-qr');
+                const uniCard = document.getElementById('qcard-uniforms');
+                if (qrCard)  qrCard.style.display  = isDiacono() ? 'none' : '';
+                if (uniCard) uniCard.style.display  = isDiacono() ? 'none' : '';
 
                 // Actualizar selectores del registro manual del dashboard
                 updateDashManualSelects();
