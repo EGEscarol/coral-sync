@@ -2046,7 +2046,7 @@
                     </div>
 
                     <!-- Card de archivo de datos -->
-                    <div class="cs-recent-card" style="margin-top:20px;border-left:4px solid var(--accent);">
+                    <div class="cs-recent-card" id="db-archive-card" style="margin-top:20px;border-left:4px solid var(--accent);">
                         <div class="cs-recent-title">Base de datos</div>
                         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
                             <div>
@@ -7702,6 +7702,8 @@
                 if (qrCard)  qrCard.style.display  = isDiacono() ? 'none' : '';
                 if (uniCard) uniCard.style.display  = isDiacono() ? 'none' : '';
                 if (manualDashCard) manualDashCard.style.display = isDiacono() ? 'none' : '';
+                const dbCard = document.getElementById('db-archive-card');
+                if (dbCard) dbCard.style.display = isDiacono() ? 'none' : '';
 
                 // Actualizar selectores del registro manual del dashboard
                 updateDashManualSelects();
