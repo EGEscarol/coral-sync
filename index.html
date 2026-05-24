@@ -5847,10 +5847,11 @@
                             const mapsLink = r.lat && r.lng
                                 ? `<a class="maps-link" href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank">📍 Ver</a>`
                                 : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
+                            const retBadge = r.tipo==='retardo' ? '<span style="font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;">⏰ Retardo</span>' : '';
                             return `<tr id="row-${r.id}">
                                 <td style="width:36px;"></td>
                                 <td style="color:var(--gray-500);font-size:0.78rem;">${i+1}</td>
-                                <td style="font-weight:700;">${sanitize(r.memberName)}</td>
+                                <td style="font-weight:700;">${sanitize(r.memberName)}${retBadge}</td>
                                 <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
                                 <td>${r.date}</td>
                                 <td>${r.time}</td>
@@ -5872,7 +5873,7 @@
       <tr id="row-${r.id}">
         <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
         <td style="color:var(--gray-500);font-size:0.78rem;">${i + 1}</td>
-        <td style="font-weight:700;">${r.memberName}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
+        <td style="font-weight:700;">${r.memberName}${r.tipo==='retardo'?'<span style=\"font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;\">⏰ Retardo</span>':''}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
         <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
         <td>${r.date}</td>
         <td>${r.time}</td>
@@ -7632,7 +7633,15 @@
 
             function isMemberFromProgreso(memberId) {
                 var m = (state.members||[]).find(function(x){ return x.id===memberId; });
-                return m && m.churchName===PROGRESO_CHURCH;
+                if (!m) return false;
+                // Chequear por churchName directo
+                if (m.churchName === PROGRESO_CHURCH) return true;
+                // Chequear por churchId → church name
+                if (m.churchId) {
+                    var ch = (state.churches||[]).find(function(c){ return c.id===m.churchId; });
+                    if (ch && ch.name === PROGRESO_CHURCH) return true;
+                }
+                return false;
             }
             function isSessionFromProgreso() {
                 if (!currentSession) return false;
@@ -7691,6 +7700,8 @@
             }
 
             function renderDashboard() {
+                // Actualizar visibilidad del switch de retardos
+                updateRetardoSwitchVisibility();
                 // Hero card
                 const heroTitle = document.getElementById('dash-hero-title');
                 const heroSub = document.getElementById('dash-hero-sub');
@@ -7957,16 +7968,28 @@
                 const memberId = _dashSelectedMemberId;
                 const activityId = _dashSelectedActivityId;
                 if (!memberId || !activityId) { showToast('Selecciona actividad e integrante.'); return; }
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        pos => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude); afterDashManual(); },
-                        ()  => { addRecord(memberId, activityId, null, null); afterDashManual(); },
-                        { timeout: 5000 }
-                    );
-                } else {
-                    addRecord(memberId, activityId, null, null);
-                    afterDashManual();
+
+                function doDash(tipo) {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            pos => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude, tipo); afterDashManual(); },
+                            ()  => { addRecord(memberId, activityId, null, null, tipo); afterDashManual(); },
+                            { timeout: 5000 }
+                        );
+                    } else {
+                        addRecord(memberId, activityId, null, null, tipo);
+                        afterDashManual();
+                    }
                 }
+
+                if (_modoRetardo && isMemberFromProgreso(memberId)) {
+                    showRetardoModal(memberId, activityId, function(tipo) {
+                        if (!tipo) return;
+                        doDash(tipo);
+                    });
+                    return;
+                }
+                doDash('asistencia');
             }
 
             function afterDashManual() {
