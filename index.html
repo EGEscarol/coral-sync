@@ -1636,6 +1636,23 @@
             }
 
             /* PRINT for QR */
+            /* ── Modo Retardos ── */
+            .retardo-switch-wrap {
+                display:none;align-items:center;gap:10px;
+                background:white;border:1px solid var(--border);
+                border-radius:var(--radius-full);padding:8px 16px;
+                box-shadow:var(--shadow-sm);margin:0 auto 14px;
+                width:fit-content;font-family:'Inter',sans-serif;
+                font-size:0.84rem;font-weight:600;color:var(--text-secondary);
+                cursor:pointer;transition:all 0.2s;
+            }
+            .retardo-switch-wrap.active{background:#fff7ed;border-color:rgba(200,132,42,0.4);color:var(--accent-dark);}
+            .retardo-toggle{width:40px;height:22px;background:var(--gray-300);border-radius:11px;position:relative;transition:background 0.2s;flex-shrink:0;}
+            .retardo-toggle::after{content:'';position:absolute;width:16px;height:16px;background:white;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+            .retardo-switch-wrap.active .retardo-toggle{background:var(--accent);}
+            .retardo-switch-wrap.active .retardo-toggle::after{transform:translateX(18px);}
+            .retardo-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
+            .retardo-modal{background:white;border-radius:var(--radius-xl);padding:28px 24px;width:100%;max-width:340px;box-shadow:var(--shadow-lg);text-align:center;}
             @keyframes coral-bounce {
                 0%, 60%, 100% { transform: translateY(0); }
                 30% { transform: translateY(-6px); }
@@ -1994,6 +2011,11 @@
                             ✏ Registro Manual de Asistencia
                         </div>
 
+                        <!-- Switch retardos -->
+                        <div class="retardo-switch-wrap" id="retardo-switch-wrap-manual" onclick="toggleModoRetardo()" style="margin:0 0 12px;justify-content:flex-start;">
+                            <div class="retardo-toggle"></div>
+                            <span id="retardo-switch-label-manual">⏰ Modo Retardos: OFF</span>
+                        </div>
                         <!-- Paso 1: actividad -->
                         <div style="margin-bottom:14px;">
                             <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:8px;">1. Selecciona la actividad</label>
@@ -3070,7 +3092,10 @@
                         manualmente
                     </p>
                 </div>
-
+                <div class="retardo-switch-wrap" id="retardo-switch-wrap" onclick="toggleModoRetardo()">
+                    <div class="retardo-toggle"></div>
+                    <span id="retardo-switch-label">⏰ Modo Retardos: OFF</span>
+                </div>
                 <div class="card">
                     <!-- Placeholder visible antes de activar cámara -->
                     <div
@@ -4279,6 +4304,8 @@
                 if (coralPanel) coralPanel.style.display = "none";
                 if (coralBtn)   coralBtn.style.display   = "none";
                 if (typeof coralIAOpen !== "undefined") coralIAOpen = false;
+                if (typeof _modoRetardo !== 'undefined') _modoRetardo = false;
+                if (typeof syncRetardoSwitchUI === 'function') syncRetardoSwitchUI();
                 // Limpiar historial y mensajes del chat al cambiar de sesion
                 if (typeof coralIAHistory !== "undefined") coralIAHistory = [];
                 const coralMsgs = document.getElementById("coral-ia-messages");
@@ -4357,6 +4384,7 @@
                 if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'diaconos') renderDiaconos();
                 if (page === 'uniforms') { if (isDiacono()) renderUniformesDiacono(); }
+                updateRetardoSwitchVisibility();
                 if (page === 'settings') {
                     const modelInput = document.getElementById('settings-gemini-model');
                     if (modelInput && !modelInput.value) modelInput.value = localStorage.getItem('coral_gemini_model') || 'gemini-1.5-flash-latest';
@@ -5395,7 +5423,8 @@
             }
 
             // ======================== RECORDS ========================
-            function addRecord(memberId, activityId, lat, lng) {
+            function addRecord(memberId, activityId, lat, lng, tipo) {
+                if (!tipo) tipo = 'asistencia';
                 if (isDiacono()) { showToast('Acceso de solo lectura.'); return false; }
                 const member = state.members.find((m) => m.id === memberId);
                 const activity = state.activities.find((a) => a.id === activityId);
@@ -5427,6 +5456,7 @@
                     lat: lat || null,
                     lng: lng || null,
                     ts: now.getTime(),
+                    tipo: tipo || 'asistencia',
                 };
                 // Agregar localmente
                 state.records.push(record);
@@ -6261,23 +6291,34 @@
 
             let _saveRecordInProgress = false;
             function saveRecord(memberId, activityId, lat, lng) {
-                // Evitar doble registro por doble tap o doble escaneo
                 if (_saveRecordInProgress) return;
                 _saveRecordInProgress = true;
-                setTimeout(() => { _saveRecordInProgress = false; }, 4000);
-
-                const ok = addRecord(memberId, activityId, lat, lng);
-                const picker = document.getElementById("activity-picker");
+                setTimeout(function(){ _saveRecordInProgress = false; }, 4000);
+                var picker = document.getElementById("activity-picker");
                 if (picker) picker.remove();
-                if (ok) {
-                    const member = state.members.find((m) => m.id === memberId);
-                    const activity = state.activities.find((a) => a.id === activityId);
-                    showSuccessModal(member.name, activity.name, lat);
-                    setTimeout(() => stopCamera(), 3500);
-                } else {
-                    _saveRecordInProgress = false; // liberar si fue duplicado
-                    setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
+
+                function doSave(tipo) {
+                    var ok = addRecord(memberId, activityId, lat, lng, tipo);
+                    if (ok) {
+                        var member = state.members.find(function(m){ return m.id===memberId; });
+                        var activity = state.activities.find(function(a){ return a.id===activityId; });
+                        showSuccessModal(member.name, activity.name+(tipo==='retardo'?' ⏰':' ✅'), lat);
+                        setTimeout(function(){ stopCamera(); }, 3500);
+                    } else {
+                        _saveRecordInProgress = false;
+                        setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
+                    }
                 }
+                if (typeof _modoRetardo!=='undefined' && _modoRetardo &&
+                    typeof isMemberFromProgreso==='function' && isMemberFromProgreso(memberId)) {
+                    _saveRecordInProgress = false;
+                    showRetardoModal(memberId, activityId, function(tipo){
+                        if (!tipo){ setScanStatus("Registro cancelado.","info"); return; }
+                        doSave(tipo);
+                    });
+                    return;
+                }
+                doSave('asistencia');
             }
 
             function setScanStatus(msg, type) {
@@ -6470,22 +6511,27 @@
             }
 
             function submitManualRecord() {
-                const memberId = _manualSelectedMemberId;
-                const activityId = _manualSelectedActivityId;
-                if (!memberId || !activityId) {
-                    showToast("Selecciona actividad e integrante.");
+                var memberId = _manualSelectedMemberId;
+                var activityId = _manualSelectedActivityId;
+                if (!memberId || !activityId) { showToast("Selecciona actividad e integrante."); return; }
+                function doManual(tipo) {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(pos){ addRecord(memberId,activityId,pos.coords.latitude,pos.coords.longitude,tipo); afterManual(); },
+                            function(){   addRecord(memberId,activityId,null,null,tipo); afterManual(); },
+                            {timeout:5000}
+                        );
+                    } else { addRecord(memberId,activityId,null,null,tipo); afterManual(); }
+                }
+                if (typeof _modoRetardo!=='undefined' && _modoRetardo &&
+                    typeof isMemberFromProgreso==='function' && isMemberFromProgreso(memberId)) {
+                    showRetardoModal(memberId, activityId, function(tipo){
+                        if (!tipo) return;
+                        doManual(tipo);
+                    });
                     return;
                 }
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude); afterManual(); },
-                        ()    => { addRecord(memberId, activityId, null, null); afterManual(); },
-                        { timeout: 5000 }
-                    );
-                } else {
-                    addRecord(memberId, activityId, null, null);
-                    afterManual();
-                }
+                doManual('asistencia');
             }
 
             function afterManual() {
@@ -8379,6 +8425,42 @@
                 });
                 y += 8;
 
+                // ── RETARDOS (solo Progreso, Acapulco) ───────────────────
+                const isProgresoCoro = selectedMembers.some(m => m.churchName === 'Progreso, Acapulco');
+                if (isProgresoCoro) {
+                    if (y > 210) { doc.addPage(); y=20; }
+                    y = sectionTitle(doc, 'Retardos \u2014 Progreso, Acapulco', y);
+                    doc.setFillColor(...NAVY); doc.roundedRect(14,y,182,8,2,2,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+                    doc.text('Integrante', 18, y+5.5);
+                    doc.text('Asistencias', 108, y+5.5, {align:'center'});
+                    doc.text('Retardos', 138, y+5.5, {align:'center'});
+                    doc.text('Faltas x retardo', 175, y+5.5, {align:'center'});
+                    y += 9;
+                    memberStats.filter(m => {
+                        const mem = selectedMembers.find(x=>x.name===m.name);
+                        return mem && mem.churchName==='Progreso, Acapulco';
+                    }).forEach((m,i) => {
+                        if (y > 268) { doc.addPage(); y=20; }
+                        const ret = filteredRecs.filter(r=>r.memberId===m.id&&r.tipo==='retardo').length;
+                        const faltas = Math.floor(ret/3);
+                        doc.setFillColor(...(i%2===0?WHITE:LGRAY)); doc.rect(14,y,182,8,'F');
+                        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+                        doc.text(m.name.length>30?m.name.substring(0,28)+'..':m.name, 18, y+5.5);
+                        doc.setFont('helvetica','bold');
+                        doc.setTextColor(...NAVY);   doc.text(String(m.total), 108, y+5.5, {align:'center'});
+                        doc.setTextColor(...COPPER); doc.text(String(ret),     138, y+5.5, {align:'center'});
+                        doc.setTextColor(...(faltas>0?[220,38,38]:GRAY));
+                        doc.text(String(faltas), 175, y+5.5, {align:'center'});
+                        doc.setDrawColor(...BORDER); doc.line(14,y+8,196,y+8);
+                        y += 8;
+                    });
+                    y += 4;
+                    doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+                    doc.text('Regla: cada 3 retardos acumulados = 1 falta.', 14, y);
+                    y += 10;
+                }
+
                 // ── RANKING POR ACTIVIDAD ─────────────────────────────────
                 doc.addPage(); y = 20;
                 y = sectionTitle(doc, 'Detalle por Actividad', y);
@@ -8487,8 +8569,13 @@
                     let y = 42;
 
                     // ── BANNER RESUMEN ────────────────────────────────────
-                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 22, 4,4,'F');
-                    doc.setFillColor(...COPPER); doc.roundedRect(14, y, 5, 22, 3,3,'F');
+                    const memberRetardos = member.churchName==='Progreso, Acapulco'
+                        ? memberRecords.filter(r=>r.tipo==='retardo').length : 0;
+                    const faltasPorRet = Math.floor(memberRetardos/3);
+                    const bannerH = member.churchName==='Progreso, Acapulco' ? 30 : 22;
+
+                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, bannerH, 4,4,'F');
+                    doc.setFillColor(...COPPER); doc.roundedRect(14, y, 5, bannerH, 3,3,'F');
 
                     doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(...NAVY);
                     doc.text(String(memberRecords.length), 40, y+14, {align:'center'});
@@ -8500,7 +8587,15 @@
                     doc.text('Ultima: '+ultimoReg, 65, y+14);
                     doc.text('Hora promedio: '+horaP, 65, y+20);
 
-                    y += 28;
+                    if (member.churchName==='Progreso, Acapulco') {
+                        doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+                        doc.setTextColor(...COPPER);
+                        doc.text('\u23f0 Retardos: '+memberRetardos, 65, y+27);
+                        doc.setTextColor(...(faltasPorRet>0?[220,38,38]:GRAY));
+                        doc.text('  \u2192 Faltas por retardo: '+faltasPorRet+' (regla: 3 = 1 falta)', 97, y+27);
+                    }
+
+                    y += bannerH + 6;
 
                     // ── TARJETAS POR ACTIVIDAD ────────────────────────────
                     y = sectionTitle(doc, 'Asistencias por Actividad', y);
@@ -9541,6 +9636,70 @@
         localStorage.removeItem('coral_gemini_model');
         coralIAHistory = [];
         showCoralIAConfig();
+    }
+
+    // ── MODO RETARDOS ────────────────────────────────────────────────────
+    var PROGRESO_CHURCH = 'Progreso, Acapulco';
+    var _modoRetardo = false;
+
+    function isMemberFromProgreso(memberId) {
+        var m = (typeof state!=='undefined'&&state.members||[]).find(function(x){return x.id===memberId;});
+        return m && m.churchName===PROGRESO_CHURCH;
+    }
+    function isSessionFromProgreso() {
+        if (typeof currentSession==='undefined'||!currentSession) return false;
+        if (typeof isSuperAdmin==='function'&&isSuperAdmin()) return true;
+        if (typeof isDirector==='function'&&isDirector()) {
+            var ch=(typeof state!=='undefined'&&state.churches||[]).find(function(c){return c.id===currentSession.churchId;});
+            return ch&&ch.name===PROGRESO_CHURCH;
+        }
+        return currentSession.churchName===PROGRESO_CHURCH;
+    }
+    function updateRetardoSwitchVisibility() {
+        var show=isSessionFromProgreso();
+        ['retardo-switch-wrap','retardo-switch-wrap-manual'].forEach(function(id){
+            var el=document.getElementById(id);
+            if(el) el.style.display=show?'flex':'none';
+        });
+        syncRetardoSwitchUI();
+    }
+    function syncRetardoSwitchUI() {
+        [['retardo-switch-wrap','retardo-switch-label'],
+         ['retardo-switch-wrap-manual','retardo-switch-label-manual']].forEach(function(p){
+            var w=document.getElementById(p[0]),l=document.getElementById(p[1]);
+            if(w) w.classList.toggle('active',_modoRetardo);
+            if(l) l.textContent='⏰ Modo Retardos: '+(_modoRetardo?'ON':'OFF');
+        });
+    }
+    function toggleModoRetardo() {
+        _modoRetardo=!_modoRetardo;
+        syncRetardoSwitchUI();
+        if(typeof showToast==='function') showToast(_modoRetardo?'⏰ Modo Retardos activado':'Modo Retardos desactivado');
+    }
+    function showRetardoModal(memberId, activityId, callback) {
+        var member=(typeof state!=='undefined'&&state.members||[]).find(function(m){return m.id===memberId;});
+        var activity=(typeof state!=='undefined'&&state.activities||[]).find(function(a){return a.id===activityId;});
+        if(!member||!activity){callback('asistencia');return;}
+        var overlay=document.createElement('div');
+        overlay.className='retardo-modal-overlay';
+        overlay.innerHTML=
+            '<div class="retardo-modal">'+
+            '<div style="width:52px;height:52px;background:#fff7ed;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">'+
+            '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'+
+            '</div>'+
+            '<div style="font-family:Outfit,sans-serif;font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">'+member.name+'</div>'+
+            '<div style="font-size:0.78rem;color:var(--gray-500);margin-bottom:20px;">'+activity.name+'</div>'+
+            '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:18px;">¿Cómo llegó?</p>'+
+            '<div style="display:flex;gap:10px;margin-bottom:10px;">'+
+            '<button id="rbtn-a" style="flex:1;padding:13px;background:var(--success-light);color:var(--success);border:1.5px solid #bbf7d0;border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Asistencia</button>'+
+            '<button id="rbtn-r" style="flex:1;padding:13px;background:#fff7ed;color:var(--accent-dark);border:1.5px solid rgba(200,132,42,0.3);border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">⏰ Retardo</button>'+
+            '</div>'+
+            '<button id="rbtn-c" style="width:100%;padding:9px;background:transparent;border:1px solid var(--gray-200);border-radius:var(--radius-lg);font-family:Inter,sans-serif;font-size:0.82rem;color:var(--gray-500);cursor:pointer;">Cancelar</button>'+
+            '</div>';
+        document.body.appendChild(overlay);
+        overlay.querySelector('#rbtn-a').onclick=function(){overlay.remove();callback('asistencia');};
+        overlay.querySelector('#rbtn-r').onclick=function(){overlay.remove();callback('retardo');};
+        overlay.querySelector('#rbtn-c').onclick=function(){overlay.remove();callback(null);};
     }
 
     function toggleCoralIA() {
