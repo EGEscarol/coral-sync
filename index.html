@@ -7626,6 +7626,70 @@
                 renderDashboard();
             }
 
+            // ── MODO RETARDOS ─────────────────────────────────────────────────
+            var PROGRESO_CHURCH = 'Progreso, Acapulco';
+            var _modoRetardo = false;
+
+            function isMemberFromProgreso(memberId) {
+                var m = (state.members||[]).find(function(x){ return x.id===memberId; });
+                return m && m.churchName===PROGRESO_CHURCH;
+            }
+            function isSessionFromProgreso() {
+                if (!currentSession) return false;
+                if (isSuperAdmin()) return true;
+                if (typeof isDirector==='function' && isDirector()) {
+                    var ch=(state.churches||[]).find(function(c){ return c.id===currentSession.churchId; });
+                    return ch && ch.name===PROGRESO_CHURCH;
+                }
+                return currentSession.churchName===PROGRESO_CHURCH;
+            }
+            function updateRetardoSwitchVisibility() {
+                var show = isSessionFromProgreso();
+                ['retardo-switch-wrap','retardo-switch-wrap-manual'].forEach(function(id){
+                    var el=document.getElementById(id);
+                    if(el) el.style.display=show?'flex':'none';
+                });
+                syncRetardoSwitchUI();
+            }
+            function syncRetardoSwitchUI() {
+                [['retardo-switch-wrap','retardo-switch-label'],
+                 ['retardo-switch-wrap-manual','retardo-switch-label-manual']].forEach(function(p){
+                    var w=document.getElementById(p[0]),l=document.getElementById(p[1]);
+                    if(w) w.classList.toggle('active',_modoRetardo);
+                    if(l) l.textContent='⏰ Modo Retardos: '+(_modoRetardo?'ON':'OFF');
+                });
+            }
+            function toggleModoRetardo() {
+                _modoRetardo=!_modoRetardo;
+                syncRetardoSwitchUI();
+                showToast(_modoRetardo?'⏰ Modo Retardos activado':'Modo Retardos desactivado');
+            }
+            function showRetardoModal(memberId, activityId, callback) {
+                var member   = (state.members||[]).find(function(m){ return m.id===memberId; });
+                var activity = (state.activities||[]).find(function(a){ return a.id===activityId; });
+                if(!member||!activity){ callback('asistencia'); return; }
+                var overlay=document.createElement('div');
+                overlay.className='retardo-modal-overlay';
+                overlay.innerHTML=
+                    '<div class="retardo-modal">'+
+                    '<div style="width:52px;height:52px;background:#fff7ed;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">'+
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'+
+                    '</div>'+
+                    '<div style="font-family:Outfit,sans-serif;font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">'+member.name+'</div>'+
+                    '<div style="font-size:0.78rem;color:var(--gray-500);margin-bottom:20px;">'+activity.name+'</div>'+
+                    '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:18px;">¿Cómo llegó?</p>'+
+                    '<div style="display:flex;gap:10px;margin-bottom:10px;">'+
+                    '<button id="rbtn-a" style="flex:1;padding:13px;background:var(--success-light);color:var(--success);border:1.5px solid #bbf7d0;border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Asistencia</button>'+
+                    '<button id="rbtn-r" style="flex:1;padding:13px;background:#fff7ed;color:var(--accent-dark);border:1.5px solid rgba(200,132,42,0.3);border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">⏰ Retardo</button>'+
+                    '</div>'+
+                    '<button id="rbtn-c" style="width:100%;padding:9px;background:transparent;border:1px solid var(--gray-200);border-radius:var(--radius-lg);font-family:Inter,sans-serif;font-size:0.82rem;color:var(--gray-500);cursor:pointer;">Cancelar</button>'+
+                    '</div>';
+                document.body.appendChild(overlay);
+                overlay.querySelector('#rbtn-a').onclick=function(){overlay.remove();callback('asistencia');};
+                overlay.querySelector('#rbtn-r').onclick=function(){overlay.remove();callback('retardo');};
+                overlay.querySelector('#rbtn-c').onclick=function(){overlay.remove();callback(null);};
+            }
+
             function renderDashboard() {
                 // Hero card
                 const heroTitle = document.getElementById('dash-hero-title');
@@ -9636,70 +9700,6 @@
         localStorage.removeItem('coral_gemini_model');
         coralIAHistory = [];
         showCoralIAConfig();
-    }
-
-    // ── MODO RETARDOS ────────────────────────────────────────────────────
-    var PROGRESO_CHURCH = 'Progreso, Acapulco';
-    var _modoRetardo = false;
-
-    function isMemberFromProgreso(memberId) {
-        var m = (typeof state!=='undefined'&&state.members||[]).find(function(x){return x.id===memberId;});
-        return m && m.churchName===PROGRESO_CHURCH;
-    }
-    function isSessionFromProgreso() {
-        if (typeof currentSession==='undefined'||!currentSession) return false;
-        if (typeof isSuperAdmin==='function'&&isSuperAdmin()) return true;
-        if (typeof isDirector==='function'&&isDirector()) {
-            var ch=(typeof state!=='undefined'&&state.churches||[]).find(function(c){return c.id===currentSession.churchId;});
-            return ch&&ch.name===PROGRESO_CHURCH;
-        }
-        return currentSession.churchName===PROGRESO_CHURCH;
-    }
-    function updateRetardoSwitchVisibility() {
-        var show=isSessionFromProgreso();
-        ['retardo-switch-wrap','retardo-switch-wrap-manual'].forEach(function(id){
-            var el=document.getElementById(id);
-            if(el) el.style.display=show?'flex':'none';
-        });
-        syncRetardoSwitchUI();
-    }
-    function syncRetardoSwitchUI() {
-        [['retardo-switch-wrap','retardo-switch-label'],
-         ['retardo-switch-wrap-manual','retardo-switch-label-manual']].forEach(function(p){
-            var w=document.getElementById(p[0]),l=document.getElementById(p[1]);
-            if(w) w.classList.toggle('active',_modoRetardo);
-            if(l) l.textContent='⏰ Modo Retardos: '+(_modoRetardo?'ON':'OFF');
-        });
-    }
-    function toggleModoRetardo() {
-        _modoRetardo=!_modoRetardo;
-        syncRetardoSwitchUI();
-        if(typeof showToast==='function') showToast(_modoRetardo?'⏰ Modo Retardos activado':'Modo Retardos desactivado');
-    }
-    function showRetardoModal(memberId, activityId, callback) {
-        var member=(typeof state!=='undefined'&&state.members||[]).find(function(m){return m.id===memberId;});
-        var activity=(typeof state!=='undefined'&&state.activities||[]).find(function(a){return a.id===activityId;});
-        if(!member||!activity){callback('asistencia');return;}
-        var overlay=document.createElement('div');
-        overlay.className='retardo-modal-overlay';
-        overlay.innerHTML=
-            '<div class="retardo-modal">'+
-            '<div style="width:52px;height:52px;background:#fff7ed;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">'+
-            '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'+
-            '</div>'+
-            '<div style="font-family:Outfit,sans-serif;font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">'+member.name+'</div>'+
-            '<div style="font-size:0.78rem;color:var(--gray-500);margin-bottom:20px;">'+activity.name+'</div>'+
-            '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:18px;">¿Cómo llegó?</p>'+
-            '<div style="display:flex;gap:10px;margin-bottom:10px;">'+
-            '<button id="rbtn-a" style="flex:1;padding:13px;background:var(--success-light);color:var(--success);border:1.5px solid #bbf7d0;border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Asistencia</button>'+
-            '<button id="rbtn-r" style="flex:1;padding:13px;background:#fff7ed;color:var(--accent-dark);border:1.5px solid rgba(200,132,42,0.3);border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">⏰ Retardo</button>'+
-            '</div>'+
-            '<button id="rbtn-c" style="width:100%;padding:9px;background:transparent;border:1px solid var(--gray-200);border-radius:var(--radius-lg);font-family:Inter,sans-serif;font-size:0.82rem;color:var(--gray-500);cursor:pointer;">Cancelar</button>'+
-            '</div>';
-        document.body.appendChild(overlay);
-        overlay.querySelector('#rbtn-a').onclick=function(){overlay.remove();callback('asistencia');};
-        overlay.querySelector('#rbtn-r').onclick=function(){overlay.remove();callback('retardo');};
-        overlay.querySelector('#rbtn-c').onclick=function(){overlay.remove();callback(null);};
     }
 
     function toggleCoralIA() {
