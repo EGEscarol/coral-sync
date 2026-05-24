@@ -5847,7 +5847,7 @@
                             const mapsLink = r.lat && r.lng
                                 ? `<a class="maps-link" href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank">📍 Ver</a>`
                                 : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
-                            const retBadge = r.tipo==='retardo' ? '<span style="font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;">⏰ Retardo</span>' : '';
+                            const retBadge = r.tipo==='retardo' ? '<span style="font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;">RETARDO</span>' : '';
                             return `<tr id="row-${r.id}">
                                 <td style="width:36px;"></td>
                                 <td style="color:var(--gray-500);font-size:0.78rem;">${i+1}</td>
@@ -5873,7 +5873,7 @@
       <tr id="row-${r.id}">
         <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
         <td style="color:var(--gray-500);font-size:0.78rem;">${i + 1}</td>
-        <td style="font-weight:700;">${r.memberName}${r.tipo==='retardo'?'<span style=\"font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;\">⏰ Retardo</span>':''}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
+        <td style="font-weight:700;">${r.memberName}${r.tipo==='retardo'?'<span style=\"font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;\">RETARDO</span>':''}${r.churchName && isSuperAdmin() ? `<br><span style="font-size:0.72rem;font-weight:400;color:var(--gray-500);">⛪ ${r.churchName}</span>` : ""}</td>
         <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
         <td>${r.date}</td>
         <td>${r.time}</td>
@@ -7689,7 +7689,7 @@
                     '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:18px;">¿Cómo llegó?</p>'+
                     '<div style="display:flex;gap:10px;margin-bottom:10px;">'+
                     '<button id="rbtn-a" style="flex:1;padding:13px;background:var(--success-light);color:var(--success);border:1.5px solid #bbf7d0;border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Asistencia</button>'+
-                    '<button id="rbtn-r" style="flex:1;padding:13px;background:#fff7ed;color:var(--accent-dark);border:1.5px solid rgba(200,132,42,0.3);border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">⏰ Retardo</button>'+
+                    '<button id="rbtn-r" style="flex:1;padding:13px;background:#fff7ed;color:var(--accent-dark);border:1.5px solid rgba(200,132,42,0.3);border-radius:var(--radius-lg);font-family:Outfit,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">RETARDO</button>'+
                     '</div>'+
                     '<button id="rbtn-c" style="width:100%;padding:9px;background:transparent;border:1px solid var(--gray-200);border-radius:var(--radius-lg);font-family:Inter,sans-serif;font-size:0.82rem;color:var(--gray-500);cursor:pointer;">Cancelar</button>'+
                     '</div>';
@@ -8516,7 +8516,7 @@
                 const isProgresoCoro = selectedMembers.some(m => m.churchName === 'Progreso, Acapulco');
                 if (isProgresoCoro) {
                     if (y > 210) { doc.addPage(); y=20; }
-                    y = sectionTitle(doc, 'Retardos \u2014 Progreso, Acapulco', y);
+                    y = sectionTitle(doc, 'Retardos - Progreso, Acapulco', y);
                     doc.setFillColor(...NAVY); doc.roundedRect(14,y,182,8,2,2,'F');
                     doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
                     doc.text('Integrante', 18, y+5.5);
@@ -8677,9 +8677,9 @@
                     if (member.churchName==='Progreso, Acapulco') {
                         doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
                         doc.setTextColor(...COPPER);
-                        doc.text('\u23f0 Retardos: '+memberRetardos, 65, y+27);
+                        doc.text('Retardos: '+memberRetardos, 65, y+27);
                         doc.setTextColor(...(faltasPorRet>0?[220,38,38]:GRAY));
-                        doc.text('  \u2192 Faltas por retardo: '+faltasPorRet+' (regla: 3 = 1 falta)', 97, y+27);
+                        doc.text(' | Faltas por retardo: '+faltasPorRet+' (regla: 3 = 1 falta)', 97, y+27);
                     }
 
                     y += bannerH + 6;
