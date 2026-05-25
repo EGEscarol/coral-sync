@@ -15,7 +15,7 @@
         <!-- Firebase SDK -->
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDCgZjVwHxOD9H0jiaXFbnWiQVW3avISwg",
@@ -134,29 +134,27 @@
             // Guardar en coralsync/data — documento único, sin guards que bloqueen
             // Agregar un registro de asistencia de forma atómica (sin sobreescribir otros registros)
             window._fbAddRecord = async function(record) {
-                // Intentar hasta 3 veces con arrayUnion (atomic, nunca pierde registros de otros)
-                for (let attempt = 1; attempt <= 3; attempt++) {
+                // Usar transacción para leer-modificar-escribir de forma atómica
+                // Esto garantiza que nunca se pierdan registros de otras sesiones
+                for (let attempt = 1; attempt <= 4; attempt++) {
                     try {
-                        await updateDoc(DOC_REF, { records: arrayUnion(record) });
+                        await runTransaction(db, async (transaction) => {
+                            const snap = await transaction.get(DOC_REF);
+                            const existing = snap.exists() ? (snap.data().records || []) : [];
+                            // No agregar si ya existe (deduplicar por id)
+                            if (existing.some(r => r.id === record.id)) return;
+                            // Limpiar campos undefined antes de guardar
+                            const clean = JSON.parse(JSON.stringify(record));
+                            transaction.update(DOC_REF, { records: [...existing, clean] });
+                        });
                         return true;
                     } catch(e) {
-                        if (attempt < 3) {
-                            await new Promise(r => setTimeout(r, 500 * attempt));
+                        console.warn("[CoralSync] _fbAddRecord attempt", attempt, "failed:", e.message);
+                        if (attempt < 4) {
+                            await new Promise(r => setTimeout(r, 300 * attempt));
                         } else {
-                            // Último intento: setDoc con merge:true para no perder otros campos
-                            try {
-                                const snap = await getDoc(DOC_REF);
-                                const existing = snap.exists() ? (snap.data().records || []) : [];
-                                // Solo agregar si no está duplicado
-                                const isDup = existing.some(r => r.id === record.id);
-                                if (!isDup) {
-                                    await setDoc(DOC_REF, { records: [...existing, record] }, { merge: true });
-                                }
-                                return true;
-                            } catch(e2) {
-                                console.error("[CoralSync] _fbAddRecord failed all attempts:", e2.message);
-                                return false;
-                            }
+                            console.error("[CoralSync] _fbAddRecord all attempts failed");
+                            return false;
                         }
                     }
                 }
@@ -5486,7 +5484,7 @@
                 _pending.push(record);
                 localStorage.setItem('cva_pending_records', JSON.stringify(_pending));
 
-                // Enviar a Firebase atomicamente (arrayUnion)
+                // Enviar a Firebase con transacción atómica (leer-agregar-escribir)
                 if (window._fbAddRecord) {
                     setSyncBadge("Guardando...", "warn");
                     window._fbAddRecord(record).then(ok => {
