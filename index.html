@@ -3939,13 +3939,36 @@
                             state.activities = d.activities || [];
                             state.churches   = d.churches   || [];
 
-                            // Merge records: combinar Firebase + locales no sincronizados
-                            // para no perder registros recientes que aún no llegaron a Firebase
+                            // Merge: Firebase + cache local + cola pendiente
+                            // Esto garantiza que nunca se pierdan registros recientes
                             const fbRecords = d.records || [];
                             const fbIds = new Set(fbRecords.map(r => r.id));
-                            const localOnly = state.records.filter(r => !fbIds.has(r.id));
-                            state.records = [...fbRecords, ...localOnly];
 
+                            // Registros locales no confirmados (en cache)
+                            let cacheRecords = [];
+                            try {
+                                const cache = localStorage.getItem("cva_cache");
+                                if (cache) cacheRecords = (JSON.parse(cache).records || []);
+                            } catch(e) {}
+
+                            // Registros en cola pendiente (más recientes, mayor prioridad)
+                            let pendingRecords = [];
+                            try {
+                                pendingRecords = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                            } catch(e) {}
+
+                            // Unir: Firebase + cache local + pendientes, sin duplicados
+                            const allLocalIds = new Set([...cacheRecords, ...pendingRecords].map(r => r.id));
+                            const localOnly = [...cacheRecords, ...pendingRecords].filter(r => !fbIds.has(r.id));
+                            // Deduplicar localOnly
+                            const seenIds = new Set();
+                            const deduped = localOnly.filter(r => {
+                                if (seenIds.has(r.id)) return false;
+                                seenIds.add(r.id);
+                                return true;
+                            });
+
+                            state.records = [...fbRecords, ...deduped];
                             localStorage.setItem("cva_cache", JSON.stringify(state));
                             setSyncBadge("✓ Sincronizado", "ok");
                             window._isLoadingFromCloud = false;
@@ -4032,7 +4055,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    resetSessionTimer(); loadFromCloud().then(() => { localStorage.setItem('cva_last_sync', String(Date.now())); renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -4045,7 +4068,7 @@
                     applySessionUI();
                     showView('view-admin');
                     resetSessionTimer();
-                    loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    loadFromCloud().then(() => { localStorage.setItem('cva_last_sync', String(Date.now())); renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -4057,7 +4080,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    resetSessionTimer(); loadFromCloud().then(() => { localStorage.setItem('cva_last_sync', String(Date.now())); renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -4069,7 +4092,7 @@
                     stopCamera();
                     applySessionUI();
                     showView('view-admin');
-                    resetSessionTimer(); loadFromCloud().then(() => { renderAll(); showPage('dashboard'); });
+                    resetSessionTimer(); loadFromCloud().then(() => { localStorage.setItem('cva_last_sync', String(Date.now())); renderAll(); showPage('dashboard'); });
                     return;
                 }
 
@@ -4357,7 +4380,9 @@
                     if (isDiacono()) {
                         renderRegistrosDiacono();
                     } else {
-                        loadFromCloud().then(() => { renderRecords(); updateManualSelects(); });
+                        // No recargar desde Firebase — usar state local para no perder registros recientes
+                        renderRecords();
+                        updateManualSelects();
                     }
                 }
                 if (page === 'churches') renderChurches();
@@ -4381,11 +4406,22 @@
                 if (page === 'auxiliares') renderAuxiliares();
                 if (page === 'uniforms') renderUniformsTab();
                 if (page === 'dashboard') {
-                    loadFromCloud().then(() => {
+                    // Solo recargar desde Firebase si han pasado más de 3 minutos
+                    // Para no perder registros recientes que aún se están sincronizando
+                    const lastSync = parseInt(localStorage.getItem('cva_last_sync') || '0');
+                    const minutesSince = (Date.now() - lastSync) / 60000;
+                    if (minutesSince > 3) {
+                        loadFromCloud().then(() => {
+                            localStorage.setItem('cva_last_sync', String(Date.now()));
+                            renderDashboard();
+                            updateDashManualSelects();
+                            updateManualSelects();
+                        });
+                    } else {
                         renderDashboard();
                         updateDashManualSelects();
                         updateManualSelects();
-                    });
+                    }
                 }
             }
 
@@ -5443,36 +5479,32 @@
                 };
                 // Agregar localmente
                 state.records.push(record);
-                // Guardar en localStorage inmediatamente
+                // Guardar en localStorage inmediatamente (fuente de verdad local)
                 localStorage.setItem("cva_cache", JSON.stringify(state));
+                // Siempre agregar a cola pendiente hasta confirmar Firebase
+                let _pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                _pending.push(record);
+                localStorage.setItem('cva_pending_records', JSON.stringify(_pending));
+
                 // Enviar a Firebase atomicamente (arrayUnion)
-                // IMPORTANTE: nunca usar save() como fallback — sobreescribiría registros de otros
                 if (window._fbAddRecord) {
                     setSyncBadge("Guardando...", "warn");
                     window._fbAddRecord(record).then(ok => {
                         if (ok) {
+                            // Confirmar: quitar de pendientes
+                            let p = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                            p = p.filter(r => r.id !== record.id);
+                            localStorage.setItem('cva_pending_records', JSON.stringify(p));
                             setSyncBadge("✓ Sincronizado", "ok");
                         } else {
-                            // Guardar en cola pendiente para reintento posterior
-                            let pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
-                            pending.push(record);
-                            localStorage.setItem('cva_pending_records', JSON.stringify(pending));
                             setSyncBadge("⚠ Pendiente de sync", "warn");
                         }
                     }).catch(e => {
                         console.error("addRecord Firebase error:", e);
-                        let pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
-                        pending.push(record);
-                        localStorage.setItem('cva_pending_records', JSON.stringify(pending));
                         setSyncBadge("⚠ Pendiente de sync", "warn");
                     });
-                } else {
-                    // Firebase no cargó aún — encolar
-                    let pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
-                    pending.push(record);
-                    localStorage.setItem('cva_pending_records', JSON.stringify(pending));
-                    setSyncBadge("⚠ Sin conexión Firebase", "warn");
                 }
+                // Si Firebase no está listo, queda en cola pendiente y se enviará en flushPendingRecords
                 return true;
             }
 
