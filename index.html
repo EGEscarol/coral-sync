@@ -1637,20 +1637,6 @@
 
             /* PRINT for QR */
             /* ── Modo Retardos ── */
-            .retardo-switch-wrap {
-                display:none;align-items:center;gap:10px;
-                background:white;border:1px solid var(--border);
-                border-radius:var(--radius-full);padding:8px 16px;
-                box-shadow:var(--shadow-sm);margin:0 auto 14px;
-                width:fit-content;font-family:'Inter',sans-serif;
-                font-size:0.84rem;font-weight:600;color:var(--text-secondary);
-                cursor:pointer;transition:all 0.2s;
-            }
-            .retardo-switch-wrap.active{background:#fff7ed;border-color:rgba(200,132,42,0.4);color:var(--accent-dark);}
-            .retardo-toggle{width:40px;height:22px;background:var(--gray-300);border-radius:11px;position:relative;transition:background 0.2s;flex-shrink:0;}
-            .retardo-toggle::after{content:'';position:absolute;width:16px;height:16px;background:white;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
-            .retardo-switch-wrap.active .retardo-toggle{background:var(--accent);}
-            .retardo-switch-wrap.active .retardo-toggle::after{transform:translateX(18px);}
             .retardo-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
             .retardo-modal{background:white;border-radius:var(--radius-xl);padding:28px 24px;width:100%;max-width:340px;box-shadow:var(--shadow-lg);text-align:center;}
             @keyframes coral-bounce {
@@ -2011,11 +1997,6 @@
                             ✏ Registro Manual de Asistencia
                         </div>
 
-                        <!-- Switch retardos -->
-                        <div class="retardo-switch-wrap" id="retardo-switch-wrap-manual" onclick="toggleModoRetardo()" style="margin:0 0 12px;justify-content:flex-start;">
-                            <div class="retardo-toggle"></div>
-                            <span id="retardo-switch-label-manual">⏰ Modo Retardos: OFF</span>
-                        </div>
                         <!-- Paso 1: actividad -->
                         <div style="margin-bottom:14px;">
                             <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:8px;">1. Selecciona la actividad</label>
@@ -3091,10 +3072,6 @@
                         Apunta la cámara a tu código QR personal o regístrate
                         manualmente
                     </p>
-                </div>
-                <div class="retardo-switch-wrap" id="retardo-switch-wrap" onclick="toggleModoRetardo()">
-                    <div class="retardo-toggle"></div>
-                    <span id="retardo-switch-label">⏰ Modo Retardos: OFF</span>
                 </div>
                 <div class="card">
                     <!-- Placeholder visible antes de activar cámara -->
@@ -4304,8 +4281,7 @@
                 if (coralPanel) coralPanel.style.display = "none";
                 if (coralBtn)   coralBtn.style.display   = "none";
                 if (typeof coralIAOpen !== "undefined") coralIAOpen = false;
-                if (typeof _modoRetardo !== 'undefined') _modoRetardo = false;
-                if (typeof syncRetardoSwitchUI === 'function') syncRetardoSwitchUI();
+
                 // Limpiar historial y mensajes del chat al cambiar de sesion
                 if (typeof coralIAHistory !== "undefined") coralIAHistory = [];
                 const coralMsgs = document.getElementById("coral-ia-messages");
@@ -4384,7 +4360,6 @@
                 if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'diaconos') renderDiaconos();
                 if (page === 'uniforms') { if (isDiacono()) renderUniformesDiacono(); }
-                updateRetardoSwitchVisibility();
                 if (page === 'settings') {
                     const modelInput = document.getElementById('settings-gemini-model');
                     if (modelInput && !modelInput.value) modelInput.value = localStorage.getItem('coral_gemini_model') || 'gemini-1.5-flash-latest';
@@ -6310,8 +6285,7 @@
                         setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
                     }
                 }
-                if (typeof _modoRetardo!=='undefined' && _modoRetardo &&
-                    typeof isMemberFromProgreso==='function' && isMemberFromProgreso(memberId)) {
+                if (isMemberFromProgreso(memberId)) {
                     _saveRecordInProgress = false;
                     showRetardoModal(memberId, activityId, function(tipo){
                         if (!tipo){ setScanStatus("Registro cancelado.","info"); return; }
@@ -6524,8 +6498,7 @@
                         );
                     } else { addRecord(memberId,activityId,null,null,tipo); afterManual(); }
                 }
-                if (typeof _modoRetardo!=='undefined' && _modoRetardo &&
-                    typeof isMemberFromProgreso==='function' && isMemberFromProgreso(memberId)) {
+                if (isMemberFromProgreso(memberId)) {
                     showRetardoModal(memberId, activityId, function(tipo){
                         if (!tipo) return;
                         doManual(tipo);
@@ -7629,7 +7602,6 @@
 
             // ── MODO RETARDOS ─────────────────────────────────────────────────
             var PROGRESO_CHURCH = 'Progreso, Acapulco';
-            var _modoRetardo = false;
 
             function isMemberFromProgreso(memberId) {
                 var m = (state.members||[]).find(function(x){ return x.id===memberId; });
@@ -7652,27 +7624,7 @@
                 }
                 return currentSession.churchName===PROGRESO_CHURCH;
             }
-            function updateRetardoSwitchVisibility() {
-                var show = isSessionFromProgreso();
-                ['retardo-switch-wrap','retardo-switch-wrap-manual'].forEach(function(id){
-                    var el=document.getElementById(id);
-                    if(el) el.style.display=show?'flex':'none';
-                });
-                syncRetardoSwitchUI();
-            }
-            function syncRetardoSwitchUI() {
-                [['retardo-switch-wrap','retardo-switch-label'],
-                 ['retardo-switch-wrap-manual','retardo-switch-label-manual']].forEach(function(p){
-                    var w=document.getElementById(p[0]),l=document.getElementById(p[1]);
-                    if(w) w.classList.toggle('active',_modoRetardo);
-                    if(l) l.textContent='⏰ Modo Retardos: '+(_modoRetardo?'ON':'OFF');
-                });
-            }
-            function toggleModoRetardo() {
-                _modoRetardo=!_modoRetardo;
-                syncRetardoSwitchUI();
-                showToast(_modoRetardo?'⏰ Modo Retardos activado':'Modo Retardos desactivado');
-            }
+
             function showRetardoModal(memberId, activityId, callback) {
                 var member   = (state.members||[]).find(function(m){ return m.id===memberId; });
                 var activity = (state.activities||[]).find(function(a){ return a.id===activityId; });
@@ -7700,8 +7652,6 @@
             }
 
             function renderDashboard() {
-                // Actualizar visibilidad del switch de retardos
-                updateRetardoSwitchVisibility();
                 // Hero card
                 const heroTitle = document.getElementById('dash-hero-title');
                 const heroSub = document.getElementById('dash-hero-sub');
@@ -7982,7 +7932,7 @@
                     }
                 }
 
-                if (_modoRetardo && isMemberFromProgreso(memberId)) {
+                if (isMemberFromProgreso(memberId)) {
                     showRetardoModal(memberId, activityId, function(tipo) {
                         if (!tipo) return;
                         doDash(tipo);
