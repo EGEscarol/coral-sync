@@ -3936,8 +3936,15 @@
                         if (d) {
                             state.members    = d.members    || [];
                             state.activities = d.activities || [];
-                            state.records    = d.records    || [];
                             state.churches   = d.churches   || [];
+
+                            // Merge records: combinar Firebase + locales no sincronizados
+                            // para no perder registros recientes que aún no llegaron a Firebase
+                            const fbRecords = d.records || [];
+                            const fbIds = new Set(fbRecords.map(r => r.id));
+                            const localOnly = state.records.filter(r => !fbIds.has(r.id));
+                            state.records = [...fbRecords, ...localOnly];
+
                             localStorage.setItem("cva_cache", JSON.stringify(state));
                             setSyncBadge("✓ Sincronizado", "ok");
                             window._isLoadingFromCloud = false;
@@ -6269,26 +6276,27 @@
             function saveRecord(memberId, activityId, lat, lng) {
                 if (_saveRecordInProgress) return;
                 _saveRecordInProgress = true;
-                setTimeout(function(){ _saveRecordInProgress = false; }, 4000);
                 var picker = document.getElementById("activity-picker");
                 if (picker) picker.remove();
 
                 function doSave(tipo) {
                     var ok = addRecord(memberId, activityId, lat, lng, tipo);
+                    _saveRecordInProgress = false; // liberar SOLO después de guardar
                     if (ok) {
                         var member = state.members.find(function(m){ return m.id===memberId; });
                         var activity = state.activities.find(function(a){ return a.id===activityId; });
                         showSuccessModal(member.name, activity.name+(tipo==='retardo'?' ⏰':' ✅'), lat);
                         setTimeout(function(){ stopCamera(); }, 3500);
                     } else {
-                        _saveRecordInProgress = false;
                         setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
                     }
                 }
                 if (isMemberFromProgreso(memberId)) {
+                    // Mostrar modal — liberar flag para no bloquear si cancela
                     _saveRecordInProgress = false;
                     showRetardoModal(memberId, activityId, function(tipo){
                         if (!tipo){ setScanStatus("Registro cancelado.","info"); return; }
+                        _saveRecordInProgress = true; // re-bloquear mientras guarda
                         doSave(tipo);
                     });
                     return;
