@@ -165,12 +165,13 @@
 
             window._fbSave = async function(state) {
                 try {
+                    // NUNCA sobreescribir records con setDoc — usar merge para members/activities/churches
+                    // Los records se manejan SOLO con arrayUnion en _fbAddRecord
                     await setDoc(DOC_REF, {
                         members:    state.members    || [],
                         activities: state.activities || [],
-                        records:    state.records    || [],
                         churches:   state.churches   || []
-                    });
+                    }, { merge: true });
                     window._setSyncBadge && window._setSyncBadge("✓ Sincronizado", "ok");
                 } catch(e) {
                     console.error("[CoralSync] Firebase save error:", e);
