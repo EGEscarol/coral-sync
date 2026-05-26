@@ -15,7 +15,7 @@
         <!-- Firebase SDK -->
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, runTransaction, onSnapshot, collection, addDoc, getDocs, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDCgZjVwHxOD9H0jiaXFbnWiQVW3avISwg",
@@ -133,42 +133,72 @@
 
             // Guardar en coralsync/data — documento único, sin guards que bloqueen
             // Agregar un registro de asistencia de forma atómica (sin sobreescribir otros registros)
+            // ── Subcolección de registros: coralsync/data/records/{id} ──────────────
+            const RECORDS_COL = collection(db, "coralsync", "data", "records");
+
             window._fbAddRecord = async function(record) {
                 const clean = JSON.parse(JSON.stringify(record));
-                for (let attempt = 1; attempt <= 4; attempt++) {
+                for (let attempt = 1; attempt <= 3; attempt++) {
                     try {
-                        await runTransaction(db, async (transaction) => {
-                            const snap = await transaction.get(DOC_REF);
-                            const existing = snap.exists() ? (snap.data().records || []) : [];
-                            // No agregar si ya existe (deduplicar por id)
-                            if (existing.some(r => r.id === clean.id)) return;
-                            if (snap.exists()) {
-                                // Doc existe: update solo el campo records
-                                transaction.update(DOC_REF, { records: [...existing, clean] });
-                            } else {
-                                // Doc no existe: crear con set
-                                transaction.set(DOC_REF, { records: [clean] }, { merge: true });
-                            }
-                        });
+                        const recRef = doc(RECORDS_COL, clean.id);
+                        await setDoc(recRef, clean, { merge: false });
                         return true;
                     } catch(e) {
                         console.warn("[CoralSync] _fbAddRecord attempt", attempt, "failed:", e.message);
-                        if (attempt < 4) {
-                            await new Promise(r => setTimeout(r, 500 * attempt));
+                        if (attempt < 3) {
+                            await new Promise(r => setTimeout(r, 600 * attempt));
                         } else {
-                            // Último intento: arrayUnion simple como fallback
-                            try {
-                                await updateDoc(DOC_REF, { records: arrayUnion(clean) });
-                                return true;
-                            } catch(e2) {
-                                console.error("[CoralSync] _fbAddRecord all attempts failed:", e2.message);
-                                return false;
-                            }
+                            console.error("[CoralSync] _fbAddRecord all attempts failed:", e.message);
+                            return false;
                         }
                     }
                 }
                 return false;
             };
+
+            // ── Migración one-time: mover records del doc principal a subcolección ──
+            window._migrateRecords = async function() {
+                try {
+                    const snap = await getDoc(DOC_REF);
+                    if (!snap.exists()) return;
+                    const legacyRecords = snap.data().records || [];
+                    if (!legacyRecords.length) return;
+                    console.log("[CoralSync] Migrando", legacyRecords.length, "registros a subcoleccion...");
+                    const BATCH_SIZE = 400;
+                    for (let i = 0; i < legacyRecords.length; i += BATCH_SIZE) {
+                        const batch = writeBatch(db);
+                        legacyRecords.slice(i, i + BATCH_SIZE).forEach(r => {
+                            const rid = r.id || String(r.ts || Date.now()) + "_" + Math.random().toString(36).slice(2);
+                            const recRef = doc(RECORDS_COL, rid);
+                            batch.set(recRef, { ...r, id: rid }, { merge: false });
+                        });
+                        await batch.commit();
+                    }
+                    // Liberar espacio: vaciar el array en el doc principal
+                    await updateDoc(DOC_REF, { records: [] });
+                    console.log("[CoralSync] Migracion completada.");
+                } catch(e) {
+                    console.error("[CoralSync] Error en migracion:", e);
+                }
+            };
+
+            // ── Cargar registros desde subcolección ──────────────────────────────────
+            window._fbLoadRecords = async function() {
+                try {
+                    const snap = await getDocs(RECORDS_COL);
+                    return snap.docs.map(d => d.data());
+                } catch(e) {
+                    console.error("[CoralSync] _fbLoadRecords error:", e);
+                    return [];
+                }
+            };
+
+            // ── Escuchar nuevos registros en tiempo real (subcolección) ───────────────
+            onSnapshot(RECORDS_COL, (snap) => {
+                if (!window._onFirebaseRecordsUpdate) return;
+                const records = snap.docs.map(d => d.data());
+                window._onFirebaseRecordsUpdate(records);
+            });
 
             window._fbSave = async function(state) {
                 try {
@@ -189,17 +219,23 @@
             window._fbLoad = async function() {
                 try {
                     const snap = await getDoc(DOC_REF);
-                    if (snap.exists()) return snap.data();
-                    return null;
+                    const base = snap.exists() ? snap.data() : {};
+                    // Cargar registros desde subcoleccion (no del doc principal)
+                    const recSnap = await getDocs(RECORDS_COL);
+                    const records = recSnap.docs.map(d => d.data());
+                    return { ...base, records };
                 } catch(e) {
                     console.error("Firebase load error:", e);
                     return null;
                 }
             };
 
+            // Escuchar cambios en members/activities/churches (doc principal)
             onSnapshot(DOC_REF, (snap) => {
                 if (snap.exists() && window._onFirebaseUpdate) {
-                    window._onFirebaseUpdate(snap.data());
+                    // Solo pasar miembros/actividades/iglesias, NO records (esos vienen de subcoleccion)
+                    const d = snap.data();
+                    window._onFirebaseUpdate({ members: d.members, activities: d.activities, churches: d.churches });
                 }
             });
 
@@ -3886,32 +3922,28 @@
             // ======================== CLOUD STORAGE (Firebase Firestore) ========================
 
             // Callback para actualizaciones en tiempo real desde Firebase
+            // Actualización en tiempo real: members/activities/churches (doc principal)
             window._onFirebaseUpdate = function(d) {
-                // Actualización en tiempo real desde Firestore
-                // IMPORTANTE: hacer merge para no perder registros locales pendientes
-                state.members    = d.members    || [];
-                state.activities = d.activities || [];
-                state.churches   = d.churches   || [];
+                if (d.members    !== undefined) state.members    = d.members    || [];
+                if (d.activities !== undefined) state.activities = d.activities || [];
+                if (d.churches   !== undefined) state.churches   = d.churches   || [];
+                localStorage.setItem("cva_cache", JSON.stringify(state));
+                if (typeof renderAll === 'function') renderAll();
+                if (typeof updateManualSelects === 'function') updateManualSelects();
+            };
 
-                // Merge records: Firebase + locales pendientes de confirmar
-                const fbRecords = d.records || [];
+            // Actualización en tiempo real: registros desde subcoleccion
+            window._onFirebaseRecordsUpdate = function(fbRecords) {
                 const fbIds = new Set(fbRecords.map(r => r.id));
-
-                // Registros locales que aún no llegaron a Firebase
+                // Conservar pendientes locales que aun no llegaron a Firebase
                 let pendingRecords = [];
                 try { pendingRecords = JSON.parse(localStorage.getItem('cva_pending_records') || '[]'); } catch(e) {}
-
-                // Registros en state local no confirmados
-                const localUnconfirmed = (state.records || []).filter(r => !fbIds.has(r.id));
-
-                // Unir sin duplicados
                 const seenIds = new Set(fbIds);
-                const extra = [...localUnconfirmed, ...pendingRecords].filter(r => {
+                const extra = pendingRecords.filter(r => {
                     if (seenIds.has(r.id)) return false;
                     seenIds.add(r.id);
                     return true;
                 });
-
                 state.records = [...fbRecords, ...extra];
                 localStorage.setItem("cva_cache", JSON.stringify(state));
                 if (typeof renderAll === 'function') renderAll();
@@ -3961,42 +3993,32 @@
                 window._isLoadingFromCloud = true;
                 try {
                     if (window._fbLoad) {
+                        // _fbLoad ahora retorna { members, activities, churches, records }
+                        // donde records viene de la subcoleccion (no del doc principal)
                         const d = await window._fbLoad();
                         if (d) {
+                            // Ejecutar migracion one-time si hay records en el doc principal
+                            if (window._migrateRecords) window._migrateRecords();
+
                             state.members    = d.members    || [];
                             state.activities = d.activities || [];
                             state.churches   = d.churches   || [];
 
-                            // Merge: Firebase + cache local + cola pendiente
-                            // Esto garantiza que nunca se pierdan registros recientes
+                            // Records ya vienen de la subcoleccion via _fbLoad
                             const fbRecords = d.records || [];
                             const fbIds = new Set(fbRecords.map(r => r.id));
 
-                            // Registros locales no confirmados (en cache)
-                            let cacheRecords = [];
-                            try {
-                                const cache = localStorage.getItem("cva_cache");
-                                if (cache) cacheRecords = (JSON.parse(cache).records || []);
-                            } catch(e) {}
-
-                            // Registros en cola pendiente (más recientes, mayor prioridad)
+                            // Merge con pendientes locales que aun no se confirmaron
                             let pendingRecords = [];
-                            try {
-                                pendingRecords = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
-                            } catch(e) {}
-
-                            // Unir: Firebase + cache local + pendientes, sin duplicados
-                            const allLocalIds = new Set([...cacheRecords, ...pendingRecords].map(r => r.id));
-                            const localOnly = [...cacheRecords, ...pendingRecords].filter(r => !fbIds.has(r.id));
-                            // Deduplicar localOnly
-                            const seenIds = new Set();
-                            const deduped = localOnly.filter(r => {
+                            try { pendingRecords = JSON.parse(localStorage.getItem('cva_pending_records') || '[]'); } catch(e) {}
+                            const seenIds = new Set(fbIds);
+                            const extra = pendingRecords.filter(r => {
                                 if (seenIds.has(r.id)) return false;
                                 seenIds.add(r.id);
                                 return true;
                             });
 
-                            state.records = [...fbRecords, ...deduped];
+                            state.records = [...fbRecords, ...extra];
                             localStorage.setItem("cva_cache", JSON.stringify(state));
                             setSyncBadge("✓ Sincronizado", "ok");
                             window._isLoadingFromCloud = false;
@@ -4004,7 +4026,7 @@
                             return;
                         }
                     }
-                } catch(e) {}
+                } catch(e) { console.error("[CoralSync] loadFromCloud error:", e); }
                 // Fallback a caché local
                 try {
                     const cache = localStorage.getItem("cva_cache");
