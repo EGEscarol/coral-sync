@@ -5461,7 +5461,7 @@
             }
 
             // ======================== RECORDS ========================
-            function addRecord(memberId, activityId, lat, lng, tipo) {
+            async function addRecord(memberId, activityId, lat, lng, tipo) {
                 if (!tipo) tipo = 'asistencia';
                 if (isDiacono()) { showToast('Acceso de solo lectura.'); return false; }
                 const member = state.members.find((m) => m.id === memberId);
@@ -5498,32 +5498,30 @@
                 };
                 // Agregar localmente
                 state.records.push(record);
-                // Guardar en localStorage inmediatamente (fuente de verdad local)
                 localStorage.setItem("cva_cache", JSON.stringify(state));
-                // Siempre agregar a cola pendiente hasta confirmar Firebase
-                let _pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
-                _pending.push(record);
-                localStorage.setItem('cva_pending_records', JSON.stringify(_pending));
 
-                // Enviar a Firebase con transacción atómica (leer-agregar-escribir)
+                // Guardar en Firebase y ESPERAR confirmación
                 if (window._fbAddRecord) {
                     setSyncBadge("Guardando...", "warn");
-                    window._fbAddRecord(record).then(ok => {
-                        if (ok) {
-                            // Confirmar: quitar de pendientes
-                            let p = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
-                            p = p.filter(r => r.id !== record.id);
-                            localStorage.setItem('cva_pending_records', JSON.stringify(p));
-                            setSyncBadge("✓ Sincronizado", "ok");
-                        } else {
-                            setSyncBadge("⚠ Pendiente de sync", "warn");
-                        }
-                    }).catch(e => {
-                        console.error("addRecord Firebase error:", e);
-                        setSyncBadge("⚠ Pendiente de sync", "warn");
-                    });
+                    const ok = await window._fbAddRecord(record);
+                    if (ok) {
+                        setSyncBadge("✓ Sincronizado", "ok");
+                    } else {
+                        // Firebase falló — guardar en pendientes para reintento
+                        let _pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                        if (!_pending.some(r => r.id === record.id)) _pending.push(record);
+                        localStorage.setItem('cva_pending_records', JSON.stringify(_pending));
+                        setSyncBadge("⚠ Error al guardar — reintentando...", "warn");
+                        // Reintentar en 3 segundos
+                        setTimeout(flushPendingRecords, 3000);
+                    }
+                } else {
+                    // Firebase no listo — encolar
+                    let _pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                    if (!_pending.some(r => r.id === record.id)) _pending.push(record);
+                    localStorage.setItem('cva_pending_records', JSON.stringify(_pending));
+                    setSyncBadge("⚠ Sin conexión Firebase", "warn");
                 }
-                // Si Firebase no está listo, queda en cola pendiente y se enviará en flushPendingRecords
                 return true;
             }
 
@@ -6332,16 +6330,17 @@
                 if (picker) picker.remove();
 
                 function doSave(tipo) {
-                    var ok = addRecord(memberId, activityId, lat, lng, tipo);
-                    _saveRecordInProgress = false; // liberar SOLO después de guardar
-                    if (ok) {
-                        var member = state.members.find(function(m){ return m.id===memberId; });
-                        var activity = state.activities.find(function(a){ return a.id===activityId; });
-                        showSuccessModal(member.name, activity.name+(tipo==='retardo'?' ⏰':' ✅'), lat);
-                        setTimeout(function(){ stopCamera(); }, 3500);
-                    } else {
-                        setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
-                    }
+                    addRecord(memberId, activityId, lat, lng, tipo).then(ok => {
+                        _saveRecordInProgress = false;
+                        if (ok) {
+                            var member = state.members.find(function(m){ return m.id===memberId; });
+                            var activity = state.activities.find(function(a){ return a.id===activityId; });
+                            showSuccessModal(member.name, activity.name+(tipo==='retardo'?' ⏰':' ✅'), lat);
+                            setTimeout(function(){ stopCamera(); }, 3500);
+                        } else {
+                            setScanStatus("Ya registrado o error. Inténtalo de nuevo.", "error");
+                        }
+                    });
                 }
                 if (isMemberFromProgreso(memberId)) {
                     // Mostrar modal — liberar flag para no bloquear si cancela
@@ -6552,11 +6551,11 @@
                 function doManual(tipo) {
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
-                            function(pos){ addRecord(memberId,activityId,pos.coords.latitude,pos.coords.longitude,tipo); afterManual(); },
-                            function(){   addRecord(memberId,activityId,null,null,tipo); afterManual(); },
+                            function(pos){ addRecord(memberId,activityId,pos.coords.latitude,pos.coords.longitude,tipo).then(function(){ afterManual(); }); },
+                            function(){   addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManual(); }); },
                             {timeout:5000}
                         );
-                    } else { addRecord(memberId,activityId,null,null,tipo); afterManual(); }
+                    } else { addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManual(); }); }
                 }
                 if (isMemberFromProgreso(memberId)) {
                     showRetardoModal(memberId, activityId, function(tipo){
@@ -7982,13 +7981,12 @@
                 function doDash(tipo) {
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
-                            pos => { addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude, tipo); afterDashManual(); },
-                            ()  => { addRecord(memberId, activityId, null, null, tipo); afterDashManual(); },
+                            pos => addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude, tipo).then(() => afterDashManual()),
+                            ()  => addRecord(memberId, activityId, null, null, tipo).then(() => afterDashManual()),
                             { timeout: 5000 }
                         );
                     } else {
-                        addRecord(memberId, activityId, null, null, tipo);
-                        afterDashManual();
+                        addRecord(memberId, activityId, null, null, tipo).then(() => afterDashManual());
                     }
                 }
 
