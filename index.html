@@ -8477,18 +8477,11 @@
                     doc.text(String(i+1), 17, y+5.5);
 
                     // Nombre
-                    const memObj = selectedMembers.find(x => x.name === m.name);
                     doc.setFont('helvetica', i<3?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
-                    const nStr = m.name.length>(isProgreso?24:30) ? m.name.substring(0,isProgreso?22:28)+'..' : m.name;
+                    const nStr = m.name.length>30 ? m.name.substring(0,28)+'..' : m.name;
                     doc.text(nStr, 23, y+5.5);
-                    // Nota del integrante (pequeña, en gris)
-                    if (memObj && memObj.note && memObj.note.trim()) {
-                        doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...GRAY);
-                        const noteShort = memObj.note.trim().length > 45 ? memObj.note.trim().substring(0,43)+'..' : memObj.note.trim();
-                        doc.text(noteShort, 23, y+5.5+3.5);
-                    }
 
-                    // Voz (centrar verticalmente)
+                    // Voz
                     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
                     doc.text(m.voice||'-', 110, y+5.5);
 
@@ -8548,27 +8541,13 @@
                 doc.addPage(); y = 20;
                 y = sectionTitle(doc, 'Detalle por Actividad', y);
 
-                // Actividades de ensayo para "X de Y"
-                const ENSAYO_ACTS_CORO = ['Ensayo Local','Ensayo de Zona','Ensayo Estatal','Actividad Especial','Actividad especial'];
-
                 actividadesIds.forEach(actId => {
                     const aObj = state.activities.find(a=>a.id===actId)||{name:filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
                     const actName = aObj.name;
                     const actRecs = filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId));
                     const actStats2 = selectedMembers.map(m => ({
-                        name:m.name, voice:m.voice||'', cnt: actRecs.filter(r=>r.memberId===m.id).length,
-                        note: m.note||''
+                        name:m.name, voice:m.voice||'', cnt: actRecs.filter(r=>r.memberId===m.id).length
                     })).sort((a,b)=>b.cnt-a.cnt);
-
-                    // Total posible para actividades de ensayo (dias con >=3 registros)
-                    const isEnsayoCoro = ENSAYO_ACTS_CORO.some(n => actName.toLowerCase().includes(n.toLowerCase().substring(0,7)));
-                    let totalPosibleCoro = 0;
-                    if (isEnsayoCoro) {
-                        const allActRecs = visibleRecords().filter(r => r.activityId === actId);
-                        const byDateCoro = {};
-                        allActRecs.forEach(r => { byDateCoro[r.date] = (byDateCoro[r.date]||0)+1; });
-                        totalPosibleCoro = Object.values(byDateCoro).filter(v => v >= 3).length;
-                    }
                     const asistentes = actStats2.filter(m=>m.cnt>0).length;
                     const totalActRecs = actRecs.length;
 
@@ -8605,22 +8584,9 @@
                         // Cantidad
                         doc.setFont('helvetica','bold'); doc.setFontSize(8);
                         doc.setTextColor(...(m.cnt>0?COPPER:GRAY));
-                        // Mostrar "X de Y" para actividades de ensayo
-                        const cntStr = isEnsayoCoro && totalPosibleCoro>0
-                            ? (m.cnt>0 ? m.cnt+'/'+totalPosibleCoro : '0/'+totalPosibleCoro)
-                            : (m.cnt>0 ? String(m.cnt) : '—');
-                        doc.text(cntStr, 170, y+5, {align:'center'});
-                        // Nota del integrante
-                        if (m.note) {
-                            doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...GRAY);
-                            const noteShort = m.note.length>40 ? m.note.substring(0,38)+'..' : m.note;
-                            doc.text(noteShort, 18, y+11);
-                            doc.setDrawColor(...BORDER); doc.line(14,y+13,196,y+13);
-                            y += 13;
-                        } else {
-                            doc.setDrawColor(...BORDER); doc.line(14,y+7.5,196,y+7.5);
-                            y += 7.5;
-                        }
+                        doc.text(m.cnt>0?String(m.cnt):'—', 170, y+5, {align:'center'});
+                        doc.setDrawColor(...BORDER); doc.line(14,y+7.5,196,y+7.5);
+                        y += 7.5;
                     });
                     y += 10;
                 });
@@ -8711,9 +8677,6 @@
                     y = sectionTitle(doc, 'Asistencias por Actividad', y);
 
                     const tcw=58, tch=30, tgap=4, perRow=3;
-                    // Actividades que muestran "X de Y"
-                    const ENSAYO_ACTS = ['Ensayo Local','Ensayo de Zona','Ensayo Estatal','Actividad Especial','Actividad especial'];
-
                     actividadesIds.forEach((actId, i) => {
                         const col = i % perRow;
                         const row = Math.floor(i / perRow);
@@ -8724,20 +8687,6 @@
                         const cnt = memberRecords.filter(r=>r.activityId===actId).length;
                         const shortName = aObj.name.length>20 ? aObj.name.substring(0,18)+'..' : aObj.name;
 
-                        // Calcular total posible para actividades de ensayo
-                        const isEnsayo = ENSAYO_ACTS.some(n => aObj.name.toLowerCase().includes(n.toLowerCase().substring(0,7)));
-                        let totalPosible = 0;
-                        if (isEnsayo) {
-                            // Dias con al menos 3 registros distintos de esta actividad
-                            const actAllRecs = (monthVal
-                                ? filteredRecs
-                                : visibleRecords()
-                            ).filter(r => r.activityId === actId);
-                            const byDate = {};
-                            actAllRecs.forEach(r => { byDate[r.date] = (byDate[r.date]||0)+1; });
-                            totalPosible = Object.values(byDate).filter(v => v >= 3).length;
-                        }
-
                         // Card con borde izquierdo cobre
                         doc.setFillColor(...LGRAY); doc.roundedRect(cx, y, tcw, tch, 3,3,'F');
                         doc.setFillColor(...(cnt>0 ? COPPER : [200,200,200]));
@@ -8746,39 +8695,18 @@
                         doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...NAVY);
                         doc.text(shortName, cx+tcw/2+1, y+9, {align:'center'});
 
-                        // Número grande
+                        // Número grande de asistencias
                         doc.setFont('helvetica','bold'); doc.setFontSize(16);
                         doc.setTextColor(...(cnt>0 ? NAVY : GRAY));
                         doc.text(String(cnt), cx+tcw/2+1, y+21, {align:'center'});
 
                         doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-                        if (isEnsayo && totalPosible > 0) {
-                            // Mostrar "X de Y"
-                            doc.text('de ' + totalPosible, cx+tcw/2+1, y+27, {align:'center'});
-                        } else {
-                            doc.text(cnt===0?'Sin asistencias':(cnt===1?'vez':'veces'), cx+tcw/2+1, y+27, {align:'center'});
-                        }
+                        doc.text(cnt===0?'Sin asistencias':(cnt===1?'vez':'veces'), cx+tcw/2+1, y+27, {align:'center'});
                     });
 
                     const lastRow = Math.floor((actividadesIds.length-1) / perRow);
                     if (actividadesIds.length > 0) y += tch + 12;
                     else y += 6;
-
-                    // ── NOTA DEL INTEGRANTE ───────────────────────────────
-                    const memberFull = state.members.find(m => m.id === member.id);
-                    if (memberFull && memberFull.note && memberFull.note.trim()) {
-                        if (y > 255) { doc.addPage(); y=20; }
-                        doc.setFillColor(255,247,237);
-                        doc.roundedRect(14, y, 182, 12, 3,3,'F');
-                        doc.setFillColor(...COPPER); doc.roundedRect(14, y, 4, 12, 2,2,'F');
-                        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...COPPER);
-                        doc.text('NOTA:', 21, y+5);
-                        doc.setFont('helvetica','normal'); doc.setTextColor(80,60,20);
-                        const noteLines = doc.splitTextToSize(memberFull.note.trim(), 155);
-                        doc.text(noteLines[0], 38, y+5);
-                        if (noteLines.length > 1) doc.text(noteLines[1], 21, y+10);
-                        y += 18;
-                    }
 
                     // ── TENDENCIA MENSUAL ─────────────────────────────────
                     const mesRowsM = calcComparativaMensual(memberRecords);
