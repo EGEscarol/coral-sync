@@ -8420,12 +8420,31 @@
 
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
 
+                // Actividades que usan conteo de "días con ≥3 registros"
+                const COUNTED_ACTS = ['Ensayo Local','Ensayo de Zona','Ensayo Estatal','Actividad Especial'];
+                // Para cada activityId, calcular total de "días válidos" (días con ≥3 registros en el grupo)
+                function getDiasValidos(actId) {
+                    const acObj = state.activities.find(a=>a.id===actId)||{name: filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
+                    const acName = acObj.name || '';
+                    if (!COUNTED_ACTS.some(n => acName.toLowerCase().includes(n.toLowerCase()))) return null;
+                    // Agrupar todos los registros de esa actividad por fecha
+                    const recsByDate = {};
+                    filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId)).forEach(r=>{
+                        const d = r.date || r.ts;
+                        if (!recsByDate[d]) recsByDate[d] = 0;
+                        recsByDate[d]++;
+                    });
+                    // Solo días con ≥3 registros cuentan como actividad real
+                    return Object.values(recsByDate).filter(c=>c>=3).length;
+                }
+
                 // Stats por integrante (solo cantidades)
                 const memberStats = selectedMembers.map(m => {
+                    const mem = state.members.find(x=>x.id===m.id) || m;
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
                     const byAct = {};
                     actividadesIds.forEach(id => { byAct[id] = recs.filter(r=>r.activityId===id).length; });
-                    return { id:m.id, name:m.name, voice:m.voice||'-', church:m.churchName||'-', total:recs.length, byAct };
+                    return { id:m.id, name:m.name, voice:m.voice||'-', church:m.churchName||'-', total:recs.length, byAct, note: mem.note||'' };
                 }).sort((a,b) => b.total - a.total);
 
                 const sinAsistencia = memberStats.filter(m => m.total === 0);
@@ -8518,33 +8537,41 @@
 
                 memberStats.forEach((m,i) => {
                     if (y > 268) { doc.addPage(); y=20; }
-                    const rowH = 8;
-                    doc.setFillColor(...(i%2===0 ? WHITE : LGRAY)); doc.rect(14, y, 182, rowH, 'F');
 
+                    // Nombre + posición
+                    const hasNote = m.note && m.note.trim().length > 0;
+                    const rowH = hasNote ? 13 : 8;
+                    doc.setFillColor(...(i%2===0 ? WHITE : LGRAY)); doc.rect(14, y, 182, rowH, 'F');
                     // Número de posición
                     doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
                     doc.setTextColor(...(i<3 ? COPPER : GRAY));
-                    doc.text(String(i+1), 17, y+5.5);
-
+                    const nameY = hasNote ? y+4.5 : y+5.5;
+                    doc.text(String(i+1), 17, nameY);
                     // Nombre
                     doc.setFont('helvetica', i<3?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
                     const nStr = m.name.length>30 ? m.name.substring(0,28)+'..' : m.name;
-                    doc.text(nStr, 23, y+5.5);
+                    doc.text(nStr, 23, nameY);
+                    // Nota del miembro
+                    if (hasNote) {
+                        const noteStr = m.note.length>55 ? m.note.substring(0,53)+'..' : m.note;
+                        doc.setFont('helvetica','italic'); doc.setFontSize(6.2); doc.setTextColor(...COPPER);
+                        doc.text('📝 '+noteStr, 23, y+10);
+                    }
 
                     // Voz
                     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-                    doc.text(m.voice||'-', 110, y+5.5);
+                    doc.text(m.voice||'-', 110, hasNote ? y+4.5 : y+5.5);
 
                     // Total asistencias con barra visual
                     const maxTotal = memberStats[0].total || 1;
                     const barW = Math.max(1, Math.round((m.total/maxTotal)*40));
                     doc.setFillColor(...COPPER.map(c=>Math.round(c*0.3+215*0.7)));
-                    doc.roundedRect(132, y+2.5, 40, 3, 1,1,'F');
+                    doc.roundedRect(132, (hasNote?y+3:y+2.5), 40, 3, 1,1,'F');
                     doc.setFillColor(...COPPER);
-                    doc.roundedRect(132, y+2.5, barW, 3, 1,1,'F');
+                    doc.roundedRect(132, (hasNote?y+3:y+2.5), barW, 3, 1,1,'F');
 
                     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    doc.text(String(m.total), 177, y+5.5, {align:'center'});
+                    doc.text(String(m.total), 177, hasNote ? y+4.5 : y+5.5, {align:'center'});
 
                     doc.setDrawColor(...BORDER); doc.line(14,y+rowH,196,y+rowH);
                     y += rowH;
@@ -8593,15 +8620,36 @@
 
                 actividadesIds.forEach(actId => {
                     const aObj = state.activities.find(a=>a.id===actId)||{name:filteredRecs.find(r=>r.activityId===actId)?.activityName||actId};
-                    const actName = aObj.name;
+                    const actName = aObj.name || '';
                     const actRecs = filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId));
-                    const actStats2 = selectedMembers.map(m => ({
-                        name:m.name, voice:m.voice||'', cnt: actRecs.filter(r=>r.memberId===m.id).length
-                    })).sort((a,b)=>b.cnt-a.cnt);
+
+                    // Verificar si esta actividad usa conteo de días válidos (≥3 registros/día)
+                    const diasValidos = getDiasValidos(actId);
+                    const usesDayCount = diasValidos !== null;
+
+                    const actStats2 = selectedMembers.map(m => {
+                        const mem = state.members.find(x=>x.id===m.id) || m;
+                        const cnt = actRecs.filter(r=>r.memberId===m.id).length;
+                        // Para actividades contadas: contar días en que el miembro tiene registro Y el día es válido
+                        let diasMiembro = null;
+                        if (usesDayCount) {
+                            const recsByDate = {};
+                            filteredRecs.filter(r=>r.activityId===actId && selectedIds.includes(r.memberId)).forEach(r=>{
+                                const d = r.date||r.ts;
+                                if(!recsByDate[d]) recsByDate[d]=0;
+                                recsByDate[d]++;
+                            });
+                            const validDates = new Set(Object.entries(recsByDate).filter(([d,c])=>c>=3).map(([d])=>d));
+                            diasMiembro = actRecs.filter(r=>r.memberId===m.id && validDates.has(r.date||r.ts)).length;
+                        }
+                        return { name:m.name, voice:m.voice||'', cnt, diasMiembro, note: mem.note||'' };
+                    }).sort((a,b)=>b.cnt-a.cnt);
+
                     const asistentes = actStats2.filter(m=>m.cnt>0).length;
                     const totalActRecs = actRecs.length;
 
-                    const blockH = 12 + 8 + actStats2.length * 7.5 + 8;
+                    const estRowH = actStats2.map(m => (m.note ? 11.5 : 7.5)).reduce((a,b)=>a+b, 0);
+                    const blockH = 12 + 8 + estRowH + 8;
                     if (y + blockH > 265) { doc.addPage(); y=20; }
 
                     // Header actividad
@@ -8611,7 +8659,10 @@
                     const aTitle = actName.length>38 ? actName.substring(0,36)+'..' : actName;
                     doc.text(aTitle, 22, y+6.5);
                     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(200,220,240);
-                    doc.text(asistentes+' asistentes  |  '+totalActRecs+' registros', 193, y+6.5, {align:'right'});
+                    const headerRight = usesDayCount
+                        ? asistentes+' asistentes  |  '+diasValidos+' días válidos'
+                        : asistentes+' asistentes  |  '+totalActRecs+' registros';
+                    doc.text(headerRight, 193, y+6.5, {align:'right'});
                     y += 12;
 
                     // Subheader tabla
@@ -8619,24 +8670,39 @@
                     doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
                     doc.text('Integrante', 18, y+5);
                     doc.text('Voz', 110, y+5);
-                    doc.text('Asistencias', 170, y+5, {align:'center'});
+                    const colLabel = usesDayCount ? 'Asistió (de '+diasValidos+')' : 'Asistencias';
+                    doc.text(colLabel, 170, y+5, {align:'center'});
                     y += 8;
 
                     actStats2.forEach((m,i) => {
                         if (y > 268) { doc.addPage(); y=20; }
+                        const hasNote2 = m.note && m.note.trim().length > 0;
+                        const rh = hasNote2 ? 11.5 : 7.5;
                         doc.setFillColor(...(m.cnt>0 ? (i%2===0?WHITE:LGRAY) : [255,248,248]));
-                        doc.rect(14, y, 182, 7.5, 'F');
-                        doc.setFont('helvetica', m.cnt>0?'normal':'normal'); doc.setFontSize(7.5);
+                        doc.rect(14, y, 182, rh, 'F');
+                        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
                         doc.setTextColor(...(m.cnt>0?NAVY:GRAY));
-                        doc.text(m.name.length>30?m.name.substring(0,28)+'..':m.name, 18, y+5);
-                        doc.setTextColor(...GRAY); doc.setFontSize(7);
-                        doc.text(m.voice||'-', 110, y+5);
+                        const ny2 = hasNote2 ? y+4 : y+5;
+                        doc.text(m.name.length>30?m.name.substring(0,28)+'..':m.name, 18, ny2);
+                        if (hasNote2) {
+                            const ns2 = m.note.length>55 ? m.note.substring(0,53)+'..' : m.note;
+                            doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...COPPER);
+                            doc.text('📝 '+ns2, 18, y+9.5);
+                        }
+                        doc.setFont('helvetica','normal'); doc.setTextColor(...GRAY); doc.setFontSize(7);
+                        doc.text(m.voice||'-', 110, ny2);
                         // Cantidad
                         doc.setFont('helvetica','bold'); doc.setFontSize(8);
                         doc.setTextColor(...(m.cnt>0?COPPER:GRAY));
-                        doc.text(m.cnt>0?String(m.cnt):'—', 170, y+5, {align:'center'});
-                        doc.setDrawColor(...BORDER); doc.line(14,y+7.5,196,y+7.5);
-                        y += 7.5;
+                        let cntLabel;
+                        if (usesDayCount) {
+                            cntLabel = m.diasMiembro > 0 ? String(m.diasMiembro)+' de '+diasValidos : '—';
+                        } else {
+                            cntLabel = m.cnt > 0 ? String(m.cnt) : '—';
+                        }
+                        doc.text(cntLabel, 170, ny2, {align:'center'});
+                        doc.setDrawColor(...BORDER); doc.line(14,y+rh,196,y+rh);
+                        y += rh;
                     });
                     y += 10;
                 });
