@@ -3879,10 +3879,31 @@
             // Callback para actualizaciones en tiempo real desde Firebase
             window._onFirebaseUpdate = function(d) {
                 // Actualización en tiempo real desde Firestore
+                // IMPORTANTE: hacer merge para no perder registros locales pendientes
                 state.members    = d.members    || [];
                 state.activities = d.activities || [];
-                state.records    = d.records    || [];
                 state.churches   = d.churches   || [];
+
+                // Merge records: Firebase + locales pendientes de confirmar
+                const fbRecords = d.records || [];
+                const fbIds = new Set(fbRecords.map(r => r.id));
+
+                // Registros locales que aún no llegaron a Firebase
+                let pendingRecords = [];
+                try { pendingRecords = JSON.parse(localStorage.getItem('cva_pending_records') || '[]'); } catch(e) {}
+
+                // Registros en state local no confirmados
+                const localUnconfirmed = (state.records || []).filter(r => !fbIds.has(r.id));
+
+                // Unir sin duplicados
+                const seenIds = new Set(fbIds);
+                const extra = [...localUnconfirmed, ...pendingRecords].filter(r => {
+                    if (seenIds.has(r.id)) return false;
+                    seenIds.add(r.id);
+                    return true;
+                });
+
+                state.records = [...fbRecords, ...extra];
                 localStorage.setItem("cva_cache", JSON.stringify(state));
                 if (typeof renderAll === 'function') renderAll();
                 if (typeof updateManualSelects === 'function') updateManualSelects();
