@@ -134,27 +134,36 @@
             // Guardar en coralsync/data — documento único, sin guards que bloqueen
             // Agregar un registro de asistencia de forma atómica (sin sobreescribir otros registros)
             window._fbAddRecord = async function(record) {
-                // Usar transacción para leer-modificar-escribir de forma atómica
-                // Esto garantiza que nunca se pierdan registros de otras sesiones
+                const clean = JSON.parse(JSON.stringify(record));
                 for (let attempt = 1; attempt <= 4; attempt++) {
                     try {
                         await runTransaction(db, async (transaction) => {
                             const snap = await transaction.get(DOC_REF);
                             const existing = snap.exists() ? (snap.data().records || []) : [];
                             // No agregar si ya existe (deduplicar por id)
-                            if (existing.some(r => r.id === record.id)) return;
-                            // Limpiar campos undefined antes de guardar
-                            const clean = JSON.parse(JSON.stringify(record));
-                            transaction.update(DOC_REF, { records: [...existing, clean] });
+                            if (existing.some(r => r.id === clean.id)) return;
+                            if (snap.exists()) {
+                                // Doc existe: update solo el campo records
+                                transaction.update(DOC_REF, { records: [...existing, clean] });
+                            } else {
+                                // Doc no existe: crear con set
+                                transaction.set(DOC_REF, { records: [clean] }, { merge: true });
+                            }
                         });
                         return true;
                     } catch(e) {
                         console.warn("[CoralSync] _fbAddRecord attempt", attempt, "failed:", e.message);
                         if (attempt < 4) {
-                            await new Promise(r => setTimeout(r, 300 * attempt));
+                            await new Promise(r => setTimeout(r, 500 * attempt));
                         } else {
-                            console.error("[CoralSync] _fbAddRecord all attempts failed");
-                            return false;
+                            // Último intento: arrayUnion simple como fallback
+                            try {
+                                await updateDoc(DOC_REF, { records: arrayUnion(clean) });
+                                return true;
+                            } catch(e2) {
+                                console.error("[CoralSync] _fbAddRecord all attempts failed:", e2.message);
+                                return false;
+                            }
                         }
                     }
                 }
