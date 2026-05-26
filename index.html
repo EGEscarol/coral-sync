@@ -8555,7 +8555,7 @@
                     if (hasNote) {
                         const noteStr = m.note.length>55 ? m.note.substring(0,53)+'..' : m.note;
                         doc.setFont('helvetica','italic'); doc.setFontSize(6.2); doc.setTextColor(...COPPER);
-                        doc.text('📝 '+noteStr, 23, y+10);
+                        doc.text("Nota: "+noteStr, 23, y+10);
                     }
 
                     // Voz
@@ -8687,7 +8687,7 @@
                         if (hasNote2) {
                             const ns2 = m.note.length>55 ? m.note.substring(0,53)+'..' : m.note;
                             doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...COPPER);
-                            doc.text('📝 '+ns2, 18, y+9.5);
+                            doc.text("Nota: "+ns2, 18, y+9.5);
                         }
                         doc.setFont('helvetica','normal'); doc.setTextColor(...GRAY); doc.setFontSize(7);
                         doc.text(m.voice||'-', 110, ny2);
