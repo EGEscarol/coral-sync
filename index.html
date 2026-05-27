@@ -3341,17 +3341,20 @@
                         <!-- Buscar integrante -->
                         <div style="margin-bottom:14px;">
                             <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:10px;">2. Busca al integrante</div>
-                            <div style="position:relative;">
-                                <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                <input type="text" id="manual-member-search-b"
-                                    placeholder="Escribe el nombre..."
-                                    oninput="filterManualMembersB()"
-                                    onfocus="showManualDropdownB()"
-                                    autocomplete="off"
-                                    style="width:100%;padding:11px 14px 11px 38px;border:2px solid #e2e8f0;border-radius:12px;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color .2s;background:#f8fafc;color:#1a3a5c;"
-                                    onfocusin="this.style.borderColor='#b89852';this.style.background='#fff'"
-                                    onfocusout="setTimeout(()=>hideManualDropdownB(),200);this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
-                                <div id="manual-member-dropdown-b" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid #b89852;border-radius:12px;box-shadow:0 8px 24px rgba(26,58,92,0.15);z-index:500;max-height:260px;overflow-y:auto;"></div>
+                            <div>
+                                <div style="position:relative;">
+                                    <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <input type="text" id="manual-member-search-b"
+                                        placeholder="Escribe el nombre..."
+                                        oninput="filterManualMembersB()"
+                                        onfocus="showManualDropdownB()"
+                                        autocomplete="off"
+                                        style="width:100%;padding:11px 14px 11px 38px;border:2px solid #e2e8f0;border-radius:12px;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color .2s;background:#f8fafc;color:#1a3a5c;"
+                                        onfocusin="this.style.borderColor='#b89852';this.style.background='#fff'"
+                                        onfocusout="setTimeout(()=>hideManualDropdownB(),200);this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+                                </div>
+                                <!-- Lista inline — empuja el contenido hacia abajo en lugar de flotar -->
+                                <div id="manual-member-dropdown-b" style="display:none;background:#fff;border:2px solid #b89852;border-radius:12px;margin-top:6px;overflow:hidden;"></div>
                             </div>
                         </div>
 
