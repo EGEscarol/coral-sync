@@ -4391,32 +4391,21 @@
                     return;
                 }
 
-                // Esperar a que las credenciales estén listas (máx 8 segundos)
+                // Asegurar que las credenciales estén cargadas
                 if (!window._credsReady) {
                     const btn = document.querySelector('[onclick="loginMember()"]');
-                    if (btn) { btn.textContent = 'Cargando...'; btn.disabled = true; }
-                    let waited = 0;
-                    while (!window._credsReady && waited < 8000) {
-                        await new Promise(r => setTimeout(r, 300));
-                        waited += 300;
-                    }
+                    if (btn) { btn.innerHTML = 'Cargando...'; btn.disabled = true; }
+                    try {
+                        await Promise.all([
+                            loadCredentialsFromFirebase(),
+                            loadDirectorsFromFirebase(),
+                            loadStateDirectorsFromFirebase(),
+                            loadDiaconosFromFirebase(),
+                            loadAuxiliaresFromFirebase(),
+                        ]);
+                        window._credsReady = true;
+                    } catch(e) {}
                     if (btn) { btn.innerHTML = 'Iniciar Sesión →'; btn.disabled = false; }
-                    if (!window._credsReady) {
-                        // Intentar cargar manualmente como último recurso
-                        try {
-                            await Promise.all([
-                                loadCredentialsFromFirebase(),
-                                loadDirectorsFromFirebase(),
-                                loadStateDirectorsFromFirebase(),
-                                loadDiaconosFromFirebase(),
-                                loadAuxiliaresFromFirebase(),
-                            ]);
-                            window._credsReady = true;
-                        } catch(e) {
-                            lmShowError('Sin conexión. Verifica tu internet e intenta de nuevo.');
-                            return;
-                        }
-                    }
                 }
 
                 // Verificar contra todos los roles
@@ -4425,19 +4414,19 @@
                 if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
                     session = { role: 'superadmin', name: 'Super Admin' };
                 }
-                if (!session && diaconos.length) {
+                if (!session) {
                     const d = diaconos.find(x => x.username === user && x.password === pass);
                     if (d) session = { role: 'diacono', name: d.name, stateName: d.stateName };
                 }
-                if (!session && stateDirectors.length) {
+                if (!session) {
                     const s = stateDirectors.find(x => x.username === user && x.password === pass);
                     if (s) session = { role: 'statedirector', name: s.name, stateName: s.stateName };
                 }
-                if (!session && directors.length) {
+                if (!session) {
                     const dir = directors.find(x => x.username === user && x.password === pass);
                     if (dir) session = { role: 'director', name: dir.name, churchId: dir.churchId, churchName: dir.churchName };
                 }
-                if (!session && auxiliares.length) {
+                if (!session) {
                     const aux = auxiliares.find(x => x.username === user && x.password === pass);
                     if (aux) session = { role: 'auxiliar', name: aux.name, churchId: aux.churchId, churchName: aux.churchName, directorId: aux.directorId };
                 }
