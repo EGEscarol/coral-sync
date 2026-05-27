@@ -15,7 +15,7 @@
         <!-- Firebase SDK -->
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, runTransaction, onSnapshot, collection, addDoc, getDocs, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+            import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, runTransaction, onSnapshot, collection, addDoc, getDocs, query, orderBy, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDCgZjVwHxOD9H0jiaXFbnWiQVW3avISwg",
@@ -179,6 +179,29 @@
                     console.log("[CoralSync] Migracion completada.");
                 } catch(e) {
                     console.error("[CoralSync] Error en migracion:", e);
+                }
+            };
+
+            // ── Eliminar registro de la subcolección ─────────────────────────────────
+            window._fbDeleteRecord = async function(id) {
+                try {
+                    await deleteDoc(doc(RECORDS_COL, id));
+                    return true;
+                } catch(e) {
+                    console.error("[CoralSync] _fbDeleteRecord error:", e);
+                    return false;
+                }
+            };
+
+            window._fbDeleteRecords = async function(ids) {
+                try {
+                    for (const id of ids) {
+                        await deleteDoc(doc(RECORDS_COL, id));
+                    }
+                    return true;
+                } catch(e) {
+                    console.error("[CoralSync] _fbDeleteRecords error:", e);
+                    return false;
                 }
             };
 
@@ -5997,33 +6020,46 @@
 
             function deleteSingleRecord(id) {
                 if (isDiacono()) { showToast("Acceso de solo lectura."); return; }
-                customConfirm("¿Eliminar este registro?", () => {
+                customConfirm("¿Eliminar este registro?", async () => {
                     state.records = state.records.filter((r) => r.id !== id);
-                    save();
+                    // Eliminar también de la cola pendiente (por si no llegó a Firebase)
+                    try {
+                        const pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                        localStorage.setItem('cva_pending_records', JSON.stringify(pending.filter(r => r.id !== id)));
+                    } catch(e) {}
+                    localStorage.setItem("cva_cache", JSON.stringify(state));
                     renderRecords();
                     showToast("✓ Registro eliminado");
+                    // Borrar de Firestore (subcolección)
+                    if (window._fbDeleteRecord) {
+                        const ok = await window._fbDeleteRecord(id);
+                        if (!ok) showToast("⚠ Error al eliminar en la nube", "warn");
+                    }
                 });
             }
 
             function deleteSelectedRecords() {
-                const checked = document.querySelectorAll(
-                    ".record-check:checked",
-                );
+                const checked = document.querySelectorAll(".record-check:checked");
                 if (!checked.length) return;
-                const ids = [...checked].map((cb) =>
-                    cb.getAttribute("data-id"),
-                );
+                const ids = [...checked].map((cb) => cb.getAttribute("data-id"));
                 customConfirm(
                     `¿Eliminar ${ids.length} registro${ids.length > 1 ? "s" : ""} seleccionado${ids.length > 1 ? "s" : ""}?`,
-                    () => {
-                        state.records = state.records.filter(
-                            (r) => !ids.includes(r.id),
-                        );
-                        save();
+                    async () => {
+                        const idSet = new Set(ids);
+                        state.records = state.records.filter((r) => !idSet.has(r.id));
+                        // Limpiar también de la cola pendiente
+                        try {
+                            const pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                            localStorage.setItem('cva_pending_records', JSON.stringify(pending.filter(r => !idSet.has(r.id))));
+                        } catch(e) {}
+                        localStorage.setItem("cva_cache", JSON.stringify(state));
                         renderRecords();
-                        showToast(
-                            `✓ ${ids.length} registro${ids.length > 1 ? "s" : ""} eliminado${ids.length > 1 ? "s" : ""}`,
-                        );
+                        showToast(`✓ ${ids.length} registro${ids.length > 1 ? "s" : ""} eliminado${ids.length > 1 ? "s" : ""}`);
+                        // Borrar de Firestore (subcolección)
+                        if (window._fbDeleteRecords) {
+                            const ok = await window._fbDeleteRecords(ids);
+                            if (!ok) showToast("⚠ Error al eliminar en la nube", "warn");
+                        }
                     },
                 );
             }
@@ -6685,13 +6721,21 @@
                 if (!recs.length) { showToast('No hay registros para eliminar.'); return; }
                 customConfirm(
                     `¿Eliminar ${recs.length} registros de la base de datos? Esta acción no se puede deshacer.`,
-                    () => {
+                    async () => {
                         const idsToDelete = new Set(recs.map(r => r.id));
+                        const ids = [...idsToDelete];
                         state.records = state.records.filter(r => !idsToDelete.has(r.id));
-                        save();
+                        // Limpiar cola pendiente
+                        try {
+                            const pending = JSON.parse(localStorage.getItem('cva_pending_records') || '[]');
+                            localStorage.setItem('cva_pending_records', JSON.stringify(pending.filter(r => !idsToDelete.has(r.id))));
+                        } catch(e) {}
+                        localStorage.setItem("cva_cache", JSON.stringify(state));
                         closeArchiveModal();
                         renderDashboard();
                         showToast(`✓ ${recs.length} registros eliminados de la base de datos.`);
+                        // Borrar de Firestore (subcolección)
+                        if (window._fbDeleteRecords) await window._fbDeleteRecords(ids);
                     }
                 );
             }
