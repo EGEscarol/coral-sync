@@ -4357,15 +4357,21 @@
             let lmAttempts = 0;
             let lmBlockedUntil = 0;
 
-            function loginMember() {
+            function lmShowError(msg) {
                 const errEl = document.getElementById('lm-error');
-                errEl.style.display = 'none';
-                const lmErrText = document.getElementById('lm-error-text');
+                const errTxt = document.getElementById('lm-error-text');
+                if (errTxt) errTxt.textContent = msg;
+                else if (errEl) errEl.textContent = msg;
+                if (errEl) errEl.style.display = 'flex';
+            }
+
+            async function loginMember() {
+                const errEl = document.getElementById('lm-error');
+                if (errEl) errEl.style.display = 'none';
 
                 if (lmBlockedUntil && Date.now() < lmBlockedUntil) {
                     const seg = Math.ceil((lmBlockedUntil - Date.now()) / 1000);
-                    if(lmErrText) lmErrText.textContent = `Demasiados intentos. Espera ${seg} segundos.`;
-                    errEl.style.display = 'flex';
+                    lmShowError(`Demasiados intentos. Espera ${seg} segundos.`);
                     return;
                 }
 
@@ -4373,9 +4379,25 @@
                 const pass = (document.getElementById('lm-password').value || '');
 
                 if (!user || !pass) {
-                    if(lmErrText) lmErrText.textContent = 'Ingresa usuario y contraseña.';
-                    errEl.style.display = 'flex';
+                    lmShowError('Ingresa usuario y contraseña.');
                     return;
+                }
+
+                // Si los datos de credenciales todavía no cargaron, esperarlos
+                const needsLoad = !directors.length && !diaconos.length && !stateDirectors.length && !auxiliares.length;
+                if (needsLoad && (user !== ADMIN_USERNAME || pass !== ADMIN_PASSWORD)) {
+                    lmShowError('Cargando datos, intenta de nuevo en un momento...');
+                    // Intentar cargar y reintentar automáticamente
+                    try {
+                        await Promise.all([
+                            loadCredentialsFromFirebase(),
+                            loadDirectorsFromFirebase(),
+                            loadStateDirectorsFromFirebase(),
+                            loadDiaconosFromFirebase(),
+                            loadAuxiliaresFromFirebase(),
+                        ]);
+                    } catch(e) {}
+                    if (errEl) errEl.style.display = 'none';
                 }
 
                 // Verificar contra todos los roles
@@ -4384,19 +4406,19 @@
                 if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
                     session = { role: 'superadmin', name: 'Super Admin' };
                 }
-                if (!session) {
+                if (!session && diaconos.length) {
                     const d = diaconos.find(x => x.username === user && x.password === pass);
                     if (d) session = { role: 'diacono', name: d.name, stateName: d.stateName };
                 }
-                if (!session) {
+                if (!session && stateDirectors.length) {
                     const s = stateDirectors.find(x => x.username === user && x.password === pass);
                     if (s) session = { role: 'statedirector', name: s.name, stateName: s.stateName };
                 }
-                if (!session) {
+                if (!session && directors.length) {
                     const dir = directors.find(x => x.username === user && x.password === pass);
                     if (dir) session = { role: 'director', name: dir.name, churchId: dir.churchId, churchName: dir.churchName };
                 }
-                if (!session) {
+                if (!session && auxiliares.length) {
                     const aux = auxiliares.find(x => x.username === user && x.password === pass);
                     if (aux) session = { role: 'auxiliar', name: aux.name, churchId: aux.churchId, churchName: aux.churchName, directorId: aux.directorId };
                 }
@@ -4404,10 +4426,8 @@
                 if (session) {
                     lmAttempts = 0; lmBlockedUntil = 0;
                     currentSession = session;
-                    // Limpiar campos
                     document.getElementById('lm-username').value = '';
                     document.getElementById('lm-password').value = '';
-                    // Mostrar nombre en header del escáner
                     const nameEl = document.getElementById('member-session-name');
                     if (nameEl) nameEl.textContent = session.name;
                     const roleEl = document.getElementById('member-session-role');
@@ -4415,7 +4435,6 @@
                         const roleLabels = { superadmin:'Super Admin', director:'Director', statedirector:'Dir. Estatal', auxiliar:'Auxiliar', diacono:'Diácono' };
                         roleEl.textContent = roleLabels[session.role] || session.role;
                     }
-                    // Cargar datos si no están cargados
                     if (!state.members || !state.members.length) {
                         loadFromCloud().then(() => { updateManualSelects && updateManualSelects(); updateManualSelectsB && updateManualSelectsB(); });
                     } else {
@@ -4431,11 +4450,10 @@
                 if (lmAttempts >= 5) {
                     lmBlockedUntil = Date.now() + 30000;
                     lmAttempts = 0;
-                    errEl.textContent = 'Demasiados intentos fallidos. Espera 30 segundos.';
+                    lmShowError('Demasiados intentos fallidos. Espera 30 segundos.');
                 } else {
-                    errEl.textContent = `Credenciales incorrectas (intento ${lmAttempts}/5)`;
+                    lmShowError(`Credenciales incorrectas (intento ${lmAttempts}/5)`);
                 }
-                errEl.style.display = 'flex';
                 document.getElementById('lm-password').value = '';
                 document.getElementById('lm-password').focus();
             }
