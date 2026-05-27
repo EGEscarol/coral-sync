@@ -3960,6 +3960,13 @@
             // Lista de auxiliares de director
             let auxiliares = [];
 
+            // Cargar arrays de usuarios desde caché local inmediatamente (sin Firebase)
+            // Garantiza que el login funcione aunque Firebase tenga límite de lecturas
+            try { const c = localStorage.getItem('cva_directors');  if (c) directors      = JSON.parse(c); } catch(e) {}
+            try { const c = localStorage.getItem('cva_diaconos');   if (c) diaconos       = JSON.parse(c); } catch(e) {}
+            try { const c = localStorage.getItem('cva_statedirs');  if (c) stateDirectors = JSON.parse(c); } catch(e) {}
+            try { const c = localStorage.getItem('cva_auxiliares'); if (c) auxiliares     = JSON.parse(c); } catch(e) {}
+
             // Uniformes: { churchId: [ { id, name } ] }
             // Estado por integrante: member.uniforms = { uniformId: true/false }
             let uniformCatalog = {};  // { churchId: [{id, name}] }
@@ -4391,8 +4398,10 @@
                     return;
                 }
 
-                // Asegurar que las credenciales estén cargadas
-                if (!window._credsReady) {
+                // Verificar si hay datos en caché local (no requiere Firebase)
+                const cacheHasUsers = directors.length || diaconos.length || stateDirectors.length || auxiliares.length;
+                if (!window._credsReady && !cacheHasUsers) {
+                    // Sin caché y sin datos: intentar cargar desde Firebase
                     const btn = document.querySelector('[onclick="loginMember()"]');
                     if (btn) { btn.innerHTML = 'Cargando...'; btn.disabled = true; }
                     try {
@@ -4403,8 +4412,9 @@
                             loadDiaconosFromFirebase(),
                             loadAuxiliaresFromFirebase(),
                         ]);
-                        window._credsReady = true;
-                    } catch(e) {}
+                    } catch(e) {
+                        console.warn('Firebase no disponible, usando caché local');
+                    }
                     if (btn) { btn.innerHTML = 'Iniciar Sesión →'; btn.disabled = false; }
                 }
 
@@ -4443,13 +4453,16 @@
                         const roleLabels = { superadmin:'Super Admin', director:'Director', statedirector:'Dir. Estatal', auxiliar:'Auxiliar', diacono:'Diácono' };
                         roleEl.textContent = roleLabels[session.role] || session.role;
                     }
-                    if (!state.members || !state.members.length) {
-                        loadFromCloud().then(() => { updateManualSelects && updateManualSelects(); updateManualSelectsB && updateManualSelectsB(); });
-                    } else {
-                        updateManualSelects && updateManualSelects();
-                        updateManualSelectsB && updateManualSelectsB();
-                    }
                     showView('view-member');
+                    if (!state.members || !state.members.length) {
+                        loadFromCloud().then(() => {
+                            try { updateManualSelects && updateManualSelects(); } catch(e) {}
+                            try { updateManualSelectsB && updateManualSelectsB(); } catch(e) {}
+                        });
+                    } else {
+                        try { updateManualSelects && updateManualSelects(); } catch(e) {}
+                        try { updateManualSelectsB && updateManualSelectsB(); } catch(e) {}
+                    }
                     resetSessionTimer && resetSessionTimer();
                     return;
                 }
@@ -6762,7 +6775,7 @@
             function updateManualSelectsB() {
                 const chips = document.getElementById('manual-activity-chips-b');
                 if (!chips) return;
-                const acts = getVisibleActivities ? getVisibleActivities() : (state.activities || []);
+                const acts = (typeof getVisibleActivities === 'function') ? getVisibleActivities() : (state.activities || []);
                 chips.innerHTML = acts.map(a => `
                     <button onclick="selectManualActivityB('${a.id}')" id="chip-b-${a.id}"
                         style="padding:6px 14px;border-radius:50px;border:1.5px solid var(--gray-300);background:white;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--gray-600);">
@@ -6793,7 +6806,7 @@
             function showManualDropdownB(q) {
                 const dd = document.getElementById('manual-member-dropdown-b');
                 if (!dd) return;
-                const members = getVisibleMembers ? getVisibleMembers() : (state.members || []);
+                const members = (typeof getVisibleMembers === 'function') ? getVisibleMembers() : (state.members || []);
                 const term = q !== undefined ? q : (document.getElementById('manual-member-search-b')?.value || '').toLowerCase();
                 const filtered = term ? members.filter(m => m.name.toLowerCase().includes(term)) : members;
                 if (!filtered.length) { dd.style.display = 'none'; return; }
