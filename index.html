@@ -4024,9 +4024,20 @@
                 if (isSuperAdmin()) return state.records;
                 if (isStateDirector() || isDiacono()) {
                     const ids = new Set(stateChurches().map(c=>c.id));
-                    return state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && ids.has(m.churchId); });
+                    return state.records.filter(r => {
+                        if (r.churchId) return ids.has(r.churchId);
+                        const m = state.members.find(x=>x.id===r.memberId);
+                        return m && ids.has(m.churchId);
+                    });
                 }
-                return state.records.filter(r => { const m = state.members.find(x=>x.id===r.memberId); return m && m.churchId === sessionChurchId(); });
+                const cid = sessionChurchId();
+                return state.records.filter(r => {
+                    // Primero verificar churchId directo en el registro (más rápido)
+                    if (r.churchId) return r.churchId === cid;
+                    // Fallback: buscar al miembro
+                    const m = state.members.find(x=>x.id===r.memberId);
+                    return m && m.churchId === cid;
+                });
             }
             function visibleActivities() { return state.activities; }
             function visibleChurches() {
@@ -4486,14 +4497,19 @@
                 document.getElementById('lm-username').focus();
             }
 
-            function goToDashboard() {
+            async function goToDashboard() {
                 try { applySessionUI(); } catch(e) {}
                 showView('view-admin');
                 resetSessionTimer && resetSessionTimer();
-                loadFromCloud().then(() => {
-                    try { renderAll && renderAll(); } catch(e) {}
-                    try { showPage('dashboard'); } catch(e) {}
-                });
+                // Mostrar spinner mientras carga
+                const main = document.getElementById('main-content');
+                if (main) main.style.opacity = '0.4';
+                try {
+                    await loadFromCloud();
+                } catch(e) {}
+                if (main) main.style.opacity = '1';
+                try { renderAll && renderAll(); } catch(e) {}
+                try { showPage('dashboard'); } catch(e) {}
             }
 
             function applySessionUI() {
@@ -5836,6 +5852,7 @@
                     id: "R" + Date.now() + Math.random().toString(36).slice(2, 7),
                     memberId,
                     memberName: member.name,
+                    churchId: member.churchId || null,
                     churchName: member.churchName || null,
                     activityId,
                     activityName: activity.name,
