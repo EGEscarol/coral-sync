@@ -1525,7 +1525,6 @@
                 #records-filter-bar button { width: 100% !important; }
 
                 /* ── Registro manual ─────────────────────────────── */
-                #dashboard-manual, #records-manual-card { padding: 14px; }
                 #dash-activity-chips, #manual-activity-chips {
                     gap: 6px;
                 }
@@ -2056,64 +2055,10 @@
                                 <div class="cs-quick-name">Actividades</div>
                                 <div class="cs-quick-desc">Gestionar actividades del coro</div>
                             </div>
-                            <div class="cs-quick-card" onclick="focusManualRecord()">
-                                <div class="cs-quick-icon" style="background:#FFF7ED;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8842A" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
-                                <div class="cs-quick-name">Reg. Manual</div>
-                                <div class="cs-quick-desc">Registrar sin código QR</div>
-                            </div>
+
                         </div>
                     </div>
 
-                    <!-- Registro manual integrado en dashboard -->
-                    <div class="cs-manual-card" id="dashboard-manual" style="margin-bottom:24px;">
-                        <div style="font-family:'Inter',sans-serif;font-size:0.9rem;color:var(--primary);font-weight:700;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--accent);">
-                            ✏ Registro Manual de Asistencia
-                        </div>
-
-                        <!-- Paso 1: actividad -->
-                        <div style="margin-bottom:14px;">
-                            <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:8px;">1. Selecciona la actividad</label>
-                            <div id="dash-activity-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-                        </div>
-
-                        <!-- Paso 2: buscar integrante -->
-                        <div style="margin-bottom:14px;">
-                            <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-500);display:block;margin-bottom:8px;">2. Busca al integrante</label>
-                            <div style="position:relative;">
-                                <input type="text" id="dash-member-search"
-                                    placeholder="Escribe el nombre..."
-                                    oninput="filterDashMembers()"
-                                    onfocus="showDashDropdown()"
-                                    autocomplete="off"
-                                    style="width:100%;padding:10px 14px 10px 38px;border:2px solid var(--gray-300);border-radius:12px;font-family:'Inter',sans-serif;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
-                                    onfocusin="this.style.borderColor='var(--primary)'"
-                                    onfocusout="setTimeout(()=>hideDashDropdown(),200)">
-                                <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-400);" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                <div id="dash-member-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid var(--primary);border-radius:12px;box-shadow:0 8px 24px rgba(27,38,59,0.15);z-index:500;max-height:220px;overflow-y:auto;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Preview -->
-                        <div id="dash-member-preview" style="display:none;background:var(--gray-100);border-radius:12px;padding:10px 14px;margin-bottom:14px;align-items:center;gap:12px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            </div>
-                            <div style="flex:1;">
-                                <div style="font-weight:700;color:var(--primary);font-size:0.9rem;" id="dash-preview-name"></div>
-                                <div style="font-size:0.73rem;color:var(--gray-500);margin-top:2px;" id="dash-preview-info"></div>
-                            </div>
-                            <button onclick="clearDashMember()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.2rem;padding:4px;line-height:1;">&#x2715;</button>
-                        </div>
-
-                        <!-- Botón -->
-                        <button onclick="submitDashManual()" id="dash-submit-btn"
-                            style="width:100%;padding:11px;background:var(--gray-300);color:var(--gray-500);border:none;border-radius:12px;cursor:not-allowed;font-family:'Inter',sans-serif;font-size:0.92rem;font-weight:700;transition:all 0.2s;opacity:0.6;"
-                            disabled>✓ Registrar asistencia</button>
-
-                        <!-- Hidden inputs para compatibilidad -->
-                        <input type="hidden" id="dash-manual-member">
-                        <select id="dash-manual-activity" style="display:none;"></select>
-                    </div>
 
                     <!-- Últimas actividades -->
                     <div class="cs-recent-card">
@@ -2700,7 +2645,6 @@
                                         <th>Actividad</th>
                                         <th>Fecha</th>
                                         <th>Hora</th>
-                                        <th>Ubicación</th>
                                         <th style="width: 40px"></th>
                                     </tr>
                                 </thead>
@@ -3824,7 +3768,7 @@
                 <div id="success-name" style="font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:700;color:#212529;margin-bottom:8px;line-height:1.2;"></div>
                 <div id="success-activity" style="font-size:0.95rem;color:#495057;margin-bottom:6px;"></div>
                 <div id="success-time" style="font-size:0.82rem;color:#6C757D;margin-bottom:24px;"></div>
-                <div id="success-gps" style="font-size:0.78rem;color:#16a34a;margin-bottom:20px;"></div>
+                
                 <!-- Barra de progreso que cuenta 5 segundos -->
                 <div style="background:var(--gray-200);border-radius:50px;height:5px;overflow:hidden;margin-bottom:14px;">
                     <div id="success-progress" style="height:5px;background:var(--primary);border-radius:50px;width:100%;transition:width 3s linear;"></div>
@@ -4369,7 +4313,6 @@
                     loadFromCloud().then(() => {
                         renderAll();
                         updateManualSelects();
-                        updateDashManualSelects();
                         showPage('dashboard');
                     });
                     return;
@@ -4823,12 +4766,10 @@
                         loadFromCloud().then(() => {
                             localStorage.setItem('cva_last_sync', String(Date.now()));
                             renderDashboard();
-                            updateDashManualSelects();
                             updateManualSelects();
                         });
                     } else {
                         renderDashboard();
-                        updateDashManualSelects();
                         updateManualSelects();
                     }
                 }
@@ -4853,14 +4794,6 @@
             function closeSidebar() {
                 document.getElementById('cs-sidebar').classList.remove('open');
                 document.getElementById('cs-overlay').classList.remove('open');
-            }
-
-            function focusManualRecord() {
-                showPage('dashboard');
-                setTimeout(() => {
-                    const el = document.getElementById('dashboard-manual');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100);
             }
 
             // ======================== MEMBERS ========================
@@ -5851,7 +5784,7 @@
             }
 
             // ======================== RECORDS ========================
-            async function addRecord(memberId, activityId, lat, lng, tipo) {
+            async function addRecord(memberId, activityId, tipo) {
                 if (!tipo) tipo = 'asistencia';
                 if (isDiacono()) { showToast('Acceso de solo lectura.'); return false; }
                 const member = state.members.find((m) => m.id === memberId);
@@ -5882,8 +5815,6 @@
                     activityColor: activity.color,
                     date: now.toLocaleDateString("es-MX"),
                     time: now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
-                    lat: lat || null,
-                    lng: lng || null,
                     ts: now.getTime(),
                     tipo: tipo || 'asistencia',
                 };
@@ -6267,9 +6198,6 @@
                             </td>
                         </tr>`;
                         html += churchRecs.map((r,i) => {
-                            const mapsLink = r.lat && r.lng
-                                ? `<a class="maps-link" href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank">📍 Ver</a>`
-                                : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
                             const retBadge = r.tipo==='retardo' ? '<span style="font-size:0.68rem;font-weight:700;background:#fff7ed;color:var(--accent-dark);border:1px solid rgba(200,132,42,0.4);border-radius:50px;padding:1px 7px;margin-left:5px;">RETARDO</span>' : '';
                             return `<tr id="row-${r.id}">
                                 <td style="width:36px;"></td>
@@ -6278,7 +6206,6 @@
                                 <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
                                 <td>${r.date}</td>
                                 <td>${r.time}</td>
-                                <td>${mapsLink}</td>
                                 <td></td>
                             </tr>`;
                         }).join('');
@@ -6289,9 +6216,6 @@
 
                 // Vista normal
                 tbody.innerHTML = sorted.map((r, i) => {
-                    const mapsLink = r.lat && r.lng
-                        ? `<a class="maps-link" href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank">📍 Ver mapa</a>`
-                        : '<span style="color:var(--gray-500);font-size:0.78rem;">Sin GPS</span>';
                     return `
       <tr id="row-${r.id}">
         <td style="width:36px;"><input type="checkbox" class="record-check" data-id="${r.id}" onchange="onRecordCheckChange()" style="cursor:pointer;width:16px;height:16px;"></td>
@@ -6300,7 +6224,6 @@
         <td><span class="activity-badge" style="background:${r.activityColor};">${sanitize(r.activityName)}</span></td>
         <td>${r.date}</td>
         <td>${r.time}</td>
-        <td>${mapsLink}</td>
         <td><button onclick="deleteSingleRecord('${r.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:1rem;padding:4px 6px;border-radius:6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">🗑</button></td>
       </tr>`;
                 }).join("");
@@ -6449,8 +6372,6 @@
                         r.activityName,
                         r.date,
                         r.time,
-                        r.lat || "",
-                        r.lng || "",
                         r.lat && r.lng ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : "",
                     ]);
                 const csv = [header, ...rows]
@@ -6706,35 +6627,23 @@
             }
 
             function getLocationAndSave(memberId, activityId) {
-                // Si los datos aún no cargaron desde Firebase, esperar
                 if (!state.members || state.members.length === 0) {
                     setScanStatus("Cargando datos, por favor espera...", "info");
-                    loadFromCloud().then(() => {
-                        getLocationAndSave(memberId, activityId);
-                    });
+                    loadFromCloud().then(() => { getLocationAndSave(memberId, activityId); });
                     return;
                 }
-                setScanStatus("Obteniendo ubicación GPS...", "info");
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => saveRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude),
-                        () => saveRecord(memberId, activityId, null, null),
-                        { timeout: 8000 },
-                    );
-                } else {
-                    saveRecord(memberId, activityId, null, null);
-                }
+                saveRecord(memberId, activityId);
             }
 
             let _saveRecordInProgress = false;
-            function saveRecord(memberId, activityId, lat, lng) {
+            function saveRecord(memberId, activityId) {
                 if (_saveRecordInProgress) return;
                 _saveRecordInProgress = true;
                 var picker = document.getElementById("activity-picker");
                 if (picker) picker.remove();
 
                 function doSave(tipo) {
-                    addRecord(memberId, activityId, lat, lng, tipo).then(ok => {
+                    addRecord(memberId, activityId, tipo).then(ok => {
                         _saveRecordInProgress = false;
                         if (ok) {
                             var member = state.members.find(function(m){ return m.id===memberId; });
@@ -6776,7 +6685,7 @@
                 document.getElementById('success-time').textContent =
                     '🕐 ' + now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}) +
                     '  •  ' + now.toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
-                document.getElementById('success-gps').textContent = hasGps ? '📍 Ubicación GPS registrada' : '';
+
 
                 // Mostrar modal
                 modal.style.display = 'flex';
@@ -6939,15 +6848,7 @@
                 }
 
                 function doManualB(tipo) {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            function(pos){ addRecord(memberId,activityId,pos.coords.latitude,pos.coords.longitude,tipo).then(function(){ afterManualB(); }); },
-                            function(){   addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManualB(); }); },
-                            {timeout:5000}
-                        );
-                    } else {
-                        addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManualB(); });
-                    }
+                    addRecord(memberId, activityId, tipo).then(function(){ afterManualB(); });
                 }
 
                 if (typeof isMemberFromProgreso === 'function' && isMemberFromProgreso(memberId)) {
@@ -7116,13 +7017,7 @@
                 var activityId = _manualSelectedActivityId;
                 if (!memberId || !activityId) { showToast("Selecciona actividad e integrante."); return; }
                 function doManual(tipo) {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            function(pos){ addRecord(memberId,activityId,pos.coords.latitude,pos.coords.longitude,tipo).then(function(){ afterManual(); }); },
-                            function(){   addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManual(); }); },
-                            {timeout:5000}
-                        );
-                    } else { addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManual(); }); }
+                    addRecord(memberId, activityId, tipo).then(function(){ afterManual(); });
                 }
                 if (isMemberFromProgreso(memberId)) {
                     showRetardoModal(memberId, activityId, function(tipo){
@@ -7195,7 +7090,7 @@
                 // Generar CSV (compatible con Excel)
                 const headers = ['ID','Integrante','Iglesia','Actividad','Fecha','Hora','Lat','Lng'];
                 const rows = recs.map(r => [
-                    r.id, r.memberName, r.churchName||'', r.activityName, r.date, r.time, r.lat||'', r.lng||''
+                    r.id, r.memberName, r.churchName||'', r.activityName, r.date, r.time
                 ]);
                 const csvContent = [headers, ...rows]
                     .map(row => row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','))
@@ -8403,29 +8298,18 @@
                 // Diacono: ocultar QR, uniformes y registro manual del dashboard
                 const qrCard = document.getElementById('qcard-qr');
                 const uniCard = document.getElementById('qcard-uniforms');
-                const manualDashCard = document.getElementById('dashboard-manual');
-                if (qrCard)  qrCard.style.display  = isDiacono() ? 'none' : '';
                 if (uniCard) uniCard.style.display  = isDiacono() ? 'none' : '';
                 if (manualDashCard) manualDashCard.style.display = isDiacono() ? 'none' : '';
                 const dbCard = document.getElementById('db-archive-card');
                 if (dbCard) dbCard.style.display = isDiacono() ? 'none' : '';
 
                 // Actualizar selectores del registro manual del dashboard
-                updateDashManualSelects();
             }
 
             let _dashSelectedMemberId = null;
             let _dashSelectedActivityId = null;
 
-            function updateDashManualSelects() {
-                const as = document.getElementById('dash-manual-activity');
-                if (as) {
-                    as.innerHTML = '<option value=""></option>' +
-                        state.activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                }
-                renderDashActivityChips();
-                updateDashSubmitBtn();
-            }
+
 
             function renderDashActivityChips() {
                 const container = document.getElementById('dash-activity-chips');
@@ -8554,15 +8438,7 @@
                 if (!memberId || !activityId) { showToast('Selecciona actividad e integrante.'); return; }
 
                 function doDash(tipo) {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            pos => addRecord(memberId, activityId, pos.coords.latitude, pos.coords.longitude, tipo).then(() => afterDashManual()),
-                            ()  => addRecord(memberId, activityId, null, null, tipo).then(() => afterDashManual()),
-                            { timeout: 5000 }
-                        );
-                    } else {
-                        addRecord(memberId, activityId, null, null, tipo).then(() => afterDashManual());
-                    }
+                    addRecord(memberId, activityId, tipo).then(() => afterDashManual());
                 }
 
                 if (isMemberFromProgreso(memberId)) {
