@@ -6795,7 +6795,7 @@
             function updateManualSelectsB() {
                 const chips = document.getElementById('manual-activity-chips-b');
                 if (!chips) return;
-                const acts = (typeof getVisibleActivities === 'function') ? getVisibleActivities() : (state.activities || []);
+                const acts = (typeof visibleActivities === 'function') ? visibleActivities() : (state.activities || []);
                 chips.innerHTML = acts.map(a => `
                     <button onclick="selectManualActivityB('${a.id}')" id="chip-b-${a.id}"
                         style="padding:6px 14px;border-radius:50px;border:1.5px solid var(--gray-300);background:white;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--gray-600);">
@@ -6826,7 +6826,7 @@
             function showManualDropdownB(q) {
                 const dd = document.getElementById('manual-member-dropdown-b');
                 if (!dd) return;
-                const members = (typeof getVisibleMembers === 'function') ? getVisibleMembers() : (state.members || []);
+                const members = visibleMembers();
                 const term = q !== undefined ? q : (document.getElementById('manual-member-search-b')?.value || '').toLowerCase();
                 const filtered = term ? members.filter(m => m.name.toLowerCase().includes(term)) : members;
                 if (!filtered.length) { dd.style.display = 'none'; return; }
