@@ -3121,52 +3121,95 @@
         </div><!-- /view-admin -->
 
         <!-- ==================== MEMBER SCANNER VIEW ==================== -->
-        <!-- ═══════════════════ PANTALLA LOGIN INTEGRANTE ═══════════════════ -->
+        <!-- ═══════════════════ PANTALLA LOGIN ═══════════════════ -->
         <div id="view-login-member" class="view active">
-            <header class="app-header">
-                <div class="header-inner">
-                    <div class="header-logo" style="display:flex;align-items:center;">
-                        <svg id="logo-lm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1637.31 514.08" style="height:36px;"><path style="fill:#333" d="M1608.85,1433.22l-0.24-1.22h-23l0.38,1.82a137.21,137.21,0,0,1,1.82,22.16c0,77.76-63.91,140.9-142.47,140.9s-142.47-63.33-142.47-141.09,63.59-141.06,141.75-141.06a134.86,134.86,0,0,1,43.73,7.2l2.67,0.87v113c-17-15.81-47.78-19.32-76.64-8.4-22.17,8.4-39.29,23.61-47.39,41.73-5.45,12.2-5.95,24.49-1.68,35.54,10.86,28.13,51,39.19,89.39,24.65,32.89-12.45,55-40.38,52.49-66.31l0.53-244.95c5.39,1.06,28.82,6.6,50,26.1,24,22.05,30,48,30,48.27l0,0.12c0.06,0.18,6.44,18.42,3.75,42.59a135,135,0,0,1-13,43.61l-0.1.19v0.21c-0.21,3.11.52,5.21,2.18,6.24,3,1.86,7.54-.68,8-1l0.22-.13,0.13-.22c15.11-24.69,20.58-57.88,20.63-58.21s4.47-29.76-15.27-69.33c-14.05-28.15-36.33-52.81-49.63-67.54-5.44-6-9.74-10.78-11.18-13.26-5-8.55-27.37-62.81-27.61-63.38-1.48-3.27-3.62-7.16-5.43-7.16-1.37,0-5.56.48-6.8,2.63a45.48,45.48,0,0,0-2.21,4.71l-0.53.12v186.58l0.43-.07-1-.38a160.45,160.45,0,0,0-45.91-6.63,164.33,164.33,0,0,0-116.36,47.9,162.57,162.57,0,0,0,.32,231.33,166.41,166.41,0,0,0,233.64,0c31.21-30.9,48.4-71.73,48.4-115.42A161.07,161.07,0,0,0,1608.85,1433.22Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M1845.84,1387.57L1822,1410.06q-24.32-25.44-54.71-25.44-25.65,0-43.22,17.36t-17.57,42.81q0,17.73,7.78,31.47a55.49,55.49,0,0,0,22,21.58,64.4,64.4,0,0,0,31.61,7.84,65.69,65.69,0,0,0,27.11-5.49q12.28-5.49,27-20l23.1,23.86q-19.83,19.17-37.48,26.58t-40.27,7.41q-41.73,0-68.32-26.2t-26.59-67.16q0-26.5,12.11-47.1t34.68-33.13a98.56,98.56,0,0,1,48.61-12.53A103.61,103.61,0,0,1,1845.84,1387.57Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M1934.18,1399.2a70.72,70.72,0,0,1,35.22,9.28,67.91,67.91,0,0,1,35,59.51,68.31,68.31,0,0,1-9.31,34.7,66.82,66.82,0,0,1-25.37,25.24,70.6,70.6,0,0,1-35.41,9.1q-28.47,0-48.61-20.06t-20.14-48.73q0-30.72,22.75-51.2Q1908.26,1399.2,1934.18,1399.2Zm0.55,31q-15.48,0-25.78,10.66t-10.3,27.29q0,17.11,10.18,27.71t25.78,10.6q15.6,0,26-10.72t10.36-27.59q0-16.86-10.18-27.41T1934.73,1430.16Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M2023.73,1402.57h28.47v16.5a35.29,35.29,0,0,1,12.29-14.82,29.86,29.86,0,0,1,16.79-5.06,31.32,31.32,0,0,1,13.51,3.37l-10.34,28.31q-5.84-2.89-9.61-2.89-7.67,0-13,9.4t-5.29,36.86l0.12,6.38v53h-33V1402.57Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M2208.92,1402.57h33.22v131.07h-33.22v-13.85q-9.72,9.16-19.51,13.19a55.08,55.08,0,0,1-21.21,4q-25.64,0-44.36-19.7t-18.71-49q0-30.36,18.11-49.75t44-19.39a56.4,56.4,0,0,1,22.36,4.46,61.07,61.07,0,0,1,19.33,13.37v-14.46Zm-34.92,27q-15.4,0-25.59,10.78T2138.23,1468q0,17,10.37,27.95a33.75,33.75,0,0,0,25.53,11q15.64,0,25.95-10.78t10.31-28.25q0-17.1-10.31-27.71T2174,1429.56Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M2272.06,1352h33.22v181.67h-33.22V1352Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2460.86,1380.53l-25.23,22q-13.29-18.31-27.06-18.31a16.57,16.57,0,0,0-11,3.55q-4.27,3.55-4.27,8a13.63,13.63,0,0,0,3,8.43q4.14,5.3,25,22.77,19.5,16.14,23.65,20.36,10.36,10.36,14.69,19.82a49.09,49.09,0,0,1,4.33,20.66q0,21.8-15.23,36t-39.71,14.22q-19.12,0-33.31-9.28t-24.3-29.15l28.64-17.11q12.92,23.49,29.73,23.49a22,22,0,0,0,14.75-5.06q6-5.06,6-11.69,0-6-4.51-12t-19.87-18.43q-29.25-23.61-37.78-36.44t-8.53-25.6q0-18.43,14.19-31.62t35-13.19a55.7,55.7,0,0,1,25.52,6.14Q2446.73,1364.26,2460.86,1380.53Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2478.17,1402.57h33.95l34.39,82.24,37.94-82.24h34l-82.91,179h-34.31l27.22-57.73Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2637.41,1402.57h33.22V1416q11.3-9.43,20.47-13.12a49.9,49.9,0,0,1,18.77-3.69,45.68,45.68,0,0,1,33.41,13.61q11.54,11.57,11.54,34.21v86.62H2722v-57.4q0-23.46-2.12-31.16t-7.41-11.73a20.87,20.87,0,0,0-13-4,24.59,24.59,0,0,0-17.3,6.68q-7.22,6.68-10,18.47-1.46,6.14-1.46,26.59v52.58h-33.22V1402.57Z" transform="translate(-1279.94 -1105.21)"/><path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2916.52,1429.07l-27.65,15.06q-7.8-8.07-15.41-11.2a46.73,46.73,0,0,0-17.85-3.13q-18.64,0-30.15,11T2814,1469q0,16.72,11.09,27.31t29.11,10.58q22.3,0,34.72-15.06l26.19,17.76Q2893.77,1537,2855,1537q-34.92,0-54.69-20.48t-19.77-47.94a67.39,67.39,0,0,1,36.44-60.23q17.21-9.15,38.51-9.16,19.71,0,35.41,7.77A67,67,0,0,1,2916.52,1429.07Z" transform="translate(-1279.94 -1105.21)"/></svg>
+            <div style="min-height:100vh;display:flex;background:linear-gradient(135deg,#0f2240 0%,#1a3a5c 50%,#0f2240 100%);">
+
+                <!-- Panel izquierdo decorativo (solo desktop) -->
+                <div style="display:none;flex:1;align-items:center;justify-content:center;padding:48px;" class="login-deco-panel">
+                    <div style="text-align:center;color:rgba(255,255,255,0.15);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                     </div>
-                    <div class="header-titles"><p>CoralSync</p></div>
                 </div>
-            </header>
-            <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:var(--gray-100);">
-                <div style="background:#fff;border-radius:20px;padding:36px 28px;width:100%;max-width:400px;box-shadow:0 4px 32px rgba(26,48,78,0.10);">
-                    <div style="text-align:center;margin-bottom:28px;">
-                        <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--navy),var(--copper));border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </div>
-                        <h2 style="font-size:1.4rem;font-weight:700;color:var(--navy);margin:0 0 6px;">Iniciar Sesión</h2>
-                        <p style="color:var(--gray-500);font-size:0.9rem;margin:0;">Ingresa tus credenciales para registrar asistencia</p>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:14px;">
-                        <div>
-                            <label style="font-size:0.8rem;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Usuario</label>
-                            <input id="lm-username" type="text" autocomplete="username" placeholder="Escribe tu usuario..."
-                                style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:1rem;outline:none;box-sizing:border-box;transition:border .2s;"
-                                onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='var(--gray-300)'"
-                                onkeydown="if(event.key==='Enter')document.getElementById('lm-password').focus()">
-                        </div>
-                        <div>
-                            <label style="font-size:0.8rem;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Contraseña</label>
-                            <div style="position:relative;">
-                                <input id="lm-password" type="password" autocomplete="current-password" placeholder="••••••••"
-                                    style="width:100%;padding:12px 44px 12px 14px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:1rem;outline:none;box-sizing:border-box;transition:border .2s;"
-                                    onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='var(--gray-300)'"
-                                    onkeydown="if(event.key==='Enter')loginMember()">
-                                <button onclick="toggleLmPass()" type="button" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px;">
-                                    <svg id="lm-eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+
+                <!-- Formulario centrado -->
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;">
+                    <div style="width:100%;max-width:420px;">
+
+                        <!-- Card del formulario -->
+                        <div style="background:#fff;border-radius:24px;padding:40px 36px;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+                            <!-- Logo dentro del card con colores originales -->
+                            <div style="text-align:center;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid #f1f5f9;">
+                                <svg id="logo-lm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1637.31 514.08" style="height:40px;max-width:240px;">
+                                    <path style="fill:#333" d="M1608.85,1433.22l-0.24-1.22h-23l0.38,1.82a137.21,137.21,0,0,1,1.82,22.16c0,77.76-63.91,140.9-142.47,140.9s-142.47-63.33-142.47-141.09,63.59-141.06,141.75-141.06a134.86,134.86,0,0,1,43.73,7.2l2.67,0.87v113c-17-15.81-47.78-19.32-76.64-8.4-22.17,8.4-39.29,23.61-47.39,41.73-5.45,12.2-5.95,24.49-1.68,35.54,10.86,28.13,51,39.19,89.39,24.65,32.89-12.45,55-40.38,52.49-66.31l0.53-244.95c5.39,1.06,28.82,6.6,50,26.1,24,22.05,30,48,30,48.27l0,0.12c0.06,0.18,6.44,18.42,3.75,42.59a135,135,0,0,1-13,43.61l-0.1.19v0.21c-0.21,3.11.52,5.21,2.18,6.24,3,1.86,7.54-.68,8-1l0.22-.13,0.13-.22c15.11-24.69,20.58-57.88,20.63-58.21s4.47-29.76-15.27-69.33c-14.05-28.15-36.33-52.81-49.63-67.54-5.44-6-9.74-10.78-11.18-13.26-5-8.55-27.37-62.81-27.61-63.38-1.48-3.27-3.62-7.16-5.43-7.16-1.37,0-5.56.48-6.8,2.63a45.48,45.48,0,0,0-2.21,4.71l-0.53.12v186.58l0.43-.07-1-.38a160.45,160.45,0,0,0-45.91-6.63,164.33,164.33,0,0,0-116.36,47.9,162.57,162.57,0,0,0,.32,231.33,166.41,166.41,0,0,0,233.64,0c31.21-30.9,48.4-71.73,48.4-115.42A161.07,161.07,0,0,0,1608.85,1433.22Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M1845.84,1387.57L1822,1410.06q-24.32-25.44-54.71-25.44-25.65,0-43.22,17.36t-17.57,42.81q0,17.73,7.78,31.47a55.49,55.49,0,0,0,22,21.58,64.4,64.4,0,0,0,31.61,7.84,65.69,65.69,0,0,0,27.11-5.49q12.28-5.49,27-20l23.1,23.86q-19.83,19.17-37.48,26.58t-40.27,7.41q-41.73,0-68.32-26.2t-26.59-67.16q0-26.5,12.11-47.1t34.68-33.13a98.56,98.56,0,0,1,48.61-12.53A103.61,103.61,0,0,1,1845.84,1387.57Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M1934.18,1399.2a70.72,70.72,0,0,1,35.22,9.28,67.91,67.91,0,0,1,35,59.51,68.31,68.31,0,0,1-9.31,34.7,66.82,66.82,0,0,1-25.37,25.24,70.6,70.6,0,0,1-35.41,9.1q-28.47,0-48.61-20.06t-20.14-48.73q0-30.72,22.75-51.2Q1908.26,1399.2,1934.18,1399.2Zm0.55,31q-15.48,0-25.78,10.66t-10.3,27.29q0,17.11,10.18,27.71t25.78,10.6q15.6,0,26-10.72t10.36-27.59q0-16.86-10.18-27.41T1934.73,1430.16Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M2023.73,1402.57h28.47v16.5a35.29,35.29,0,0,1,12.29-14.82,29.86,29.86,0,0,1,16.79-5.06,31.32,31.32,0,0,1,13.51,3.37l-10.34,28.31q-5.84-2.89-9.61-2.89-7.67,0-13,9.4t-5.29,36.86l0.12,6.38v53h-33V1402.57Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M2208.92,1402.57h33.22v131.07h-33.22v-13.85q-9.72,9.16-19.51,13.19a55.08,55.08,0,0,1-21.21,4q-25.64,0-44.36-19.7t-18.71-49q0-30.36,18.11-49.75t44-19.39a56.4,56.4,0,0,1,22.36,4.46,61.07,61.07,0,0,1,19.33,13.37v-14.46Zm-34.92,27q-15.4,0-25.59,10.78T2138.23,1468q0,17,10.37,27.95a33.75,33.75,0,0,0,25.53,11q15.64,0,25.95-10.78t10.31-28.25q0-17.1-10.31-27.71T2174,1429.56Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#333;stroke:#111;stroke-miterlimit:10" d="M2272.06,1352h33.22v181.67h-33.22V1352Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2460.86,1380.53l-25.23,22q-13.29-18.31-27.06-18.31a16.57,16.57,0,0,0-11,3.55q-4.27,3.55-4.27,8a13.63,13.63,0,0,0,3,8.43q4.14,5.3,25,22.77,19.5,16.14,23.65,20.36,10.36,10.36,14.69,19.82a49.09,49.09,0,0,1,4.33,20.66q0,21.8-15.23,36t-39.71,14.22q-19.12,0-33.31-9.28t-24.3-29.15l28.64-17.11q12.92,23.49,29.73,23.49a22,22,0,0,0,14.75-5.06q6-5.06,6-11.69,0-6-4.51-12t-19.87-18.43q-29.25-23.61-37.78-36.44t-8.53-25.6q0-18.43,14.19-31.62t35-13.19a55.7,55.7,0,0,1,25.52,6.14Q2446.73,1364.26,2460.86,1380.53Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2478.17,1402.57h33.95l34.39,82.24,37.94-82.24h34l-82.91,179h-34.31l27.22-57.73Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2637.41,1402.57h33.22V1416q11.3-9.43,20.47-13.12a49.9,49.9,0,0,1,18.77-3.69,45.68,45.68,0,0,1,33.41,13.61q11.54,11.57,11.54,34.21v86.62H2722v-57.4q0-23.46-2.12-31.16t-7.41-11.73a20.87,20.87,0,0,0-13-4,24.59,24.59,0,0,0-17.3,6.68q-7.22,6.68-10,18.47-1.46,6.14-1.46,26.59v52.58h-33.22V1402.57Z" transform="translate(-1279.94 -1105.21)"/>
+                                    <path style="fill:#b89852;stroke:#89703e;stroke-miterlimit:10" d="M2916.52,1429.07l-27.65,15.06q-7.8-8.07-15.41-11.2a46.73,46.73,0,0,0-17.85-3.13q-18.64,0-30.15,11T2814,1469q0,16.72,11.09,27.31t29.11,10.58q22.3,0,34.72-15.06l26.19,17.76Q2893.77,1537,2855,1537q-34.92,0-54.69-20.48t-19.77-47.94a67.39,67.39,0,0,1,36.44-60.23q17.21-9.15,38.51-9.16,19.71,0,35.41,7.77A67,67,0,0,1,2916.52,1429.07Z" transform="translate(-1279.94 -1105.21)"/>
+                                </svg>
+                            </div>
+                            <!-- Título -->
+                            <div style="margin-bottom:32px;">
+                                <h2 style="font-size:1.6rem;font-weight:800;color:#0f2240;margin:0 0 6px;letter-spacing:-0.02em;">Bienvenido</h2>
+                                <p style="color:#64748b;font-size:0.9rem;margin:0;">Ingresa tus credenciales para continuar</p>
+                            </div>
+
+                            <!-- Campos -->
+                            <div style="display:flex;flex-direction:column;gap:18px;">
+                                <!-- Usuario -->
+                                <div>
+                                    <label style="display:block;font-size:0.75rem;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Usuario</label>
+                                    <div style="position:relative;">
+                                        <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <input id="lm-username" type="text" autocomplete="username" placeholder="Tu nombre de usuario"
+                                            style="width:100%;padding:13px 14px 13px 42px;border:2px solid #e2e8f0;border-radius:12px;font-size:0.95rem;outline:none;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;background:#f8fafc;color:#0f2240;"
+                                            onfocus="this.style.borderColor='#b89852';this.style.boxShadow='0 0 0 3px rgba(184,152,82,0.15)';this.style.background='#fff'"
+                                            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'"
+                                            onkeydown="if(event.key==='Enter')document.getElementById('lm-password').focus()">
+                                    </div>
+                                </div>
+                                <!-- Contraseña -->
+                                <div>
+                                    <label style="display:block;font-size:0.75rem;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Contraseña</label>
+                                    <div style="position:relative;">
+                                        <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <input id="lm-password" type="password" autocomplete="current-password" placeholder="••••••••"
+                                            style="width:100%;padding:13px 46px 13px 42px;border:2px solid #e2e8f0;border-radius:12px;font-size:0.95rem;outline:none;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;background:#f8fafc;color:#0f2240;"
+                                            onfocus="this.style.borderColor='#b89852';this.style.boxShadow='0 0 0 3px rgba(184,152,82,0.15)';this.style.background='#fff'"
+                                            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'"
+                                            onkeydown="if(event.key==='Enter')loginMember()">
+                                        <button onclick="toggleLmPass()" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;display:flex;align-items:center;">
+                                            <svg id="lm-eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Error -->
+                                <div id="lm-error" style="display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:0.875rem;font-weight:500;align-items:center;gap:8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    <span id="lm-error-text"></span>
+                                </div>
+
+                                <!-- Botón ingresar -->
+                                <button onclick="loginMember()"
+                                    style="width:100%;padding:14px;background:linear-gradient(135deg,#0f2240,#1a3a5c);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.02em;margin-top:4px;box-shadow:0 4px 14px rgba(15,34,64,0.4);"
+                                    onmouseover="this.style.background='linear-gradient(135deg,#b89852,#d4a832)';this.style.boxShadow='0 4px 14px rgba(184,152,82,0.4)'"
+                                    onmouseout="this.style.background='linear-gradient(135deg,#0f2240,#1a3a5c)';this.style.boxShadow='0 4px 14px rgba(15,34,64,0.4)'">
+                                    Iniciar Sesión →
                                 </button>
                             </div>
+
+                            <!-- Nota footer -->
+                            <p style="text-align:center;color:#94a3b8;font-size:0.78rem;margin-top:24px;line-height:1.5;">
+                                Acceso exclusivo para directores,<br>auxiliares y personal autorizado
+                            </p>
                         </div>
-                        <div id="lm-error" style="display:none;background:#fee2e2;color:#b91c1c;border-radius:8px;padding:10px 14px;font-size:0.88rem;font-weight:500;"></div>
-                        <button onclick="loginMember()" style="background:var(--navy);color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;transition:background .2s;"
-                            onmouseover="this.style.background='var(--copper)'" onmouseout="this.style.background='var(--navy)'">
-                            Ingresar →
-                        </button>
                     </div>
-                    <p style="text-align:center;color:var(--gray-400);font-size:0.78rem;margin-top:20px;">Solo directores, auxiliares y personal autorizado pueden ingresar</p>
                 </div>
             </div>
         </div>
@@ -3258,6 +3301,63 @@
                             Detener Cámara
                         </button>
                     </div>
+                </div>
+
+                <!-- ── Lista Manual ── -->
+                <div style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:0 1px 8px rgba(26,58,92,0.07);border:1px solid #e5e8ef;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+                        <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--navy),var(--copper));border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        </div>
+                        <div>
+                            <div style="font-size:0.95rem;font-weight:700;color:var(--navy);">Lista Manual</div>
+                            <div style="font-size:0.75rem;color:var(--gray-500);">Registra asistencia sin código QR</div>
+                        </div>
+                    </div>
+
+                    <!-- Actividad -->
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gray-500);margin-bottom:8px;">1. Selecciona la actividad</label>
+                        <div id="manual-activity-chips-b" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                    </div>
+
+                    <!-- Buscar integrante -->
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gray-500);margin-bottom:8px;">2. Busca al integrante</label>
+                        <div style="position:relative;">
+                            <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-400);" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="manual-member-search-b"
+                                placeholder="Escribe el nombre..."
+                                oninput="filterManualMembersB()"
+                                onfocus="showManualDropdownB()"
+                                autocomplete="off"
+                                style="width:100%;padding:11px 14px 11px 36px;border:2px solid var(--gray-300);border-radius:12px;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color .2s;background:#f8fafc;"
+                                onfocusin="this.style.borderColor='var(--copper)';this.style.background='#fff'"
+                                onfocusout="setTimeout(()=>hideManualDropdownB(),200);this.style.borderColor='var(--gray-300)';this.style.background='#f8fafc'">
+                            <div id="manual-member-dropdown-b" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid var(--copper);border-radius:12px;box-shadow:0 8px 24px rgba(27,38,59,0.15);z-index:500;max-height:240px;overflow-y:auto;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Preview integrante -->
+                    <div id="manual-member-preview-b" style="display:none;background:var(--gray-100);border-radius:12px;padding:11px 14px;margin-bottom:14px;align-items:center;gap:10px;">
+                        <div style="width:34px;height:34px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-weight:700;color:var(--navy);font-size:0.9rem;" id="manual-preview-name-b"></div>
+                            <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;" id="manual-preview-info-b"></div>
+                        </div>
+                        <button onclick="clearManualMemberB()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.1rem;padding:4px;line-height:1;">&#x2715;</button>
+                    </div>
+
+                    <!-- Botón registrar -->
+                    <button onclick="submitManualRecordB()" id="manual-submit-btn-b"
+                        style="width:100%;padding:13px;background:var(--gray-200);color:var(--gray-400);border:none;border-radius:12px;cursor:not-allowed;font-size:0.95rem;font-weight:700;transition:all .2s;"
+                        disabled>
+                        ✓ Registrar asistencia
+                    </button>
+                    <input type="hidden" id="manual-member-b">
+                    <select id="manual-activity-b" style="display:none;"></select>
                 </div>
 
                 <!-- Advertencia file:// -->
@@ -3996,7 +4096,7 @@
                 if (d.churches   !== undefined) state.churches   = d.churches   || [];
                 localStorage.setItem("cva_cache", JSON.stringify(state));
                 if (typeof renderAll === 'function') renderAll();
-                if (typeof updateManualSelects === 'function') updateManualSelects();
+                if (typeof updateManualSelects === 'function') { updateManualSelects(); updateManualSelectsB && updateManualSelectsB(); }
             };
 
             // Actualización en tiempo real: registros desde subcoleccion
@@ -4020,7 +4120,7 @@
                 state.records = [...safeFbRecords, ...extra];
                 localStorage.setItem("cva_cache", JSON.stringify(state));
                 if (typeof renderAll === 'function') renderAll();
-                if (typeof updateManualSelects === 'function') updateManualSelects();
+                if (typeof updateManualSelects === 'function') { updateManualSelects(); updateManualSelectsB && updateManualSelectsB(); }
             };
 
             // Exponer setSyncBadge al scope global para Firebase
@@ -4260,11 +4360,12 @@
             function loginMember() {
                 const errEl = document.getElementById('lm-error');
                 errEl.style.display = 'none';
+                const lmErrText = document.getElementById('lm-error-text');
 
                 if (lmBlockedUntil && Date.now() < lmBlockedUntil) {
                     const seg = Math.ceil((lmBlockedUntil - Date.now()) / 1000);
-                    errEl.textContent = `Demasiados intentos. Espera ${seg} segundos.`;
-                    errEl.style.display = 'block';
+                    if(lmErrText) lmErrText.textContent = `Demasiados intentos. Espera ${seg} segundos.`;
+                    errEl.style.display = 'flex';
                     return;
                 }
 
@@ -4272,8 +4373,8 @@
                 const pass = (document.getElementById('lm-password').value || '');
 
                 if (!user || !pass) {
-                    errEl.textContent = 'Ingresa usuario y contraseña.';
-                    errEl.style.display = 'block';
+                    if(lmErrText) lmErrText.textContent = 'Ingresa usuario y contraseña.';
+                    errEl.style.display = 'flex';
                     return;
                 }
 
@@ -4316,9 +4417,10 @@
                     }
                     // Cargar datos si no están cargados
                     if (!state.members || !state.members.length) {
-                        loadFromCloud().then(() => { updateManualSelects && updateManualSelects(); });
+                        loadFromCloud().then(() => { updateManualSelects && updateManualSelects(); updateManualSelectsB && updateManualSelectsB(); });
                     } else {
                         updateManualSelects && updateManualSelects();
+                        updateManualSelectsB && updateManualSelectsB();
                     }
                     showView('view-member');
                     resetSessionTimer && resetSessionTimer();
@@ -4333,7 +4435,7 @@
                 } else {
                     errEl.textContent = `Credenciales incorrectas (intento ${lmAttempts}/5)`;
                 }
-                errEl.style.display = 'block';
+                errEl.style.display = 'flex';
                 document.getElementById('lm-password').value = '';
                 document.getElementById('lm-password').focus();
             }
@@ -6626,6 +6728,130 @@
             // ======================== MANUAL RECORD (solo panel admin) ========================
             let _manualSelectedMemberId = null;
             let _manualSelectedActivityId = null;
+
+            // ── Manual B (scanner view) ─────────────────────────────────────────────
+            let manualSelectedActivityB = null;
+            let manualSelectedMemberB   = null;
+
+            function updateManualSelectsB() {
+                const chips = document.getElementById('manual-activity-chips-b');
+                if (!chips) return;
+                const acts = getVisibleActivities ? getVisibleActivities() : (state.activities || []);
+                chips.innerHTML = acts.map(a => `
+                    <button onclick="selectManualActivityB('${a.id}')" id="chip-b-${a.id}"
+                        style="padding:6px 14px;border-radius:50px;border:1.5px solid var(--gray-300);background:white;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--gray-600);">
+                        ${a.name}
+                    </button>`).join('');
+                // Re-select if already selected
+                if (manualSelectedActivityB) selectManualActivityB(manualSelectedActivityB, true);
+            }
+
+            function selectManualActivityB(actId, silent) {
+                manualSelectedActivityB = actId;
+                document.querySelectorAll('[id^="chip-b-"]').forEach(c => {
+                    const active = c.id === 'chip-b-' + actId;
+                    c.style.background = active ? 'var(--navy)' : 'white';
+                    c.style.color      = active ? '#fff'       : 'var(--gray-600)';
+                    c.style.borderColor= active ? 'var(--navy)' : 'var(--gray-300)';
+                });
+                const sel = document.getElementById('manual-activity-b');
+                if (sel) sel.value = actId;
+                updateManualSubmitBtnB();
+            }
+
+            function filterManualMembersB() {
+                const q = (document.getElementById('manual-member-search-b')?.value || '').toLowerCase();
+                showManualDropdownB(q);
+            }
+
+            function showManualDropdownB(q) {
+                const dd = document.getElementById('manual-member-dropdown-b');
+                if (!dd) return;
+                const members = getVisibleMembers ? getVisibleMembers() : (state.members || []);
+                const term = q !== undefined ? q : (document.getElementById('manual-member-search-b')?.value || '').toLowerCase();
+                const filtered = term ? members.filter(m => m.name.toLowerCase().includes(term)) : members;
+                if (!filtered.length) { dd.style.display = 'none'; return; }
+                dd.innerHTML = filtered.slice(0,50).map(m => {
+                    const today = new Date().toISOString().slice(0,10);
+                    const alreadyToday = (state.records || []).some(r => r.memberId === m.id && r.date === today);
+                    return `<div onclick="selectManualMemberB('${m.id}')"
+                        style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);"
+                        onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='white'">
+                        <div>
+                            <span style="font-weight:600;color:var(--navy);font-size:0.9rem;">${m.name}</span>
+                            <span style="font-size:0.75rem;color:var(--gray-500);margin-left:6px;">${m.voice||''}</span>
+                        </div>
+                        ${alreadyToday ? '<span style="font-size:0.72rem;background:#dcfce7;color:#15803d;border-radius:6px;padding:2px 7px;font-weight:600;">Ya registrado hoy</span>' : ''}
+                    </div>`;
+                }).join('');
+                dd.style.display = 'block';
+            }
+
+            function hideManualDropdownB() {
+                const dd = document.getElementById('manual-member-dropdown-b');
+                if (dd) dd.style.display = 'none';
+            }
+
+            function selectManualMemberB(memberId) {
+                manualSelectedMemberB = memberId;
+                const m = (state.members || []).find(x => x.id === memberId);
+                if (!m) return;
+                const inp = document.getElementById('manual-member-search-b');
+                if (inp) inp.value = m.name;
+                hideManualDropdownB();
+                const preview = document.getElementById('manual-member-preview-b');
+                if (preview) {
+                    document.getElementById('manual-preview-name-b').textContent = m.name;
+                    document.getElementById('manual-preview-info-b').textContent = (m.voice||'') + (m.churchName ? '  ·  ' + m.churchName : '');
+                    preview.style.display = 'flex';
+                }
+                const hidden = document.getElementById('manual-member-b');
+                if (hidden) hidden.value = memberId;
+                updateManualSubmitBtnB();
+            }
+
+            function clearManualMemberB() {
+                manualSelectedMemberB = null;
+                const inp = document.getElementById('manual-member-search-b');
+                if (inp) inp.value = '';
+                const preview = document.getElementById('manual-member-preview-b');
+                if (preview) preview.style.display = 'none';
+                updateManualSubmitBtnB();
+            }
+
+            function updateManualSubmitBtnB() {
+                const btn = document.getElementById('manual-submit-btn-b');
+                if (!btn) return;
+                const ready = manualSelectedActivityB && manualSelectedMemberB;
+                btn.disabled = !ready;
+                btn.style.background  = ready ? 'var(--navy)' : 'var(--gray-200)';
+                btn.style.color       = ready ? '#fff'        : 'var(--gray-400)';
+                btn.style.cursor      = ready ? 'pointer'     : 'not-allowed';
+                btn.style.opacity     = ready ? '1'           : '0.6';
+            }
+
+            function submitManualRecordB() {
+                if (!manualSelectedActivityB || !manualSelectedMemberB) return;
+                // Reusar submitManualRecord lógica con los valores B
+                const hiddenAct = document.getElementById('manual-activity');
+                const hiddenMem = document.getElementById('manual-member');
+                const origAct = hiddenAct?.value;
+                const origMem = hiddenMem?.value;
+                if (hiddenAct) hiddenAct.value = manualSelectedActivityB;
+                if (hiddenMem) hiddenMem.value = manualSelectedMemberB;
+                submitManualRecord();
+                // Reset B form
+                manualSelectedActivityB = null;
+                manualSelectedMemberB   = null;
+                clearManualMemberB();
+                document.querySelectorAll('[id^="chip-b-"]').forEach(c => {
+                    c.style.background = 'white'; c.style.color = 'var(--gray-600)'; c.style.borderColor = 'var(--gray-300)';
+                });
+                updateManualSubmitBtnB();
+                // Restore originals
+                if (hiddenAct && origAct !== undefined) hiddenAct.value = origAct;
+                if (hiddenMem && origMem !== undefined) hiddenMem.value = origMem;
+            }
 
             function updateManualSelects() {
                 // Rebuild hidden select for compat
