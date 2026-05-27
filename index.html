@@ -3311,61 +3311,71 @@
                     </div>
                 </div>
 
-                <!-- ── Lista Manual ── -->
-                <div style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:0 1px 8px rgba(26,58,92,0.07);border:1px solid #e5e8ef;">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
-                        <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--navy),var(--copper));border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <!-- ── Lista Manual (colapsable) ── -->
+                <div style="border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(26,58,92,0.07);border:1px solid #e5e8ef;">
+                    <!-- Trigger colapsable -->
+                    <button onclick="toggleManualB()" id="manual-b-toggle"
+                        style="width:100%;background:#fff;border:none;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s;"
+                        onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="width:36px;height:36px;background:linear-gradient(135deg,#1a3a5c,#b89852);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                            </div>
+                            <div style="text-align:left;">
+                                <div style="font-size:0.92rem;font-weight:700;color:#1a3a5c;">Registro Manual</div>
+                                <div style="font-size:0.75rem;color:#94a3b8;margin-top:1px;">Sin código QR — toca para abrir</div>
+                            </div>
                         </div>
-                        <div>
-                            <div style="font-size:0.95rem;font-weight:700;color:var(--navy);">Lista Manual</div>
-                            <div style="font-size:0.75rem;color:var(--gray-500);">Registra asistencia sin código QR</div>
-                        </div>
-                    </div>
-
-                    <!-- Actividad -->
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gray-500);margin-bottom:8px;">1. Selecciona la actividad</label>
-                        <div id="manual-activity-chips-b" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-                    </div>
-
-                    <!-- Buscar integrante -->
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gray-500);margin-bottom:8px;">2. Busca al integrante</label>
-                        <div style="position:relative;">
-                            <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-400);" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" id="manual-member-search-b"
-                                placeholder="Escribe el nombre..."
-                                oninput="filterManualMembersB()"
-                                onfocus="showManualDropdownB()"
-                                autocomplete="off"
-                                style="width:100%;padding:11px 14px 11px 36px;border:2px solid var(--gray-300);border-radius:12px;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color .2s;background:#f8fafc;"
-                                onfocusin="this.style.borderColor='var(--copper)';this.style.background='#fff'"
-                                onfocusout="setTimeout(()=>hideManualDropdownB(),200);this.style.borderColor='var(--gray-300)';this.style.background='#f8fafc'">
-                            <div id="manual-member-dropdown-b" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid var(--copper);border-radius:12px;box-shadow:0 8px 24px rgba(27,38,59,0.15);z-index:500;max-height:240px;overflow-y:auto;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Preview integrante -->
-                    <div id="manual-member-preview-b" style="display:none;background:var(--gray-100);border-radius:12px;padding:11px 14px;margin-bottom:14px;align-items:center;gap:10px;">
-                        <div style="width:34px;height:34px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-weight:700;color:var(--navy);font-size:0.9rem;" id="manual-preview-name-b"></div>
-                            <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;" id="manual-preview-info-b"></div>
-                        </div>
-                        <button onclick="clearManualMemberB()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.1rem;padding:4px;line-height:1;">&#x2715;</button>
-                    </div>
-
-                    <!-- Botón registrar -->
-                    <button onclick="submitManualRecordB()" id="manual-submit-btn-b"
-                        style="width:100%;padding:13px;background:var(--gray-200);color:var(--gray-400);border:none;border-radius:12px;cursor:not-allowed;font-size:0.95rem;font-weight:700;transition:all .2s;"
-                        disabled>
-                        ✓ Registrar asistencia
+                        <svg id="manual-b-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" style="transition:transform .25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <input type="hidden" id="manual-member-b">
-                    <select id="manual-activity-b" style="display:none;"></select>
+
+                    <!-- Panel colapsable -->
+                    <div id="manual-b-panel" style="display:none;background:#fff;border-top:1px solid #f1f5f9;padding:20px;">
+
+                        <!-- Actividad -->
+                        <div style="margin-bottom:16px;">
+                            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:10px;">1. Selecciona la actividad</div>
+                            <div id="manual-activity-chips-b" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                        </div>
+
+                        <!-- Buscar integrante -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:10px;">2. Busca al integrante</div>
+                            <div style="position:relative;">
+                                <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="manual-member-search-b"
+                                    placeholder="Escribe el nombre..."
+                                    oninput="filterManualMembersB()"
+                                    onfocus="showManualDropdownB()"
+                                    autocomplete="off"
+                                    style="width:100%;padding:11px 14px 11px 38px;border:2px solid #e2e8f0;border-radius:12px;font-size:0.92rem;outline:none;box-sizing:border-box;transition:border-color .2s;background:#f8fafc;color:#1a3a5c;"
+                                    onfocusin="this.style.borderColor='#b89852';this.style.background='#fff'"
+                                    onfocusout="setTimeout(()=>hideManualDropdownB(),200);this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+                                <div id="manual-member-dropdown-b" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:2px solid #b89852;border-radius:12px;box-shadow:0 8px 24px rgba(26,58,92,0.15);z-index:500;max-height:260px;overflow-y:auto;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Preview integrante -->
+                        <div id="manual-member-preview-b" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:11px 14px;margin-bottom:14px;align-items:center;gap:10px;">
+                            <div style="width:32px;height:32px;border-radius:50%;background:#1a3a5c;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:700;color:#1a3a5c;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="manual-preview-name-b"></div>
+                                <div style="font-size:0.73rem;color:#94a3b8;margin-top:1px;" id="manual-preview-info-b"></div>
+                            </div>
+                            <button onclick="clearManualMemberB()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:1rem;padding:4px;line-height:1;flex-shrink:0;">✕</button>
+                        </div>
+
+                        <!-- Botón registrar -->
+                        <button onclick="submitManualRecordB()" id="manual-submit-btn-b"
+                            style="width:100%;padding:13px;background:#e5e7eb;color:#9ca3af;border:none;border-radius:12px;cursor:not-allowed;font-size:0.95rem;font-weight:700;"
+                            disabled>
+                            ✓ Registrar asistencia
+                        </button>
+                        <input type="hidden" id="manual-member-b">
+                        <select id="manual-activity-b" style="display:none;"></select>
+                    </div>
                 </div>
 
                 <!-- Advertencia file:// -->
@@ -4373,6 +4383,16 @@
                 document.getElementById('pin-error').style.display = 'block';
                 document.getElementById('admin-password').value = '';
                 document.getElementById('admin-password').focus();
+            }
+
+            function toggleManualB() {
+                const panel   = document.getElementById('manual-b-panel');
+                const chevron = document.getElementById('manual-b-chevron');
+                const isOpen  = panel && panel.style.display !== 'none';
+                if (panel)   panel.style.display = isOpen ? 'none' : 'block';
+                if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+                // Populate chips when opening
+                if (!isOpen) { try { updateManualSelectsB && updateManualSelectsB(); } catch(e) {} }
             }
 
             function toggleLmPass() {
@@ -6830,17 +6850,29 @@
                 const term = q !== undefined ? q : (document.getElementById('manual-member-search-b')?.value || '').toLowerCase();
                 const filtered = term ? members.filter(m => m.name.toLowerCase().includes(term)) : members;
                 if (!filtered.length) { dd.style.display = 'none'; return; }
+                const today = new Date().toLocaleDateString("es-MX");
                 dd.innerHTML = filtered.slice(0,50).map(m => {
-                    const today = new Date().toISOString().slice(0,10);
-                    const alreadyToday = (state.records || []).some(r => r.memberId === m.id && r.date === today);
-                    return `<div onclick="selectManualMemberB('${m.id}')"
-                        style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);"
-                        onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='white'">
+                    const alreadyActivity = manualSelectedActivityB && (state.records || []).some(r =>
+                        r.memberId === m.id &&
+                        r.activityId === manualSelectedActivityB &&
+                        r.date === today
+                    );
+                    const alreadyToday = !alreadyActivity && (state.records || []).some(r =>
+                        r.memberId === m.id && r.date === today
+                    );
+                    const badge = alreadyActivity
+                        ? `<span style="font-size:0.7rem;background:#fef3c7;color:#92400e;border-radius:6px;padding:2px 8px;font-weight:700;white-space:nowrap;">Ya registrado en esta actividad</span>`
+                        : alreadyToday
+                            ? `<span style="font-size:0.7rem;background:#dcfce7;color:#15803d;border-radius:6px;padding:2px 8px;font-weight:600;white-space:nowrap;">Ya registrado hoy</span>`
+                            : '';
+                    return `<div onclick="${alreadyActivity ? '' : `selectManualMemberB('${m.id}')`}"
+                        style="padding:10px 14px;cursor:${alreadyActivity ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;opacity:${alreadyActivity ? '0.6' : '1'};"
+                        onmouseover="this.style.background='${alreadyActivity ? 'white' : '#f8fafc'}'" onmouseout="this.style.background='white'">
                         <div>
-                            <span style="font-weight:600;color:var(--navy);font-size:0.9rem;">${m.name}</span>
-                            <span style="font-size:0.75rem;color:var(--gray-500);margin-left:6px;">${m.voice||''}</span>
+                            <span style="font-weight:600;color:#1a3a5c;font-size:0.88rem;">${m.name}</span>
+                            <span style="font-size:0.74rem;color:#94a3b8;margin-left:6px;">${m.voice||''}</span>
                         </div>
-                        ${alreadyToday ? '<span style="font-size:0.72rem;background:#dcfce7;color:#15803d;border-radius:6px;padding:2px 7px;font-weight:600;">Ya registrado hoy</span>' : ''}
+                        ${badge}
                     </div>`;
                 }).join('');
                 dd.style.display = 'block';
