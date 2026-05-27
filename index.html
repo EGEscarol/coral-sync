@@ -3204,8 +3204,16 @@
                                 </button>
                             </div>
 
+                            <!-- Estado de conexión -->
+                            <div id="lm-conn-status" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;">
+                                <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;animation:lmPulse 1.2s ease-in-out infinite;" id="lm-conn-dot"></div>
+                                <span id="lm-conn-text" style="font-size:0.75rem;color:#94a3b8;">Conectando con el servidor...</span>
+                            </div>
+                            <style>
+                                @keyframes lmPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.85)} }
+                            </style>
                             <!-- Nota footer -->
-                            <p style="text-align:center;color:#94a3b8;font-size:0.78rem;margin-top:24px;line-height:1.5;">
+                            <p style="text-align:center;color:#94a3b8;font-size:0.78rem;margin-top:10px;line-height:1.5;">
                                 Acceso exclusivo para directores,<br>auxiliares y personal autorizado
                             </p>
                         </div>
@@ -4383,21 +4391,32 @@
                     return;
                 }
 
-                // Si los datos de credenciales todavía no cargaron, esperarlos
-                const needsLoad = !directors.length && !diaconos.length && !stateDirectors.length && !auxiliares.length;
-                if (needsLoad && (user !== ADMIN_USERNAME || pass !== ADMIN_PASSWORD)) {
-                    lmShowError('Cargando datos, intenta de nuevo en un momento...');
-                    // Intentar cargar y reintentar automáticamente
-                    try {
-                        await Promise.all([
-                            loadCredentialsFromFirebase(),
-                            loadDirectorsFromFirebase(),
-                            loadStateDirectorsFromFirebase(),
-                            loadDiaconosFromFirebase(),
-                            loadAuxiliaresFromFirebase(),
-                        ]);
-                    } catch(e) {}
-                    if (errEl) errEl.style.display = 'none';
+                // Esperar a que las credenciales estén listas (máx 8 segundos)
+                if (!window._credsReady) {
+                    const btn = document.querySelector('[onclick="loginMember()"]');
+                    if (btn) { btn.textContent = 'Cargando...'; btn.disabled = true; }
+                    let waited = 0;
+                    while (!window._credsReady && waited < 8000) {
+                        await new Promise(r => setTimeout(r, 300));
+                        waited += 300;
+                    }
+                    if (btn) { btn.innerHTML = 'Iniciar Sesión →'; btn.disabled = false; }
+                    if (!window._credsReady) {
+                        // Intentar cargar manualmente como último recurso
+                        try {
+                            await Promise.all([
+                                loadCredentialsFromFirebase(),
+                                loadDirectorsFromFirebase(),
+                                loadStateDirectorsFromFirebase(),
+                                loadDiaconosFromFirebase(),
+                                loadAuxiliaresFromFirebase(),
+                            ]);
+                            window._credsReady = true;
+                        } catch(e) {
+                            lmShowError('Sin conexión. Verifica tu internet e intenta de nuevo.');
+                            return;
+                        }
+                    }
                 }
 
                 // Verificar contra todos los roles
@@ -8506,8 +8525,15 @@
                     loadUniformsFromFirebase(),
                     loadPagosFromFirebase()
                 ]);
+                window._credsReady = true;
+                // Actualizar indicador en pantalla de login
+                const dot = document.getElementById('lm-conn-dot');
+                const txt = document.getElementById('lm-conn-text');
+                if (dot) { dot.style.background='#22c55e'; dot.style.animation='none'; }
+                if (txt) { txt.textContent='Listo'; txt.style.color='#22c55e'; setTimeout(()=>{ const s=document.getElementById('lm-conn-status'); if(s)s.style.display='none'; },2000); }
                 renderAll();
                 updateManualSelects();
+                updateManualSelectsB && updateManualSelectsB();
             }
 
             // Esperar a que Firebase esté listo — solo ejecutar una vez
