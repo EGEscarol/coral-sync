@@ -6866,33 +6866,60 @@
                 if (!btn) return;
                 const ready = manualSelectedActivityB && manualSelectedMemberB;
                 btn.disabled = !ready;
-                btn.style.background  = ready ? 'var(--navy)' : 'var(--gray-200)';
-                btn.style.color       = ready ? '#fff'        : 'var(--gray-400)';
-                btn.style.cursor      = ready ? 'pointer'     : 'not-allowed';
-                btn.style.opacity     = ready ? '1'           : '0.6';
+                btn.style.background  = ready ? '#1a3a5c' : '#e5e7eb';
+                btn.style.color       = ready ? '#ffffff'  : '#9ca3af';
+                btn.style.cursor      = ready ? 'pointer'  : 'not-allowed';
+                btn.style.opacity     = '1';
+                btn.style.fontWeight  = '700';
+                btn.style.padding     = '13px';
+                btn.style.borderRadius= '12px';
+                btn.style.border      = 'none';
+                btn.style.width       = '100%';
+                btn.style.fontSize    = '0.95rem';
             }
 
             function submitManualRecordB() {
-                if (!manualSelectedActivityB || !manualSelectedMemberB) return;
-                // Reusar submitManualRecord lógica con los valores B
-                const hiddenAct = document.getElementById('manual-activity');
-                const hiddenMem = document.getElementById('manual-member');
-                const origAct = hiddenAct?.value;
-                const origMem = hiddenMem?.value;
-                if (hiddenAct) hiddenAct.value = manualSelectedActivityB;
-                if (hiddenMem) hiddenMem.value = manualSelectedMemberB;
-                submitManualRecord();
-                // Reset B form
+                const memberId   = manualSelectedMemberB;
+                const activityId = manualSelectedActivityB;
+                if (!memberId || !activityId) {
+                    showToast('Selecciona actividad e integrante.');
+                    return;
+                }
+
+                function doManualB(tipo) {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(pos){ addRecord(memberId,activityId,pos.coords.latitude,pos.coords.longitude,tipo).then(function(){ afterManualB(); }); },
+                            function(){   addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManualB(); }); },
+                            {timeout:5000}
+                        );
+                    } else {
+                        addRecord(memberId,activityId,null,null,tipo).then(function(){ afterManualB(); });
+                    }
+                }
+
+                if (typeof isMemberFromProgreso === 'function' && isMemberFromProgreso(memberId)) {
+                    showRetardoModal(memberId, activityId, function(tipo){
+                        if (!tipo) return;
+                        doManualB(tipo);
+                    });
+                    return;
+                }
+                doManualB('asistencia');
+            }
+
+            function afterManualB() {
+                showToast('✓ Asistencia registrada');
+                // Reset form B
                 manualSelectedActivityB = null;
                 manualSelectedMemberB   = null;
                 clearManualMemberB();
                 document.querySelectorAll('[id^="chip-b-"]').forEach(c => {
-                    c.style.background = 'white'; c.style.color = 'var(--gray-600)'; c.style.borderColor = 'var(--gray-300)';
+                    c.style.background = 'white';
+                    c.style.color = '#4b5563';
+                    c.style.borderColor = '#d1d5db';
                 });
                 updateManualSubmitBtnB();
-                // Restore originals
-                if (hiddenAct && origAct !== undefined) hiddenAct.value = origAct;
-                if (hiddenMem && origMem !== undefined) hiddenMem.value = origMem;
             }
 
             function updateManualSelects() {
