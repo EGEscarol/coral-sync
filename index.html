@@ -182,25 +182,34 @@
                 }
             };
 
-            // ── Eliminar registro de la subcolección ─────────────────────────────────
+            // ── IDs marcados para borrar (evita que onSnapshot los restaure) ──────────
+            window._pendingDeleteIds = new Set();
+
+            // ── Eliminar registro(s) de la subcolección con writeBatch ────────────────
             window._fbDeleteRecord = async function(id) {
-                try {
-                    await deleteDoc(doc(RECORDS_COL, id));
-                    return true;
-                } catch(e) {
-                    console.error("[CoralSync] _fbDeleteRecord error:", e);
-                    return false;
-                }
+                return window._fbDeleteRecords([id]);
             };
 
             window._fbDeleteRecords = async function(ids) {
+                if (!ids || !ids.length) return true;
+                // Marcar como pendientes de borrado para que onSnapshot los ignore
+                ids.forEach(id => window._pendingDeleteIds.add(id));
                 try {
-                    for (const id of ids) {
-                        await deleteDoc(doc(RECORDS_COL, id));
+                    const BATCH_SIZE = 500; // límite de Firestore por batch
+                    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+                        const batch = writeBatch(db);
+                        ids.slice(i, i + BATCH_SIZE).forEach(id => {
+                            batch.delete(doc(RECORDS_COL, id));
+                        });
+                        await batch.commit();
                     }
+                    // Limpiar pendingDeleteIds después de confirmar el borrado
+                    ids.forEach(id => window._pendingDeleteIds.delete(id));
                     return true;
                 } catch(e) {
                     console.error("[CoralSync] _fbDeleteRecords error:", e);
+                    // En caso de error, limpiar igual para no bloquear futuros registros
+                    ids.forEach(id => window._pendingDeleteIds.delete(id));
                     return false;
                 }
             };
@@ -219,7 +228,11 @@
             // ── Escuchar nuevos registros en tiempo real (subcolección) ───────────────
             onSnapshot(RECORDS_COL, (snap) => {
                 if (!window._onFirebaseRecordsUpdate) return;
-                const records = snap.docs.map(d => d.data());
+                // Ignorar documentos que están siendo borrados en este momento
+                const pending = window._pendingDeleteIds || new Set();
+                const records = snap.docs
+                    .filter(d => !pending.has(d.id))
+                    .map(d => d.data());
                 window._onFirebaseRecordsUpdate(records);
             });
 
@@ -3957,17 +3970,23 @@
 
             // Actualización en tiempo real: registros desde subcoleccion
             window._onFirebaseRecordsUpdate = function(fbRecords) {
-                const fbIds = new Set(fbRecords.map(r => r.id));
+                // Excluir registros que están siendo borrados actualmente
+                const pendingDel = window._pendingDeleteIds || new Set();
+                const safeFbRecords = fbRecords.filter(r => !pendingDel.has(r.id));
+
+                const fbIds = new Set(safeFbRecords.map(r => r.id));
                 // Conservar pendientes locales que aun no llegaron a Firebase
                 let pendingRecords = [];
                 try { pendingRecords = JSON.parse(localStorage.getItem('cva_pending_records') || '[]'); } catch(e) {}
+                // Excluir también pendientes de borrado de la cola de inserción
+                const filteredPending = pendingRecords.filter(r => !pendingDel.has(r.id));
                 const seenIds = new Set(fbIds);
-                const extra = pendingRecords.filter(r => {
+                const extra = filteredPending.filter(r => {
                     if (seenIds.has(r.id)) return false;
                     seenIds.add(r.id);
                     return true;
                 });
-                state.records = [...fbRecords, ...extra];
+                state.records = [...safeFbRecords, ...extra];
                 localStorage.setItem("cva_cache", JSON.stringify(state));
                 if (typeof renderAll === 'function') renderAll();
                 if (typeof updateManualSelects === 'function') updateManualSelects();
