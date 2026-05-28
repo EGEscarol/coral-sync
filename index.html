@@ -9433,29 +9433,26 @@
                 doc.setFillColor(184,152,82);  // #b89852
                 doc.rect(0, 29.66, W, 0.61, 'F');
 
-                // ── Fecha del informe: badge dorado (arriba derecha) ──
+                // ── Badge dorado compacto (arriba derecha) → Fecha ──
                 const genDate = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
                 doc.setFillColor(184,152,82);
-                doc.roundedRect(150.81, 7.12, 46.15, 8.00, 3.66, 3.66, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(249,249,249);
-                doc.text(genDate.toUpperCase(), 173.88, 12.35, {align:'center', maxWidth:43});
-
-                // ── Voz/subtítulo: badge oscuro (abajo del dorado) ──
-                doc.setFillColor(51,51,51);
-                doc.roundedRect(144.29, 17.80, 53.10, 8.00, 3.66, 3.66, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(249,249,249);
-                const subText = subtitle ? subtitle.substring(0,48) : '';
-                doc.text(subText, 170.84, 23.02, {align:'center', maxWidth:50});
+                doc.roundedRect(158, 6, 38, 6.5, 3, 3, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(249,249,249);
+                doc.text(genDate.toUpperCase(), 177, 10.2, {align:'center', maxWidth:35});
 
                 // ── Logo CoralSync (izquierda, colores originales) ──
                 await _renderMembreteLogo(doc, '#333333');
 
-                // ── Nombre del miembro / título centrado a 20pt ──
-                // Zona disponible horizontalmente: desde el logo (~62mm) hasta los badges (~148mm)
-                const titleX = (62 + 148) / 2;  // centro entre logo y badges
+                // ── Nombre del miembro centrado en toda la página ──
                 doc.setFont('helvetica','normal'); doc.setFontSize(16); doc.setTextColor(51,51,51);
-                const titleStr = title.length > 35 ? title.substring(0,33)+'..' : title;
-                doc.text(titleStr, titleX, 17, {align:'center', maxWidth:84});
+                const titleStr = title.length > 40 ? title.substring(0,38)+'..' : title;
+                doc.text(titleStr, W/2, 15, {align:'center', maxWidth:120});
+
+                // ── Subtítulo (voz · coro) centrado debajo del nombre ──
+                if (subtitle) {
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120,118,112);
+                    doc.text(subtitle.substring(0,55), W/2, 22, {align:'center', maxWidth:120});
+                }
 
                 // ════════════════════════════════════════════════════════════
                 // Contenido empieza debajo de las barras (y ≈ 36mm)
