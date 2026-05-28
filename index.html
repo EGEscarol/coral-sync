@@ -9381,17 +9381,22 @@
             // Scale: x * (210/612), y * (297/792)
 
             async function _renderMembreteLogo(doc, darkColor) {
-                // Render the CoralSync logo paths from the membrete SVG
-                // Using the logo element already in the DOM, scaled and colored
                 try {
                     const logoSvgEl = document.getElementById('logo2-main') || document.getElementById('sp-logo');
                     if (!logoSvgEl) return;
                     const svgClone = logoSvgEl.cloneNode(true);
+                    // Preservar colores originales: #333 oscuro y #b89852 dorado
                     svgClone.querySelectorAll('path').forEach(p => {
-                        const fill = p.style.fill || p.getAttribute('fill') || '';
-                        p.style.fill = fill.includes('#b8') || fill.includes('b89') ? '#b89852' : (darkColor||'#333333');
-                        const stroke = p.style.stroke || p.getAttribute('stroke') || '';
-                        if (stroke && !stroke.includes('none')) p.style.stroke = fill.includes('#b8')||fill.includes('b89') ? '#89703e' : (darkColor||'#333333');
+                        const rawFill = p.style.fill || p.getAttribute('fill') || '';
+                        const isGold = rawFill.includes('b89852') || rawFill.includes('184, 152') || rawFill.includes('184,152');
+                        if (isGold) {
+                            p.style.fill = '#b89852';
+                            p.style.stroke = '#89703e';
+                        } else {
+                            p.style.fill = darkColor || '#333333';
+                            const s = p.style.stroke || p.getAttribute('stroke') || '';
+                            if (s && s !== 'none') p.style.stroke = darkColor || '#333333';
+                        }
                     });
                     const svgData = new XMLSerializer().serializeToString(svgClone);
                     const svgBlob = new Blob([svgData], {type:'image/svg+xml;charset=utf-8'});
@@ -9400,13 +9405,11 @@
                         const img = new Image();
                         img.onload = () => {
                             const cnv = document.createElement('canvas');
-                            // Logo area in membrete: approx x=24-100pt, y=16-53pt
-                            // In mm: w≈27.7mm, h≈13.8mm, at x=8.25mm, y=6mm
-                            const lw = 60, lh = lw * (514.08/1637.31);
+                            const lw = 52, lh = lw * (514.08/1637.31);
                             cnv.width = lw*4; cnv.height = lh*4;
                             cnv.getContext('2d').drawImage(img, 0, 0, cnv.width, cnv.height);
                             URL.revokeObjectURL(svgUrl);
-                            try { doc.addImage(cnv.toDataURL('image/png'), 'PNG', 8, 6, lw, lh); } catch(e){}
+                            try { doc.addImage(cnv.toDataURL('image/png'), 'PNG', 8, 7, lw, lh); } catch(e){}
                             resolve();
                         };
                         img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(); };
