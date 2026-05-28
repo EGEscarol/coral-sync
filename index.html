@@ -9184,7 +9184,7 @@
                     const ultimoReg = sorted.length ? sorted[sorted.length-1].date : '—';
 
                     await pdfHeader(doc, member.name,
-                        (member.voice||'') + (member.churchName ? '  |  '+member.churchName : '') + (monthLbl?'  |  '+monthLbl:''));
+                        [member.voice, member.churchName, monthLbl].filter(Boolean).join('  ·  '));
                     let y = 42;
 
                     // ── BANNER RESUMEN ────────────────────────────────────
@@ -9433,30 +9433,29 @@
                 doc.setFillColor(184,152,82);  // #b89852
                 doc.rect(0, 29.66, W, 0.61, 'F');
 
-                // ── Badge dorado redondeado (x=150.81, y=7.12, w=46.15, h=8.00, r=3.66) ──
+                // ── Fecha del informe: badge dorado (arriba derecha) ──
+                const genDate = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
                 doc.setFillColor(184,152,82);
                 doc.roundedRect(150.81, 7.12, 46.15, 8.00, 3.66, 3.66, 'F');
-
-                // ── Texto del badge dorado ──
                 doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(249,249,249);
-                doc.text(title.toUpperCase(), 173.88, 12.35, {align:'center', maxWidth:43});
+                doc.text(genDate.toUpperCase(), 173.88, 12.35, {align:'center', maxWidth:43});
 
-                // ── Badge oscuro redondeado (x=144.29, y=17.80, w=53.10, h=8.00, r=3.66) ──
+                // ── Voz/subtítulo: badge oscuro (abajo del dorado) ──
                 doc.setFillColor(51,51,51);
                 doc.roundedRect(144.29, 17.80, 53.10, 8.00, 3.66, 3.66, 'F');
-
-                // ── Texto del badge oscuro ──
                 doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(249,249,249);
-                const subText = subtitle ? subtitle.substring(0,45) : '';
+                const subText = subtitle ? subtitle.substring(0,48) : '';
                 doc.text(subText, 170.84, 23.02, {align:'center', maxWidth:50});
 
-                // ── Logo CoralSync (izquierda, colores originales del membrete) ──
+                // ── Logo CoralSync (izquierda, colores originales) ──
                 await _renderMembreteLogo(doc, '#333333');
 
-                // ── Fecha generación — debajo del logo, alineada a la izquierda ──
-                doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,118,112);
-                const genDate = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
-                doc.text('Generado: '+genDate, 8, 27);
+                // ── Nombre del miembro / título centrado a 20pt ──
+                // Zona disponible horizontalmente: desde el logo (~62mm) hasta los badges (~148mm)
+                const titleX = (62 + 148) / 2;  // centro entre logo y badges
+                doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(51,51,51);
+                const titleStr = title.length > 30 ? title.substring(0,28)+'..' : title;
+                doc.text(titleStr, titleX, 16, {align:'center', maxWidth:84});
 
                 // ════════════════════════════════════════════════════════════
                 // Contenido empieza debajo de las barras (y ≈ 36mm)
@@ -9823,7 +9822,8 @@
                 const pct = totalPosible > 0 ? Math.round((totalMember / totalPosible) * 100) : 0;
 
                 // ---- ENCABEZADO ----
-                await pdfHeader(doc, 'Reporte Individual de Asistencia', member.name + (member.churchName ? '  •  ' + member.churchName : ''));
+                await pdfHeader(doc, member.name,
+                    [member.voice, member.churchName].filter(Boolean).join('  ·  '));
 
                 let y = 42;
 
