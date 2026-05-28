@@ -8211,6 +8211,17 @@
             }
 
             function renderDashboard() {
+                // Ocultar tarjetas según rol
+                const qUni      = document.getElementById('qcard-uniforms');
+                const qReports  = document.getElementById('qcard-reports');
+                const qRecords  = document.getElementById('qcard-records');
+                const qActs     = document.getElementById('qcard-activities');
+                if (isAuxiliar()) {
+                    [qUni, qReports, qRecords, qActs].forEach(el => { if (el) el.style.display = 'none'; });
+                } else {
+                    [qUni, qReports, qRecords, qActs].forEach(el => { if (el) el.style.display = ''; });
+                }
+
                 // Hero card
                 const heroTitle = document.getElementById('dash-hero-title');
                 const heroSub = document.getElementById('dash-hero-sub');
