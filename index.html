@@ -8696,14 +8696,8 @@
                     });
             }
 
-            function sectionTitle(doc, text, y) {
-                doc.setFont('helvetica','bold');
-                doc.setFontSize(10);
-                doc.setTextColor(21,40,69);
-                doc.text(text, 14, y);
-                doc.setFillColor(200, 132, 42);
-                doc.rect(14, y+3, 50, 0.8, 'F');
-                return y + 10;
+            function sectionTitle(doc, text, y, W) {
+                return pdfSectionTitle(doc, text, y, W || doc.internal.pageSize.getWidth());
             }
 
             // Helper: get selected members + common setup for reports
@@ -8841,8 +8835,8 @@
                 const { selectedIds, selectedMembers, groupLabel, monthLbl, monthVal, filteredRecs } = s;
 
                 // Paleta alineada con el nuevo diseño
-                const NAVY=[26,58,92], COPPER=[200,132,42], WHITE=[255,255,255];
-                const LGRAY=[244,246,249], GRAY=[100,116,139], BORDER=[226,232,240];
+                const NAVY=PDF.NAVY, COPPER=PDF.GOLD, WHITE=PDF.WHITE;
+                const LGRAY=PDF.SURF, GRAY=PDF.SLATE, BORDER=PDF.BORDER;
                 const GREEN=[22,163,74], YELLOW=[202,138,4], ROSE=[220,38,38];
 
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
@@ -8954,53 +8948,57 @@
                 if (y > 200) { doc.addPage(); y=20; }
                 y = sectionTitle(doc, 'Ranking de Asistencias', y);
 
-                doc.setFillColor(...NAVY); doc.roundedRect(14, y, 182, 8, 2,2,'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-                doc.text('#', 17, y+5.5);
-                doc.text('Integrante', 23, y+5.5);
-                doc.text('Voz', 110, y+5.5);
-                doc.text('Asistencias', 155, y+5.5, {align:'center'});
-                y += 9;
+                y = pdfTableHeader(doc, y, [
+                    {label:'#', x:17}, {label:'Integrante', x:23},
+                    {label:'Voz', x:110}, {label:'Asistencias', x:155, align:'center'}
+                ], W);
 
                 memberStats.forEach((m,i) => {
                     if (y > 268) { doc.addPage(); y=20; }
 
-                    // Nombre + posición
                     const hasNote = m.note && m.note.trim().length > 0;
-                    const rowH = hasNote ? 13 : 8;
-                    doc.setFillColor(...(i%2===0 ? WHITE : LGRAY)); doc.rect(14, y, 182, rowH, 'F');
-                    // Número de posición
-                    doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-                    doc.setTextColor(...(i<3 ? COPPER : GRAY));
-                    const nameY = hasNote ? y+4.5 : y+5.5;
-                    doc.text(String(i+1), 17, nameY);
-                    // Nombre
-                    doc.setFont('helvetica', i<3?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
-                    const nStr = m.name.length>30 ? m.name.substring(0,28)+'..' : m.name;
-                    doc.text(nStr, 23, nameY);
-                    // Nota del miembro
+                    const rowH = hasNote ? 14 : 9;
+                    const nameY = y + (hasNote ? 4.5 : 5.8);
+
+                    // Row background + gold accent for top 3
+                    doc.setFillColor(...(i%2===0 ? PDF.WHITE : PDF.SURF));
+                    doc.rect(14, y, W-28, rowH, 'F');
+                    if (i<3) { doc.setFillColor(...PDF.GOLD); doc.rect(14, y, 2, rowH, 'F'); }
+
+                    // Position number
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                    doc.setTextColor(...(i===0?[180,130,50]:i===1?[140,140,150]:i===2?[160,110,70]:PDF.SLATE));
+                    doc.text(String(i+1), 18, nameY);
+
+                    // Member name
+                    const nStr = m.name.length>32 ? m.name.substring(0,30)+'..' : m.name;
+                    doc.setFont('helvetica', i<3?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...PDF.DARK);
+                    doc.text(nStr, 24, nameY);
                     if (hasNote) {
-                        const noteStr = m.note.length>55 ? m.note.substring(0,53)+'..' : m.note;
-                        doc.setFont('helvetica','italic'); doc.setFontSize(6.2); doc.setTextColor(...COPPER);
-                        doc.text("Nota: "+noteStr, 23, y+10);
+                        const noteStr = m.note.length>60?m.note.substring(0,58)+'..':m.note;
+                        doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...PDF.GOLD);
+                        doc.text('Nota: '+noteStr, 24, y+10.5);
                     }
 
-                    // Voz
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-                    doc.text(m.voice||'-', 110, hasNote ? y+4.5 : y+5.5);
+                    // Voice
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...PDF.SLATE);
+                    doc.text(m.voice||'—', 110, nameY);
 
-                    // Total asistencias con barra visual
+                    // Progress bar (compact, modern)
                     const maxTotal = memberStats[0].total || 1;
-                    const barW = Math.max(1, Math.round((m.total/maxTotal)*40));
-                    doc.setFillColor(...COPPER.map(c=>Math.round(c*0.3+215*0.7)));
-                    doc.roundedRect(132, (hasNote?y+3:y+2.5), 40, 3, 1,1,'F');
-                    doc.setFillColor(...COPPER);
-                    doc.roundedRect(132, (hasNote?y+3:y+2.5), barW, 3, 1,1,'F');
+                    const barFullW = 38; const barH2 = 3.5;
+                    const barW = Math.max(1.5, (m.total/maxTotal)*barFullW);
+                    const barY = y + rowH/2 - barH2/2;
+                    doc.setFillColor(226,232,240); doc.roundedRect(132, barY, barFullW, barH2, 1,1,'F');
+                    // Gold gradient simulation: lighter center
+                    doc.setFillColor(...PDF.LGOLD); doc.roundedRect(132, barY, barW, barH2, 1,1,'F');
+                    doc.setFillColor(...PDF.GOLD); doc.roundedRect(132, barY, Math.max(1,barW-4), barH2-0.5, 1,1,'F');
 
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...NAVY);
-                    doc.text(String(m.total), 177, hasNote ? y+4.5 : y+5.5, {align:'center'});
+                    // Total count
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...PDF.NAVY);
+                    doc.text(String(m.total), 178, nameY, {align:'center'});
 
-                    doc.setDrawColor(...BORDER); doc.line(14,y+rowH,196,y+rowH);
+                    doc.setDrawColor(...PDF.BORDER); doc.setLineWidth(0.2); doc.line(14,y+rowH,W-14,y+rowH);
                     y += rowH;
                 });
                 y += 8;
@@ -9079,56 +9077,54 @@
                     const blockH = 12 + 8 + estRowH + 8;
                     if (y + blockH > 265) { doc.addPage(); y=20; }
 
-                    // Header actividad
-                    doc.setFillColor(...NAVY); doc.roundedRect(14, y, 182, 10, 3,3,'F');
-                    doc.setFillColor(...COPPER); doc.roundedRect(14, y, 5, 10, 2,2,'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...WHITE);
-                    const aTitle = actName.length>38 ? actName.substring(0,36)+'..' : actName;
-                    doc.text(aTitle, 22, y+6.5);
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(200,220,240);
+                    // Activity header card
+                    pdfCard(doc, 14, y, W-28, 14, {fill:PDF.NAVY, shadow:false, border:false, r:3});
+                    doc.setFillColor(...PDF.GOLD); doc.roundedRect(14, y, 4, 14, 2,2,'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...PDF.WHITE);
+                    const aTitle = actName.length>36 ? actName.substring(0,34)+'..' : actName;
+                    doc.text(aTitle, 22, y+9);
                     const headerRight = usesDayCount
-                        ? asistentes+' asistentes  |  '+diasValidos+' días válidos'
-                        : asistentes+' asistentes  |  '+totalActRecs+' registros';
-                    doc.text(headerRight, 193, y+6.5, {align:'right'});
-                    y += 12;
+                        ? asistentes+' asistentes  ·  '+diasValidos+' días'
+                        : asistentes+' asistentes  ·  '+totalActRecs+' registros';
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(180,200,230);
+                    doc.text(headerRight, W-16, y+9, {align:'right'});
+                    y += 16;
 
-                    // Subheader tabla
-                    doc.setFillColor(...LGRAY); doc.roundedRect(14, y, 182, 7, 1,1,'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-                    doc.text('Integrante', 18, y+5);
-                    doc.text('Voz', 110, y+5);
                     const colLabel = usesDayCount ? 'Asistió (de '+diasValidos+')' : 'Asistencias';
-                    doc.text(colLabel, 170, y+5, {align:'center'});
-                    y += 8;
+                    y = pdfTableHeader(doc, y, [
+                        {label:'Integrante', x:18}, {label:'Voz', x:110},
+                        {label:colLabel, x:170, align:'center'}
+                    ], W);
 
                     actStats2.forEach((m,i) => {
                         if (y > 268) { doc.addPage(); y=20; }
                         const hasNote2 = m.note && m.note.trim().length > 0;
-                        const rh = hasNote2 ? 11.5 : 7.5;
-                        doc.setFillColor(...(m.cnt>0 ? (i%2===0?WHITE:LGRAY) : [255,248,248]));
-                        doc.rect(14, y, 182, rh, 'F');
-                        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                        doc.setTextColor(...(m.cnt>0?NAVY:GRAY));
-                        const ny2 = hasNote2 ? y+4 : y+5;
-                        doc.text(m.name.length>30?m.name.substring(0,28)+'..':m.name, 18, ny2);
+                        const rh = hasNote2 ? 13 : 8.5;
+                        const ny2 = y + (hasNote2 ? 4.5 : 5.5);
+                        // Absent rows tinted
+                        doc.setFillColor(...(m.cnt>0 ? (i%2===0?PDF.WHITE:PDF.SURF) : [254,242,242]));
+                        doc.rect(14, y, W-28, rh, 'F');
+                        doc.setFont('helvetica', m.cnt>0?'normal':'normal');
+                        doc.setFontSize(7.5); doc.setTextColor(...(m.cnt>0?PDF.DARK:PDF.SLATE));
+                        doc.text(m.name.length>32?m.name.substring(0,30)+'..':m.name, 18, ny2);
                         if (hasNote2) {
-                            const ns2 = m.note.length>55 ? m.note.substring(0,53)+'..' : m.note;
-                            doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...COPPER);
-                            doc.text("Nota: "+ns2, 18, y+9.5);
+                            const ns2 = m.note.length>60?m.note.substring(0,58)+'..':m.note;
+                            doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(...PDF.GOLD);
+                            doc.text('Nota: '+ns2, 18, y+10.5);
                         }
-                        doc.setFont('helvetica','normal'); doc.setTextColor(...GRAY); doc.setFontSize(7);
-                        doc.text(m.voice||'-', 110, ny2);
-                        // Cantidad
-                        doc.setFont('helvetica','bold'); doc.setFontSize(8);
-                        doc.setTextColor(...(m.cnt>0?COPPER:GRAY));
-                        let cntLabel;
-                        if (usesDayCount) {
-                            cntLabel = m.diasMiembro > 0 ? String(m.diasMiembro)+' de '+diasValidos : '—';
+                        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...PDF.SLATE);
+                        doc.text(m.voice||'—', 110, ny2);
+                        // Count with badge style
+                        let cntLabel = usesDayCount
+                            ? (m.diasMiembro>0 ? String(m.diasMiembro)+'/'+diasValidos : '—')
+                            : (m.cnt>0 ? String(m.cnt) : '—');
+                        if (m.cnt>0) {
+                            pdfBadge(doc, 160, ny2, cntLabel, PDF.NAVY);
                         } else {
-                            cntLabel = m.cnt > 0 ? String(m.cnt) : '—';
+                            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...PDF.SLATE);
+                            doc.text('—', 170, ny2, {align:'center'});
                         }
-                        doc.text(cntLabel, 170, ny2, {align:'center'});
-                        doc.setDrawColor(...BORDER); doc.line(14,y+rh,196,y+rh);
+                        doc.setDrawColor(...PDF.BORDER); doc.setLineWidth(0.2); doc.line(14,y+rh,W-14,y+rh);
                         y += rh;
                     });
                     y += 10;
@@ -9167,8 +9163,8 @@
                 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
                 const { selectedIds, selectedMembers, groupLabel, monthVal, monthLbl, filteredRecs } = s;
 
-                const NAVY=[26,58,92], COPPER=[200,132,42], WHITE=[255,255,255];
-                const LGRAY=[244,246,249], GRAY=[100,116,139], BORDER=[226,232,240];
+                const NAVY=PDF.NAVY, COPPER=PDF.GOLD, WHITE=PDF.WHITE;
+                const LGRAY=PDF.SURF, GRAY=PDF.SLATE, BORDER=PDF.BORDER;
 
                 const actividadesIds = [...new Set(filteredRecs.map(r => r.activityId))];
 
@@ -9287,47 +9283,133 @@
             function exportPDFGroup() { exportPDFCoro(); }
 
             // ---- Helpers PDF ----
+            // ── PDF Design System ──────────────────────────────────────────────────────
+            // Paleta del logo: Navy #1a3a5c | Gold #b89852 | LightGold #d4b06a
+            const PDF = {
+                NAVY:    [26, 58, 92],
+                GOLD:    [184, 152, 82],
+                LGOLD:   [212, 176, 106],
+                WHITE:   [255, 255, 255],
+                OFF:     [248, 250, 252],   // off-white bg
+                SURF:    [241, 245, 249],   // surface
+                BORDER:  [226, 232, 240],
+                SLATE:   [100, 116, 139],
+                DARK:    [15, 23, 42],
+                SUCCESS: [22, 163, 74],
+                WARN:    [234, 88, 12],
+            };
+
+            function pdfSetFont(doc, size, weight, color) {
+                doc.setFont('helvetica', weight||'normal');
+                doc.setFontSize(size||8);
+                if (color) doc.setTextColor(...color);
+            }
+
+            function pdfCard(doc, x, y, w, h, opts={}) {
+                // Shadow effect (subtle)
+                if (opts.shadow) {
+                    doc.setFillColor(200,210,220);
+                    doc.roundedRect(x+0.5, y+0.8, w, h, opts.r||3, opts.r||3, 'F');
+                }
+                doc.setFillColor(...(opts.fill || PDF.WHITE));
+                doc.roundedRect(x, y, w, h, opts.r||3, opts.r||3, 'F');
+                if (opts.border !== false) {
+                    doc.setDrawColor(...(opts.borderColor || PDF.BORDER));
+                    doc.setLineWidth(0.3);
+                    doc.roundedRect(x, y, w, h, opts.r||3, opts.r||3, 'S');
+                }
+            }
+
+            function pdfBadge(doc, x, y, text, color) {
+                const w = doc.getTextWidth(text) + 6;
+                doc.setFillColor(...color);
+                doc.roundedRect(x, y-3.5, w, 5.5, 1.5, 1.5, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(...PDF.WHITE);
+                doc.text(text, x+3, y);
+            }
+
+            function pdfSectionTitle(doc, text, y, W) {
+                doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...PDF.NAVY);
+                doc.text(text.toUpperCase(), 14, y);
+                // Gold underline
+                doc.setFillColor(...PDF.GOLD);
+                doc.rect(14, y+2, doc.getTextWidth(text.toUpperCase()), 1, 'F');
+                // Light separator line to right edge
+                doc.setDrawColor(...PDF.BORDER); doc.setLineWidth(0.3);
+                doc.line(14 + doc.getTextWidth(text.toUpperCase()) + 4, y+2.5, (W||210)-14, y+2.5);
+                return y + 12;
+            }
+
+            function pdfTableHeader(doc, y, cols, W) {
+                // Dark navy header bar
+                doc.setFillColor(...PDF.NAVY);
+                doc.roundedRect(14, y, (W||210)-28, 9, 2, 2, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...PDF.WHITE);
+                cols.forEach(c => doc.text(c.label, c.x, y+6, {align: c.align||'left'}));
+                return y + 10;
+            }
+
+            function pdfTableRow(doc, y, h, i, cols, W) {
+                doc.setFillColor(...(i%2===0 ? PDF.WHITE : PDF.SURF));
+                doc.rect(14, y, (W||210)-28, h, 'F');
+                // Subtle left accent for first 3
+                if (i < 3) {
+                    doc.setFillColor(...PDF.GOLD);
+                    doc.rect(14, y, 2, h, 'F');
+                }
+                cols.forEach(c => {
+                    doc.setFont('helvetica', c.bold?'bold':'normal');
+                    doc.setFontSize(c.size||7.5);
+                    doc.setTextColor(...(c.color||PDF.DARK));
+                    if (c.text !== undefined) doc.text(String(c.text), c.x, y + h/2 + 2.5, {align: c.align||'left', maxWidth: c.maxW||999});
+                });
+                doc.setDrawColor(...PDF.BORDER); doc.setLineWidth(0.2);
+                doc.line(14, y+h, (W||210)-14, y+h);
+            }
+
             async function pdfHeader(doc, title, subtitle) {
                 const W = doc.internal.pageSize.getWidth();
+                const H = 42;
 
-                // ── Fondo header azul marino (nueva paleta) ──
-                doc.setFillColor(26, 58, 92);          // --primary #1A3A5C
-                doc.rect(0, 0, W, 36, 'F');
+                // ── Main header background (deep navy) ──
+                doc.setFillColor(...PDF.NAVY);
+                doc.rect(0, 0, W, H, 'F');
 
-                // ── Franja acento dorado cobre ──
-                doc.setFillColor(200, 132, 42);         // --accent #C8842A
-                doc.rect(0, 36, W, 2.5, 'F');
+                // ── Gold accent bar at bottom of header ──
+                doc.setFillColor(...PDF.GOLD);
+                doc.rect(0, H, W, 2, 'F');
 
-                // ── Logo imagen del coro ──
+                // ── Subtle diagonal pattern (dots) ──
+                doc.setFillColor(255,255,255);
+                for (let ix=10; ix<W; ix+=18) {
+                    for (let iy=6; iy<H-4; iy+=10) {
+                        doc.circle(ix, iy, 0.4, 'F');
+                    }
+                }
+
+                // ── Logo ──
                 try {
                     const logoSvgEl = document.getElementById('logo2-main') || document.getElementById('sp-logo');
                     if (logoSvgEl) {
-                        // Clonar y preparar el SVG para canvas con colores claros sobre fondo oscuro
                         const svgClone = logoSvgEl.cloneNode(true);
                         svgClone.querySelectorAll('path').forEach(p => {
-                            const fill = p.style.fill || p.getAttribute('fill') || '';
-                            // Hacer paths oscuros en blanco, dorados conservarlos
-                            if (fill.includes('#333') || fill.includes('333')) {
-                                p.style.fill = '#ffffff';
-                            }
-                            const stroke = p.style.stroke || p.getAttribute('stroke') || '';
-                            if (stroke.includes('#111') || stroke.includes('111')) {
-                                p.style.stroke = '#ffffff';
-                            }
+                            const fill = p.style.fill || '';
+                            if (fill.includes('#333')) p.style.fill = '#ffffff';
+                            const stroke = p.style.stroke || '';
+                            if (stroke.includes('#111')) p.style.stroke = '#ffffff';
                         });
                         const svgData = new XMLSerializer().serializeToString(svgClone);
                         const svgBlob = new Blob([svgData], {type:'image/svg+xml;charset=utf-8'});
                         const svgUrl = URL.createObjectURL(svgBlob);
-                        await new Promise((resolve) => {
+                        await new Promise(resolve => {
                             const img = new Image();
                             img.onload = () => {
                                 const cnv = document.createElement('canvas');
-                                const logoH = 26; const logoW = logoH * (1637.31/514.08);
-                                cnv.width = logoW * 4; cnv.height = logoH * 4;
-                                const ctx = cnv.getContext('2d');
-                                ctx.drawImage(img, 0, 0, cnv.width, cnv.height);
+                                const logoH = 28; const logoW = logoH * (1637.31/514.08);
+                                cnv.width = logoW*4; cnv.height = logoH*4;
+                                cnv.getContext('2d').drawImage(img, 0, 0, cnv.width, cnv.height);
                                 URL.revokeObjectURL(svgUrl);
-                                try { doc.addImage(cnv.toDataURL('image/png'), 'PNG', 12, 5, logoW, logoH); } catch(e) {}
+                                try { doc.addImage(cnv.toDataURL('image/png'), 'PNG', 12, 7, logoW, logoH); } catch(e){}
                                 resolve();
                             };
                             img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(); };
@@ -9335,44 +9417,32 @@
                         });
                     }
                 } catch(e) {
-                    // Fallback: texto si falla la imagen
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(255,255,255);
-                    doc.text('Coral', 14, 14);
-                    doc.setTextColor(200,132,42);
-                    doc.text('Sync', 14 + doc.getTextWidth('Coral') + 1, 14);
+                    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(255,255,255);
+                    doc.text('Coral', 12, 20);
+                    doc.setTextColor(...PDF.GOLD);
+                    doc.text('Sync', 12+doc.getTextWidth('Coral')+1, 20);
                 }
 
-                // ── Línea separadora suave en header ──
-                doc.setDrawColor(255, 255, 255, 0.15);
-                doc.setLineWidth(0.2);
-
-                // ── Título del reporte ──
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
-                doc.setTextColor(255, 255, 255);
-                const titleX = W / 2;
-                doc.text(title, titleX, 15, {align:'center'});
-
+                // ── Title (centered) ──
+                doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(255,255,255);
+                doc.text(title, W/2, 18, {align:'center'});
                 if (subtitle) {
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(200, 215, 230);
-                    doc.text(subtitle, titleX, 22, {align:'center', maxWidth: W - 100});
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(184,200,220);
+                    doc.text(subtitle, W/2, 27, {align:'center', maxWidth: W-110});
                 }
 
-                // ── Fecha generación (derecha) ──
-                const now = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
-                doc.setFontSize(7);
-                doc.setTextColor(160, 185, 210);
-                doc.text('Generado: ' + now, W - 14, 30, {align:'right'});
+                // ── Date top-right ──
+                const now = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+                doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(160,185,210);
+                doc.text(now, W-14, 36, {align:'right'});
 
-                // ── Badge reporte en esquina derecha ──
-                doc.setFillColor(200, 132, 42);
-                doc.roundedRect(W - 52, 6, 38, 12, 2, 2, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(6.5);
-                doc.setTextColor(255, 255, 255);
-                doc.text('CORALSYNC', W - 33, 13, {align:'center'});
+                // ── Gold badge ──
+                doc.setFillColor(...PDF.GOLD);
+                doc.roundedRect(W-48, 8, 34, 10, 2, 2, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(255,255,255);
+                doc.text('CORALSYNC', W-31, 14.5, {align:'center'});
+
+                return H + 2; // return y start for content
             }
 
             function pdfInterpretacionIndividual(doc, y, data) {
@@ -9647,25 +9717,46 @@
                 const pageCount = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
-                    doc.setFillColor(240, 240, 236);
-                    doc.rect(0, 287, 210, 10, 'F');
-                    doc.setFontSize(7);
-                    doc.setTextColor(130, 130, 120);
-                    doc.text('CoralSync — Coro Vista Alegre', 14, 293);
-                    doc.text('Pag. ' + i + ' / ' + pageCount, 196, 293, {align:'right'});
+                    const W = doc.internal.pageSize.getWidth();
+                    // Footer bar
+                    doc.setFillColor(...PDF.SURF);
+                    doc.rect(0, 286, W, 11, 'F');
+                    doc.setFillColor(...PDF.GOLD);
+                    doc.rect(0, 286, W, 0.8, 'F');
+                    // Left: brand
+                    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...PDF.NAVY);
+                    doc.text('CoralSync', 14, 292);
+                    // Center: confidential
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(...PDF.SLATE);
+                    doc.text('Documento confidencial — uso interno', W/2, 292, {align:'center'});
+                    // Right: page number
+                    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...PDF.NAVY);
+                    doc.text(i + ' / ' + pageCount, W-14, 292, {align:'right'});
                 }
             }
 
             function statBox(doc, x, y, w, h, label, value, color) {
-                doc.setFillColor(color[0], color[1], color[2]);
-                doc.roundedRect(x, y, w, h, 3, 3, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.setTextColor(255, 255, 255);
-                doc.text(String(value), x + w/2, y + h/2 + 2, {align:'center'});
-                doc.setFontSize(7);
-                doc.setFont('helvetica', 'normal');
-                doc.text(label, x + w/2, y + h - 4, {align:'center'});
+                // Card with shadow
+                doc.setFillColor(200, 210, 220);
+                doc.roundedRect(x+0.4, y+0.7, w, h, 3,3,'F');
+                // White card
+                doc.setFillColor(255,255,255);
+                doc.roundedRect(x, y, w, h, 3,3,'F');
+                // Colored top accent bar
+                doc.setFillColor(color[0],color[1],color[2]);
+                doc.roundedRect(x, y, w, 3.5, 3,3,'F');
+                doc.rect(x, y+2, w, 1.5, 'F'); // fill bottom of rounded top
+                // Value
+                doc.setFont('helvetica','bold'); doc.setFontSize(20);
+                doc.setTextColor(color[0],color[1],color[2]);
+                doc.text(String(value), x+w/2, y+h/2+4, {align:'center'});
+                // Label
+                doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+                doc.setTextColor(...PDF.SLATE);
+                doc.text(label.toUpperCase(), x+w/2, y+h-3.5, {align:'center'});
+                // Border
+                doc.setDrawColor(...PDF.BORDER); doc.setLineWidth(0.25);
+                doc.roundedRect(x, y, w, h, 3,3,'S');
             }
 
             // ---- PDF INDIVIDUAL ----
@@ -9827,20 +9918,13 @@
                 let y = 42;
 
                 // ---- STAT BOXES GENERALES ----
-                statBox(doc, 14, y, 55, 22, 'Total Registros', totalRecords, [27, 38, 59]);
-                statBox(doc, 73, y, 55, 22, 'Integrantes', totalMembers, [46,125,82]);
-                statBox(doc, 132, y, 55, 22, 'Actividades', totalActivities, [168,99,30]);
+                statBox(doc, 14, y, 55, 24, 'Total Registros', totalRecords, PDF.NAVY);
+                statBox(doc, 73, y, 55, 24, 'Integrantes', totalMembers, [22,163,74]);
+                statBox(doc, 132, y, 55, 24, 'Actividades', totalActivities, PDF.GOLD);
                 y += 30;
 
                 // ---- RANKING DE ASISTENCIA ----
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(21, 40, 69);
-                doc.text('Ranking de Asistencia por Integrante', 14, y);
-                y += 4;
-                doc.setFillColor(200, 132, 42);
-                doc.rect(14, y, 50, 0.8, 'F');
-                y += 6;
+                y = pdfSectionTitle(doc, 'Ranking de Asistencia', y, 210);
 
                 const memberStats = state.members.map(m => {
                     const recs = state.records.filter(r => r.memberId === m.id);
