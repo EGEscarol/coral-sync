@@ -9453,9 +9453,9 @@
                 // ── Nombre del miembro / título centrado a 20pt ──
                 // Zona disponible horizontalmente: desde el logo (~62mm) hasta los badges (~148mm)
                 const titleX = (62 + 148) / 2;  // centro entre logo y badges
-                doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(51,51,51);
-                const titleStr = title.length > 30 ? title.substring(0,28)+'..' : title;
-                doc.text(titleStr, titleX, 16, {align:'center', maxWidth:84});
+                doc.setFont('helvetica','normal'); doc.setFontSize(16); doc.setTextColor(51,51,51);
+                const titleStr = title.length > 35 ? title.substring(0,33)+'..' : title;
+                doc.text(titleStr, titleX, 17, {align:'center', maxWidth:84});
 
                 // ════════════════════════════════════════════════════════════
                 // Contenido empieza debajo de las barras (y ≈ 36mm)
