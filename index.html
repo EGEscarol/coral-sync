@@ -4546,6 +4546,9 @@
                     [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navPagos,
                      navAux, navActivities, navRecords, navReports, navUniforms, navDiaconos]
                         .forEach(n => { if (n) n.style.display = 'none'; });
+                    // Ocultar tarjeta rápida de uniformes en el dashboard
+                    const qcardUni = document.getElementById('qcard-uniforms');
+                    if (qcardUni) qcardUni.style.display = 'none';
                 } else if (isDirector()) {
                     [navChurches, navDirectors, navAdminLabel, navSettings, navStateDirs, navPagos, navDiaconos]
                         .forEach(n => { if (n) n.style.display = 'none'; });
@@ -4744,7 +4747,10 @@
                 if (page === 'directors') { renderDirectors(); renderAuxiliares(); }
                 if (page === 'statedirectors') renderStateDirectors();
                 if (page === 'diaconos') renderDiaconos();
-                if (page === 'uniforms') { if (isDiacono()) renderUniformesDiacono(); }
+                if (page === 'uniforms') {
+                    if (isAuxiliar()) { showPage('dashboard'); showToast('No tienes permiso para ver uniformes.'); return; }
+                    if (isDiacono()) renderUniformesDiacono();
+                }
                 if (page === 'settings') {
                     const modelInput = document.getElementById('settings-gemini-model');
                     if (modelInput && !modelInput.value) modelInput.value = localStorage.getItem('coral_gemini_model') || 'gemini-1.5-flash-latest';
