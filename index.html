@@ -8719,9 +8719,11 @@
                 const totalPosible = calcTotalPosible(actividadesOcurridas, monthVal, filteredRecs);
                 const memberStats = selectedMembers.map(m => {
                     const recs = filteredRecs.filter(r => r.memberId === m.id);
-                    const pct = calcPctMember(recs, totalPosible);
+                    // Calcular totalPosible específico para la voz de este miembro
+                    const voicePosible = calcTotalPosible(actividadesOcurridas, monthVal, filteredRecs, m.voice);
+                    const pct = calcPctMember(recs, voicePosible);
                     const racha = calcRacha(recs);
-                    return { id: m.id, name: m.name, church: m.churchName||'-', total: recs.length, pct, racha };
+                    return { id: m.id, name: m.name, church: m.churchName||'-', voice: m.voice||'', total: recs.length, pct, racha };
                 }).sort((a,b) => b.pct - a.pct || b.total - a.total);
                 const topMember = memberStats[0];
                 const bottomMember = memberStats[memberStats.length-1];
@@ -8746,15 +8748,32 @@
             }
             // Reglas de actividades: cuántas ocurrencias posibles hay en un mes dado
             // monthVal = 'YYYY-MM' o '' para todos los registros
-            function calcTotalPosibleByActivity(activityId, activityName, monthVal, allRecords) {
+            function calcTotalPosibleByActivity(activityId, activityName, monthVal, allRecords, memberVoice) {
                 const name = (activityName || '').toLowerCase();
 
                 // Actividades con calendario fijo
                 const isFixed = ['dominical','consagracion especial','consagración especial','servicio','oracion de 5','oración de 5'].some(k => name.includes(k));
 
+                // Helper: filtra registros del mismo grupo de voz del miembro
+                // Si hay registros de esa voz, usar solo esos días; si no (actividad general), usar todos
+                function daysForVoice(recs) {
+                    if (!memberVoice) return recs;
+                    // Obtener los días donde al menos alguien de la misma voz asistió
+                    const voiceDays = new Set(
+                        recs.filter(r => {
+                            const m = state.members.find(x => x.id === r.memberId);
+                            return m && m.voice === memberVoice;
+                        }).map(r => r.date)
+                    );
+                    // Si no hay ningún día con esa voz, es actividad general → usar todos los días
+                    if (voiceDays.size === 0) return recs;
+                    return recs.filter(r => voiceDays.has(r.date));
+                }
+
                 if (!monthVal) {
-                    // Sin filtro de mes: contar dias unicos con al menos un registro del grupo
-                    const days = new Set(allRecords.filter(r => r.activityId === activityId).map(r => r.date));
+                    // Sin filtro de mes: días únicos donde hubo registro de esta voz
+                    const actRecs = allRecords.filter(r => r.activityId === activityId);
+                    const days = new Set(daysForVoice(actRecs).map(r => r.date));
                     return Math.max(1, days.size);
                 }
 
@@ -8792,18 +8811,21 @@
                     return count;
                 }
                 // Actividades sin fecha fija (ensayo local, estatal, zona, actividad especial):
-                // contar dias únicos con al menos 1 registro de cualquier miembro
-                const days = new Set(allRecords.filter(r => r.activityId === activityId).map(r => r.date));
-                return Math.max(1, days.size);
+                // contar solo días donde hubo registro de la misma voz del miembro
+                const actRecs2 = allRecords.filter(r => r.activityId === activityId);
+                const days2 = new Set(daysForVoice(actRecs2).map(r => r.date));
+                return Math.max(1, days2.size);
             }
 
             // Calcula totalPosible sumando las posibles ocurrencias de CADA actividad en el periodo
-            function calcTotalPosible(actividadesIds, monthVal, allRecords) {
+            // memberVoice: si se pasa, solo cuenta días donde esa voz tuvo registros (evita contar
+            // ensayos de otras secciones como faltas para esta voz)
+            function calcTotalPosible(actividadesIds, monthVal, allRecords, memberVoice) {
                 let total = 0;
                 actividadesIds.forEach(actId => {
                     const rec = allRecords.find(r => r.activityId === actId);
                     const actName = rec ? (rec.activityName || '') : (state.activities.find(a=>a.id===actId)?.name || '');
-                    total += calcTotalPosibleByActivity(actId, actName, monthVal, allRecords);
+                    total += calcTotalPosibleByActivity(actId, actName, monthVal, allRecords, memberVoice);
                 });
                 return total || 1;
             }
@@ -9812,11 +9834,9 @@
                 });
 
                 // % asistencia global
-                const totalPosible = state.activities.reduce((sum, a) => {
-                    const uniqueDates = [...new Set(state.records.filter(r=>r.activityId===a.id).map(r=>r.date))];
-                    return sum + uniqueDates.length;
-                }, 0);
-                const pct = totalPosible > 0 ? Math.round((totalMember / totalPosible) * 100) : 0;
+                const allActIdsM = [...new Set(state.records.map(r=>r.activityId))];
+                const memberTotalPosible = calcTotalPosible(allActIdsM, '', state.records, member.voice);
+                const pct = memberTotalPosible > 0 ? Math.round((totalMember / memberTotalPosible) * 100) : 0;
 
                 // ---- ENCABEZADO ----
                 await pdfHeader(doc, member.name,
@@ -9949,11 +9969,9 @@
 
                 const memberStats = state.members.map(m => {
                     const recs = state.records.filter(r => r.memberId === m.id);
-                    const totalPosible = state.activities.reduce((sum, a) => {
-                        const uniqueDates = [...new Set(state.records.filter(r=>r.activityId===a.id).map(r=>r.date))];
-                        return sum + uniqueDates.length;
-                    }, 0);
-                    const pct = totalPosible > 0 ? Math.round((recs.length / totalPosible) * 100) : 0;
+                    const allActIdsG = [...new Set(state.records.map(r=>r.activityId))];
+                    const mTotalPosible = calcTotalPosible(allActIdsG, '', state.records, m.voice);
+                    const pct = mTotalPosible > 0 ? Math.round((recs.length / mTotalPosible) * 100) : 0;
                     return { name: m.name, church: m.churchName || '—', total: recs.length, pct };
                 }).sort((a,b) => b.total - a.total);
 
