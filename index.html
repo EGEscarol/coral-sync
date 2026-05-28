@@ -1986,6 +1986,10 @@
                 </div>
                 <div class="cs-sidebar-footer">
                     <div class="cs-sync-status" id="cs-sync-status">Conectando...</div>
+                    <button onclick="goToScanner()" style="width:100%;padding:10px;background:linear-gradient(135deg,#1a3a5c,#2a5a8c);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:0.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3" rx=".5"/></svg>
+                        Ir al Escáner
+                    </button>
                     <button class="cs-logout-btn" onclick="logout()">✕ Cerrar sesión</button>
                 </div>
             </div>
@@ -2054,6 +2058,11 @@
                                 <div class="cs-quick-icon" style="background:#ECFDF5;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
                                 <div class="cs-quick-name">Actividades</div>
                                 <div class="cs-quick-desc">Gestionar actividades del coro</div>
+                            </div>
+                            <div id="qcard-scanner" class="cs-quick-card" onclick="goToScanner()" style="border:2px solid #1a3a5c;">
+                                <div class="cs-quick-icon" style="background:#EEF2FF;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3" rx=".5"/><path d="M14 17h3v3" stroke-width="2.2"/></svg></div>
+                                <div class="cs-quick-name" style="color:#1a3a5c;">Tomar Lista</div>
+                                <div class="cs-quick-desc">Ir al escáner y lista manual</div>
                             </div>
 
                         </div>
@@ -4454,6 +4463,21 @@
                 }
                 document.getElementById('lm-password').value = '';
                 document.getElementById('lm-password').focus();
+            }
+
+            function goToScanner() {
+                // Ir a la pantalla de escáner sin cerrar sesión
+                stopCamera && stopCamera();
+                const nameEl = document.getElementById('member-session-name');
+                const roleEl = document.getElementById('member-session-role');
+                if (nameEl && currentSession) nameEl.textContent = currentSession.name;
+                if (roleEl && currentSession) {
+                    const labels = { superadmin:'Super Admin', director:'Director', statedirector:'Dir. Estatal', auxiliar:'Auxiliar', diacono:'Diácono' };
+                    roleEl.textContent = labels[currentSession.role] || currentSession.role;
+                }
+                showView('view-member');
+                try { updateManualSelects && updateManualSelects(); } catch(e) {}
+                try { updateManualSelectsB && updateManualSelectsB(); } catch(e) {}
             }
 
             function logoutMember() {
